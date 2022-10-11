@@ -1,11 +1,36 @@
 pragma solidity >=0.8.4 <0.9.0;
 
+import '../interfaces/IKeep3r.sol';
+import '../interfaces/IPairManager.sol';
+import '../interfaces/ILSSVMPairFactory.sol';
+import './ButtPlugTicket.sol';
+import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
+
 contract ButtPlugWars {
+    address constant KEEP3R = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
+    address constant KP3R_LP = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
+    address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
+    address constant SUDOSWAP_FACTORY = address(0);
+
+    address immutable TICKET_NFT;
+
+    STATE public state = STATE.TICKET_SALE;
+    GameState public gameState;
+
+    mapping(TEAM => uint256) gameScore;
+    mapping(TEAM => uint256) matchScore;
+
+    struct GameState {
+        uint256 matchNumber;
+    }
+
     constructor() {
-        // Keep3r.addJob(address(this))
-        // kLP.approve(Keep3r, max_uint)
-        // ticket = new ERC721
-        // Sudoswap.deployPool(SALE, params, 5/9)
+        IKeep3r(KEEP3R).addJob(address(this));
+        IPairManager(KP3R_LP).approve(KEEP3R, type(uint256).max);
+
+        TICKET_NFT = address(new ButtPlugTicket());
+
+        // address sudoPool = ILSSVMPairFactory(SUDOSWAP_FACTORY).createPairETH()
         // 5/9.approveAll(SudoPool)
     }
 
@@ -22,62 +47,113 @@ contract ButtPlugWars {
         PRIZE_CEREMONY // can claim prize or honors
     }
 
+    error WrongValue();
+    error WrongState();
+    error WrongTeam();
+    error WrongTicket();
+    error WrongKeeper();
+
+    mapping(uint256 => uint256) public bondedToken;
+    mapping(uint256 => uint256) public ticketShares;
+    uint256 public totalShares;
+
     function buyTicket(uint256 _tokenId, TEAM _team) external payable {
-        // assert state = TICKET_SALE || (GAME_RUNNING & match < 9)
+        if (state == STATE.GAME_ENDED || state == STATE.PRIZE_CEREMONY) {
+            revert WrongState();
+        }
 
-        // assert msg.value between 0.05 and 1
-        // 5/9.transferFrom(msg.sender, erc721)
+        uint256 _value = msg.value;
+        if (_value < 0.05 ether || _value > 1 ether) {
+            revert WrongValue();
+        }
+        IERC20(FIVE_OUT_OF_NINE).transferFrom(msg.sender, address(this), _tokenId);
+        uint256 _ticketID = ButtPlugTicket(TICKET_NFT).mint(msg.sender, _team);
+        bondedToken[_ticketID] = _tokenId;
 
-        // shares[msg.sender] = msg.value * coeff (2 at match 1, 1 at match 8)
-        // totalShares += shares
-        // ticket.mint(supply + (_team) << 16, msg.sender)
+        ticketShares[_ticketID] = _value * _shareCoefficient();
+        totalShares += _value;
     }
 
-    function claimPrize(uint256 _tokenId) external {
-        // assert state = GAME_ENDED
-        // asert _tokenId is winner team
-        // assert msg.sender = ticket.owner(_tokenId)
-
-        // shares = shares[_tokenId]
-        // claimedShares += shares
-        // totalShares -= shares
-
-        // prizeShares[msg.sender] += shares
-        // totalPrizeShares += shares
-        // ticket.burn(_tokenId)
+    function _shareCoefficient() internal returns (uint256) {
+        // coeff (2 at match 1, 1 at match 8)
+        return 1;
     }
 
-    function withdrawPrize(uint256 _tokenId) external {
-        // assert state = PRIZE_CEREMONY
-        // kLPshare = prizeShares[msg.sender] / totalPrizeShares * totalPrize
-        // kLP.transfer(msg.sender, kLPshare)
+    mapping(address => uint256) public playerPrizeShares;
+    uint256 totalPrizeShares;
+    uint256 totalPrize;
+
+    function claimPrize(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
+        if (state != STATE.GAME_ENDED) {
+            revert WrongState();
+        }
+
+        TEAM _team = TEAM(_ticketID >> 59);
+        if (matchScore[_team] < 5) {
+            revert WrongTeam();
+        }
+
+        uint256 _shares = ticketShares[_ticketID];
+        playerPrizeShares[msg.sender] += _shares;
+        totalPrizeShares += _shares;
+
+        delete ticketShares[_ticketID];
+        totalShares -= _shares;
+
+        ButtPlugTicket(TICKET_NFT).burn(_ticketID);
+        uint256 _tokenId = bondedToken[_ticketID];
+        // sudoswap add _tokenId as liquidity
     }
 
-    function claimHonor(uint256 _tokenId) external {
-        // assert state = PRIZE_CEREMONY
-        // assert msg.sender = ticket.owner(_tokenId)
+    function withdrawPrize() external {
+        if (state != STATE.PRIZE_CEREMONY) {
+            revert WrongState();
+        }
+
+        uint256 _withdrawnPrize = playerPrizeShares[msg.sender] * totalPrize / totalPrizeShares;
+        IPairManager(KP3R_LP).transfer(msg.sender, _withdrawnPrize);
+
+        delete playerPrizeShares[msg.sender];
+    }
+
+    function claimHonor(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
+        if (state != STATE.PRIZE_CEREMONY) {
+            revert WrongState();
+        }
+
         // sales = Sudoswap.withdrawETH
         // totalSales += sales
-        // shareCoefficient = shares[_tokenId] / totalShares
+        // shareCoefficient = shares[_ticketID] / totalShares
         // claimable = (shareCoefficient * totalSales) - claimed[_tokenId]
         // claimed[_tokenId] += claimable
         // transfer(msg.sender, claimable)
     }
 
-    function returnTicket(uint256 _tokenId) external {
-        // assert state = PRIZE_CEREMONY
-        // assert msg.sender = ticket.owner(_tokenId)
-        // claimHonor(_tokenId)
-        // totalSales -= claimed[_tokenId]
-        // totalShares -= shares[_tokenId]
-        // ticket.burn(_tokenId)
-        // 5/7.transfer(msg.sender, deposited[_tokenId])
+    mapping(uint256 => uint256) claimedSales;
+    uint256 totalSales;
+
+    function returnTicket(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
+        if (state != STATE.PRIZE_CEREMONY) {
+            revert WrongState();
+        }
+
+        // claimHonor()
+        totalSales -= claimedSales[_ticketID];
+        totalShares -= ticketShares[_ticketID];
+
+        ButtPlugTicket(TICKET_NFT).burn(_ticketID);
+
+        uint256 _tokenId = bondedToken[_ticketID];
+        IERC20(FIVE_OUT_OF_NINE).transfer(msg.sender, _tokenId);
     }
 
     /* Keep3r Management */
 
     function addLiquidityToJob() external {
-        // assert state = GAME_RUNNING || TICKET_SALE
+        if (state == STATE.GAME_ENDED || state == STATE.PRIZE_CEREMONY) {
+            revert WrongState();
+        }
+
         // assert cooldown (3d) have passed
 
         // eth = balance(this)
@@ -90,27 +166,27 @@ contract ButtPlugWars {
         // Keep3r.addLiquidityToJob(address(this), kLP, kLP.balance(this))
     }
 
-    function unbondLiquidity() external {
-        // assert state = GAME_ENDED
-        // assert it's run only once
-
-        // totalPrize = Keep3r.liquidityAmounts(address(this), kLP)
-        // Keep3r.unbondLiquidityFromJob(address(this), kLP, totalPrize)
+    function unbondLiquidity() internal {
+        totalPrize = IKeep3r(KEEP3R).liquidityAmounts(address(this), KP3R_LP);
+        IKeep3r(KEEP3R).unbondLiquidityFromJob(address(this), KP3R_LP, totalPrize);
+        state = STATE.GAME_ENDED;
     }
 
     function withdrawLiquidity() external {
-        // assert state = GAME_ENDED
-        // reverts unless cooldown
-        // Keep3r.withdrawLiquidityFromJob(address(this), kLP)
-        // sets state to PRIZE_CEREMONY
-        // set state = PRIZE_CEREMONY
+        if (state != STATE.GAME_ENDED) {
+            revert WrongState();
+        }
+        /// @dev Method reverts unless 2w cooldown since unbond tx
+        IKeep3r(KEEP3R).withdrawLiquidityFromJob(address(this), KP3R_LP);
+        state = STATE.PRIZE_CEREMONY;
     }
 
     modifier upkeep(address _keeper) {
-        // assert Keep3r.isKeeper(_keeper)
-        // assert 5/7.balanceOf(_keeper) >= matchNumber
+        if (!IKeep3r(KEEP3R).isKeeper(_keeper) || IERC20(FIVE_OUT_OF_NINE).balanceOf(_keeper) < gameState.matchNumber) {
+            revert WrongKeeper();
+        }
         _;
-        // Keep3r.worked(_keeper)
+        IKeep3r(KEEP3R).worked(_keeper);
     }
 
     /* Game mechanics */
@@ -150,13 +226,31 @@ contract ButtPlugWars {
 
     /* Vote mechanics */
 
-    function voteButtPlug(address _buttPlug, uint256 _tokenId) external {
-        // team = f(_tokenId)
-        // prevButtPlug = previousVote[_tokenId]
-        // weight[team][prevButtPlug] -= shares[_tokenId]
-        // weight[team][buttplug] += shares[_tokenId]
-        // prevButtPlug = _buttPlug
-        // if weight > currentButPlug[team].weight
-        // currentButPlug[team] = address
+    mapping(address => uint256) buttPlugVotes;
+    mapping(uint256 => uint256) ticketVoteWeight;
+    mapping(uint256 => address) ticketVote;
+    mapping(TEAM => address) buttPlug;
+
+    function voteButtPlug(address _buttPlug, uint256 _ticketID) external onlyTicketOwner(_ticketID) {
+        TEAM _team = TEAM(_ticketID >> 59);
+        uint256 _weight = ticketShares[_ticketID];
+
+        address _previousVote = ticketVote[_ticketID];
+        if (_previousVote != address(0)) {
+            buttPlugVotes[_previousVote] -= _weight;
+        }
+        ticketVote[_ticketID] = _buttPlug;
+        buttPlugVotes[_buttPlug] += _weight;
+
+        if (buttPlugVotes[_buttPlug] > buttPlugVotes[buttPlug[_team]]) {
+            buttPlug[_team] = _buttPlug;
+        }
+    }
+
+    modifier onlyTicketOwner(uint256 _ticketID) {
+        if (ButtPlugTicket(TICKET_NFT).ownerOf(_ticketID) != msg.sender) {
+            revert WrongTicket();
+        }
+        _;
     }
 }
