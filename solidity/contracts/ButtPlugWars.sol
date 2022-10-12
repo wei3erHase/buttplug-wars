@@ -100,7 +100,7 @@ contract ButtPlugWars {
         if (state != STATE.GAME_ENDED) revert WrongState();
 
         TEAM _team = TEAM(_ticketID >> 59);
-        if (matchScore[_team] < 5) revert WrongTeam();
+        if (gameScore[_team] < 5) revert WrongTeam();
 
         uint256 _shares = ticketShares[_ticketID];
         playerPrizeShares[msg.sender] += _shares;
