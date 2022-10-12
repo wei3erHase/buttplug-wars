@@ -73,6 +73,7 @@ contract ButtPlugWars {
     mapping(uint256 => uint256) public ticketShares;
     uint256 public totalShares;
 
+    /// @dev Allows the signer to purchase a NFT, bonding a 5/9 and paying ETH price
     function buyTicket(uint256 _tokenId, TEAM _team) external payable {
         if (state == STATE.GAME_ENDED || state == STATE.PRIZE_CEREMONY) revert WrongState();
 
@@ -96,6 +97,7 @@ contract ButtPlugWars {
     uint256 totalPrizeShares;
     uint256 totalPrize;
 
+    /// @dev Allows players (winner team) to burn their token in exchange for a share of the prize
     function claimPrize(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
         if (state != STATE.GAME_ENDED) revert WrongState();
 
@@ -114,6 +116,7 @@ contract ButtPlugWars {
         // sudoswap add _tokenId as liquidity
     }
 
+    /// @dev Allow players who claimed prize to withdraw their funds
     function withdrawPrize() external {
         if (state != STATE.PRIZE_CEREMONY) revert WrongState();
 
@@ -123,6 +126,7 @@ contract ButtPlugWars {
         delete playerPrizeShares[msg.sender];
     }
 
+    /// @dev Allows players (who didn't claim the prize) to withdraw ETH from the pool sales
     function claimHonor(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongState();
 
@@ -137,6 +141,7 @@ contract ButtPlugWars {
     mapping(uint256 => uint256) claimedSales;
     uint256 totalSales;
 
+    /// @dev Allows players to return their ticket and get the bonded NFT withdrawn
     function returnTicket(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongState();
 
@@ -155,6 +160,7 @@ contract ButtPlugWars {
     uint256 public addLiquidityCooldown;
 
     // NOTE: easier if ticket price was in kLP instead of ETH
+    /// @dev Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
     function addLiquidityToJob() external {
         if (state == STATE.GAME_ENDED || state == STATE.PRIZE_CEREMONY) revert WrongState();
 
@@ -185,12 +191,14 @@ contract ButtPlugWars {
         // Keep3r.addLiquidityToJob(address(this), kLP, kLP.balance(this))
     }
 
+    /// @dev Called at checkmate routine, if one of the teams has score == 5
     function unbondLiquidity() internal {
         totalPrize = IKeep3r(KEEP3R).liquidityAmounts(address(this), KP3R_LP);
         IKeep3r(KEEP3R).unbondLiquidityFromJob(address(this), KP3R_LP, totalPrize);
         state = STATE.GAME_ENDED;
     }
 
+    /// @dev Open method, allows signer (after unbonding) to withdraw kLPs
     function withdrawLiquidity() external {
         if (state != STATE.GAME_ENDED) revert WrongState();
         /// @dev Method reverts unless 2w cooldown since unbond tx
@@ -248,6 +256,7 @@ contract ButtPlugWars {
     mapping(uint256 => address) ticketVote;
     mapping(TEAM => address) buttPlug;
 
+    /// @dev Allows players to vote for their preferred ButtPlug
     function voteButtPlug(address _buttPlug, uint256 _ticketID) external onlyTicketOwner(_ticketID) {
         if (_buttPlug == address(0)) revert WrongValue();
 
