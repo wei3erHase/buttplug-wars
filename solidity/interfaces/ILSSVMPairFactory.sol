@@ -21,8 +21,5 @@ interface ILSSVMPairFactory {
         uint96 _fee,
         uint128 _spotPrice,
         uint256[] calldata _initialNFTIDs
-    )
-        external
-        payable
-        returns (LSSVMPairETH pair);
+    ) external payable returns (LSSVMPairETH pair);
 }

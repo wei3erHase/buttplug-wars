@@ -28,9 +28,7 @@ contract ButtPlugTicket is ERC721 {
     error OnlyGame();
 
     modifier onlyGame() {
-        if (msg.sender != owner) {
-            revert OnlyGame();
-        }
+        if (msg.sender != owner) revert OnlyGame();
         _;
     }
 }
