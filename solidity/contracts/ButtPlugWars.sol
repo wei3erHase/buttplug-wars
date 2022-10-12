@@ -35,7 +35,6 @@ contract ButtPlugWars {
     constructor() {
         IKeep3r(KEEP3R).addJob(address(this));
 
-        IERC20(KP3R_V1).approve(SWAP_ROUTER, type(uint256).max);
         IERC20(WETH_9).approve(SWAP_ROUTER, type(uint256).max);
 
         IERC20(KP3R_V1).approve(KP3R_LP, type(uint256).max);
@@ -159,7 +158,6 @@ contract ButtPlugWars {
 
     uint256 public addLiquidityCooldown;
 
-    // NOTE: easier if ticket price was in kLP instead of ETH
     /// @dev Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
     function addLiquidityToJob() external {
         if (state == STATE.GAME_ENDED || state == STATE.PRIZE_CEREMONY) revert WrongState();
@@ -168,27 +166,26 @@ contract ButtPlugWars {
         addLiquidityCooldown = block.timestamp + 3 days;
 
         uint256 _eth = address(this).balance;
-        IWeth(WETH_9).deposit{value: _eth / 2};
+        IWeth(WETH_9).deposit{value: _eth};
 
         ISwapRouter.ExactInputSingleParams memory _params = ISwapRouter.ExactInputSingleParams({
-            tokenIn: KP3R_V1,
-            tokenOut: WETH_9,
+            tokenIn: WETH_9,
+            tokenOut: KP3R_V1,
             fee: 10_000,
             recipient: address(this),
             deadline: block.timestamp,
-            amountIn: _eth / 2, // TODO: review math
+            amountIn: _eth / 2,
             amountOutMinimum: 0,
             sqrtPriceLimitX96: 0
         });
 
-        // eth = balance(this)
-        // kp3r = kp3r.balance(this)
+        ISwapRouter(SWAP_ROUTER).exactInputSingle(_params);
 
-        // eth -= (calc KP3Rs for ETH) / 2
-        // kp3r += swap ETH for KP3Rs
-        // mint kLPs
+        uint256 wethBalance = IERC20(WETH_9).balanceOf(address(this));
+        uint256 kp3rBalance = IERC20(KP3R_V1).balanceOf(address(this));
 
-        // Keep3r.addLiquidityToJob(address(this), kLP, kLP.balance(this))
+        uint256 kLPBalance = IPairManager(KP3R_LP).mint(kp3rBalance, wethBalance, 0, 0, address(this));
+        IKeep3r(KEEP3R).addLiquidityToJob(address(this), KP3R_LP, kLPBalance);
     }
 
     /// @dev Called at checkmate routine, if one of the teams has score == 5
