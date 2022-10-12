@@ -7,6 +7,7 @@ import '../interfaces/ISwapRouter.sol';
 import '../interfaces/IWeth9.sol';
 import './ButtPlugTicket.sol';
 import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
+import {ERC721} from 'isolmate/tokens/ERC721.sol';
 
 contract ButtPlugWars {
     address constant KEEP3R = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
@@ -78,7 +79,7 @@ contract ButtPlugWars {
 
         uint256 _value = msg.value;
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
-        IERC20(FIVE_OUT_OF_NINE).transferFrom(msg.sender, address(this), _tokenId);
+        ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(msg.sender, address(this), _tokenId);
 
         uint256 _ticketID = ButtPlugTicket(TICKET_NFT).mint(msg.sender, _team);
         bondedToken[_ticketID] = _tokenId;
@@ -159,14 +160,14 @@ contract ButtPlugWars {
     uint256 public addLiquidityCooldown;
 
     /// @dev Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
-    function addLiquidityToJob() external {
+    function addLiquidity() external {
         if (state == STATE.GAME_ENDED || state == STATE.PRIZE_CEREMONY) revert WrongState();
 
         if (block.timestamp < addLiquidityCooldown) revert WrongTiming();
         addLiquidityCooldown = block.timestamp + 3 days;
 
         uint256 _eth = address(this).balance;
-        IWeth(WETH_9).deposit{value: _eth};
+        IWeth(WETH_9).deposit{value: _eth}();
 
         ISwapRouter.ExactInputSingleParams memory _params = ISwapRouter.ExactInputSingleParams({
             tokenIn: WETH_9,
@@ -190,7 +191,7 @@ contract ButtPlugWars {
 
     /// @dev Called at checkmate routine, if one of the teams has score == 5
     function unbondLiquidity() internal {
-        totalPrize = IKeep3r(KEEP3R).liquidityAmounts(address(this), KP3R_LP);
+        totalPrize = IKeep3r(KEEP3R).liquidityAmount(address(this), KP3R_LP);
         IKeep3r(KEEP3R).unbondLiquidityFromJob(address(this), KP3R_LP, totalPrize);
         state = STATE.GAME_ENDED;
     }
@@ -199,7 +200,7 @@ contract ButtPlugWars {
     function withdrawLiquidity() external {
         if (state != STATE.GAME_ENDED) revert WrongState();
         /// @dev Method reverts unless 2w cooldown since unbond tx
-        IKeep3r(KEEP3R).withdrawLiquidityFromJob(address(this), KP3R_LP);
+        IKeep3r(KEEP3R).withdrawLiquidityFromJob(address(this), KP3R_LP, address(this));
         state = STATE.PRIZE_CEREMONY;
     }
 
@@ -271,5 +272,12 @@ contract ButtPlugWars {
     modifier onlyTicketOwner(uint256 _ticketID) {
         if (ButtPlugTicket(TICKET_NFT).ownerOf(_ticketID) != msg.sender) revert WrongTicket();
         _;
+    }
+
+    function onERC721Received(address operator, address from, uint256 id, bytes calldata data)
+        external
+        returns (bytes4)
+    {
+        return 0x150b7a02;
     }
 }
