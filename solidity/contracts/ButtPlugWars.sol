@@ -8,8 +8,11 @@ import '../interfaces/IWeth9.sol';
 import './ButtPlugTicket.sol';
 import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
 import {ERC721} from 'isolmate/tokens/ERC721.sol';
+import {SafeTransferLib} from 'isolmate/utils/SafeTransferLib.sol';
 
 contract ButtPlugWars {
+    using SafeTransferLib for address payable;
+
     address constant KEEP3R = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
 
     address constant KP3R_V1 = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
@@ -19,9 +22,12 @@ contract ButtPlugWars {
     address constant SWAP_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
 
     address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
-    address constant SUDOSWAP_FACTORY = address(0);
+
+    address constant SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
+    address constant SUDOSWAP_BONDING_CURVE = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
 
     address immutable TICKET_NFT;
+    address immutable SUDOSWAP_POOL;
 
     STATE public state = STATE.TICKET_SALE;
     GameState public gameState;
@@ -44,9 +50,23 @@ contract ButtPlugWars {
         IPairManager(KP3R_LP).approve(KEEP3R, type(uint256).max);
 
         TICKET_NFT = address(new ButtPlugTicket());
+        uint256[] memory _initialNFTIDs = new uint256[](0);
 
-        // address sudoPool = ILSSVMPairFactory(SUDOSWAP_FACTORY).createPairETH()
-        // 5/9.approveAll(SudoPool)
+        // TODO: setup curve / delta
+        SUDOSWAP_POOL = address(
+            ILSSVMPairFactory(SUDOSWAP_FACTORY).createPairETH({
+                _nft: IERC721(FIVE_OUT_OF_NINE),
+                _bondingCurve: ICurve(SUDOSWAP_BONDING_CURVE),
+                _assetRecipient: payable(address(this)),
+                _poolType: LSSVMPair.PoolType.NFT,
+                _delta: 0,
+                _fee: 0,
+                _spotPrice: 0,
+                _initialNFTIDs: _initialNFTIDs
+            })
+        );
+
+        ERC721(FIVE_OUT_OF_NINE).setApprovalForAll(SUDOSWAP_POOL, true);
     }
 
     enum TEAM {
@@ -113,7 +133,8 @@ contract ButtPlugWars {
 
         ButtPlugTicket(TICKET_NFT).burn(_ticketID);
         uint256 _tokenId = bondedToken[_ticketID];
-        // sudoswap add _tokenId as liquidity
+
+        ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _ticketID);
     }
 
     /// @dev Allow players who claimed prize to withdraw their funds
@@ -126,16 +147,27 @@ contract ButtPlugWars {
         delete playerPrizeShares[msg.sender];
     }
 
+    uint256 constant BASE = 1 ether;
+    mapping(uint256 => uint256) claimed;
+
     /// @dev Allows players (who didn't claim the prize) to withdraw ETH from the pool sales
     function claimHonor(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongState();
+        _claimHonor(_ticketID);
+    }
 
-        // sales = Sudoswap.withdrawETH
-        // totalSales += sales
-        // shareCoefficient = shares[_ticketID] / totalShares
-        // claimable = (shareCoefficient * totalSales) - claimed[_tokenId]
-        // claimed[_tokenId] += claimable
-        // transfer(msg.sender, claimable)
+    function _claimHonor(uint256 _ticketID) internal {
+        uint256 _sales = address(this).balance;
+        LSSVMPairETH(SUDOSWAP_POOL).withdrawAllETH();
+        _sales = address(this).balance - _sales;
+
+        totalSales += _sales;
+
+        uint256 shareCoefficient = BASE * ticketShares[_ticketID] / totalShares;
+        uint256 _claimable = (shareCoefficient * totalSales / BASE) - claimed[_ticketID];
+        claimed[_ticketID] += _claimable;
+
+        payable(msg.sender).safeTransferETH(_claimable);
     }
 
     mapping(uint256 => uint256) claimedSales;
@@ -145,7 +177,7 @@ contract ButtPlugWars {
     function returnTicket(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongState();
 
-        // claimHonor()
+        _claimHonor(_ticketID);
         totalSales -= claimedSales[_ticketID];
         totalShares -= ticketShares[_ticketID];
 
@@ -274,10 +306,10 @@ contract ButtPlugWars {
         _;
     }
 
-    function onERC721Received(address operator, address from, uint256 id, bytes calldata data)
-        external
-        returns (bytes4)
-    {
+    function onERC721Received(address, address, uint256 _id, bytes calldata) external returns (bytes4) {
+        if (msg.sender == FIVE_OUT_OF_NINE) {
+            ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _id);
+        }
         return 0x150b7a02;
     }
 }
