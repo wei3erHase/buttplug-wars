@@ -1,5 +1,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 
+import '../interfaces/IChess.sol';
+import '../interfaces/IButtPlug.sol';
 import '../interfaces/IKeep3r.sol';
 import '../interfaces/IPairManager.sol';
 import '../interfaces/ILSSVMPairFactory.sol';
@@ -19,6 +21,8 @@ contract ButtPlugWars {
     address constant SWAP_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
 
     address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
+    uint256 constant CHECKMATE = 0x32562300110101000010010000000C0099999000BCDE0B000000001;
+
     address constant SUDOSWAP_FACTORY = address(0);
 
     address immutable TICKET_NFT;
@@ -27,7 +31,10 @@ contract ButtPlugWars {
     GameState public gameState;
 
     mapping(TEAM => uint256) gameScore;
-    mapping(TEAM => uint256) matchScore;
+    mapping(TEAM => int256) matchScore;
+
+    uint256 public canPlayNext;
+    uint256 constant COOLDOWN = 30 minutes;
 
     struct GameState {
         uint256 matchNumber;
@@ -68,6 +75,7 @@ contract ButtPlugWars {
     error WrongTicket();
     error WrongKeeper();
     error WrongTiming();
+    error WrongMethod();
 
     mapping(uint256 => uint256) public bondedToken;
     mapping(uint256 => uint256) public ticketShares;
@@ -215,29 +223,49 @@ contract ButtPlugWars {
     /* Game mechanics */
 
     function executeMove() external upkeep(msg.sender) {
-        // _team = _readTeam(block.timestamp)
-        // board = 5/9.board()
+        TEAM _team = _getTeam();
+        uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
 
-        /* try catch */
-        // move = buttplug[_team].readMove(board)
-        // depth = f(seed, _keeper, t(%4hrs))
-        // newBoard = 5/9.mintMove(move, depth)
-        /* if reverts, -1 point & NEXT_TEAM state */
-
-        // seed = keccak(board);
-
-        /* if checkmate */
-        // if score[A] >= score[B] => matches[A]++
-        // if score[B] >= score[A] => matches[B]++
-
-        // sets state = NEXT_TEAM
-        // matchNumber++
-
-        // if matches[A] >= 5 (winner[A] = true) & state = GAME_ENDED
-        // if matches[B] >= 5 (winner[B] = true) & state = GAME_ENDED
-        /* else: no checkmate */
-        // score[_team] += _calcScore(board,newBoard)
+        try ButtPlugWars(this).playMove(_board, _team) {
+            uint256 _newBoard = IChess(FIVE_OUT_OF_NINE).board();
+            if (_newBoard == CHECKMATE) {
+                if (matchScore[TEAM.A] >= matchScore[TEAM.B]) gameScore[TEAM.A]++;
+                if (matchScore[TEAM.B] >= matchScore[TEAM.A]) gameScore[TEAM.B]++;
+                ++gameState.matchNumber;
+                canPlayNext = _getNextPeriod();
+            } else {
+                matchScore[_team] += _calcScore(_board, _newBoard);
+                canPlayNext = block.timestamp + COOLDOWN;
+            }
+        } // if playMove() reverts, team gets -1 point and next team is to play
+        catch {
+            --matchScore[_team];
+            canPlayNext = _getNextPeriod();
+        }
     }
+
+    uint256 constant PERIOD = 5 days;
+
+    function playMove(uint256 _board, TEAM _team) external {
+        if (msg.sender != address(this)) revert WrongMethod();
+
+        address _buttPlug = buttPlug[_team];
+        uint256 _move = IButtPlug(buttPlug[_team]).readMove(_board);
+        uint256 _depth = _calcDepth(_board, msg.sender);
+        IChess(FIVE_OUT_OF_NINE).mintMove(_move, _depth);
+    }
+
+    function _getTeam() internal view returns (TEAM _team) {
+        uint256 _timestamp = block.timestamp;
+        _team = TEAM((_timestamp - (_timestamp % PERIOD)) % 2);
+    }
+
+    function _getNextPeriod() internal view returns (uint256 _nextPeriod) {
+        uint256 _timestamp = block.timestamp;
+        _nextPeriod = (_timestamp + PERIOD) - ((_timestamp + PERIOD) % PERIOD);
+    }
+
+    function _calcDepth(uint256 _salt, address _keeper) internal view returns (uint256 _depth) {}
 
     function _calcScore(uint256 _previousBoard, uint256 _newBoard) internal pure returns (int8 _score) {
         // counts w&b pieces on _previousBoard
