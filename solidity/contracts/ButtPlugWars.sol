@@ -65,8 +65,6 @@ contract ButtPlugWars {
                 _initialNFTIDs: _initialNFTIDs
             })
         );
-
-        ERC721(FIVE_OUT_OF_NINE).setApprovalForAll(SUDOSWAP_POOL, true);
     }
 
     enum TEAM {
@@ -85,6 +83,7 @@ contract ButtPlugWars {
     error WrongValue();
     error WrongState();
     error WrongTeam();
+    error WrongNFT();
     error WrongTicket();
     error WrongKeeper();
     error WrongTiming();
@@ -306,10 +305,10 @@ contract ButtPlugWars {
         _;
     }
 
-    function onERC721Received(address, address, uint256 _id, bytes calldata) external returns (bytes4) {
-        if (msg.sender == FIVE_OUT_OF_NINE) {
-            ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _id);
-        }
+    function onERC721Received(address, address _from, uint256 _id, bytes calldata) external returns (bytes4) {
+        if (msg.sender != FIVE_OUT_OF_NINE) revert WrongNFT();
+        // if token is newly minted transfer to sudoswap pool
+        if (_from == address(0)) ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _id);
         return 0x150b7a02;
     }
 }
