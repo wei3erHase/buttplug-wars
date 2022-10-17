@@ -5,13 +5,14 @@ import '../interfaces/IPairManager.sol';
 import '../interfaces/ILSSVMPairFactory.sol';
 import '../interfaces/ISwapRouter.sol';
 import '../interfaces/IWeth9.sol';
-import './ButtPlugTicket.sol';
 import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
 import {ERC721} from 'isolmate/tokens/ERC721.sol';
 import {SafeTransferLib} from 'isolmate/utils/SafeTransferLib.sol';
 
-contract ButtPlugWars {
+contract ButtPlugWars is ERC721 {
     using SafeTransferLib for address payable;
+
+    address constant THE_RABBIT = 0xC5233C3b46C83ADEE1039D340094173f0f7c1EcF;
 
     address constant KEEP3R = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
 
@@ -26,7 +27,8 @@ contract ButtPlugWars {
     address constant SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
     address constant SUDOSWAP_BONDING_CURVE = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
 
-    address immutable TICKET_NFT;
+    address public immutable owner;
+    uint256 public totalSupply;
     address immutable SUDOSWAP_POOL;
 
     STATE public state = STATE.TICKET_SALE;
@@ -39,7 +41,9 @@ contract ButtPlugWars {
         uint256 matchNumber;
     }
 
-    constructor() {
+    constructor() ERC721('ButtPlugTicket', unicode'♙') {
+        owner = THE_RABBIT;
+
         IKeep3r(KEEP3R).addJob(address(this));
 
         IERC20(WETH_9).approve(SWAP_ROUTER, type(uint256).max);
@@ -49,7 +53,6 @@ contract ButtPlugWars {
 
         IPairManager(KP3R_LP).approve(KEEP3R, type(uint256).max);
 
-        TICKET_NFT = address(new ButtPlugTicket());
         uint256[] memory _initialNFTIDs = new uint256[](0);
 
         // TODO: setup curve / delta
@@ -100,7 +103,7 @@ contract ButtPlugWars {
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
         ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(msg.sender, address(this), _tokenId);
 
-        uint256 _ticketID = ButtPlugTicket(TICKET_NFT).mint(msg.sender, _team);
+        uint256 _ticketID = _mint(msg.sender, _team);
         bondedToken[_ticketID] = _tokenId;
 
         ticketShares[_ticketID] = _value * _shareCoefficient();
@@ -130,7 +133,7 @@ contract ButtPlugWars {
         delete ticketShares[_ticketID];
         totalShares -= _shares;
 
-        ButtPlugTicket(TICKET_NFT).burn(_ticketID);
+        _burn(_ticketID);
         uint256 _tokenId = bondedToken[_ticketID];
 
         ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _ticketID);
@@ -180,7 +183,7 @@ contract ButtPlugWars {
         totalSales -= claimedSales[_ticketID];
         totalShares -= ticketShares[_ticketID];
 
-        ButtPlugTicket(TICKET_NFT).burn(_ticketID);
+        _burn(_ticketID);
 
         uint256 _tokenId = bondedToken[_ticketID];
         IERC20(FIVE_OUT_OF_NINE).transfer(msg.sender, _tokenId);
@@ -301,7 +304,7 @@ contract ButtPlugWars {
     }
 
     modifier onlyTicketOwner(uint256 _ticketID) {
-        if (ButtPlugTicket(TICKET_NFT).ownerOf(_ticketID) != msg.sender) revert WrongTicket();
+        if (ownerOf[_ticketID] != msg.sender) revert WrongTicket();
         _;
     }
 
@@ -311,4 +314,17 @@ contract ButtPlugWars {
         if (_from == address(0)) ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _id);
         return 0x150b7a02;
     }
+
+    function _mint(address _receiver, ButtPlugWars.TEAM _team) internal returns (uint256 _ticketID) {
+        _ticketID = ++totalSupply;
+        _ticketID += uint256(_team) << 59;
+        _mint(_receiver, _ticketID);
+    }
+
+    function _burn(uint256 _ticketID) internal override {
+        totalSupply--;
+        super._burn(_ticketID);
+    }
+
+    function tokenURI(uint256 id) public view virtual override returns (string memory) {}
 }
