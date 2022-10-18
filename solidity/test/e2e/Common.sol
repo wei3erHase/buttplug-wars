@@ -39,7 +39,7 @@ contract ButtPlugWarsForTest is ButtPlugWars {
     }
 
     function internalUnbondLiquidity() external {
-        unbondLiquidity();
+        _unbondLiquidity();
     }
 
     function workForTest() external {
