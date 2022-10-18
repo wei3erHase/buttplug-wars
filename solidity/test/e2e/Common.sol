@@ -4,6 +4,7 @@ pragma solidity >=0.8.4 <0.9.0;
 import {DSTestFull} from 'test/utils/DSTestFull.sol';
 import {console} from 'forge-std/console.sol';
 
+import {LSSVMPair} from 'interfaces/ILSSVMPairFactory.sol';
 import {ButtPlugWars, IKeep3r} from 'contracts/ButtPlugWars.sol';
 import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
 import {ERC721} from 'isolmate/tokens/ERC721.sol';
@@ -16,6 +17,7 @@ contract CommonE2EBase is DSTestFull {
     ButtPlugWars buttPlugWars;
     ERC721 fiveOutOfNine = ERC721(0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0);
     IKeep3r keep3r = IKeep3r(0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC);
+    LSSVMPair sudoPool;
     address constant KP3R_V1 = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
 
     function setUp() public {
@@ -27,6 +29,7 @@ contract CommonE2EBase is DSTestFull {
         keep3r.activate(KP3R_V1);
 
         buttPlugWars = new ButtPlugWarsForTest();
+        sudoPool = LSSVMPair(buttPlugWars.SUDOSWAP_POOL());
     }
 }
 
