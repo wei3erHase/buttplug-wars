@@ -296,7 +296,7 @@ contract ButtPlugWars is ERC721 {
     }
 
     function _getRoundTimestamp(uint256 _timestamp, uint256 _period) internal view returns (uint256 _roundTimestamp) {
-        _roundTimestamp = (_timestamp + _period) - ((_timestamp + _period) % _period);
+        _roundTimestamp = _timestamp - (_timestamp % _period);
     }
 
     function _calcDepth(uint256 _salt, address _keeper) internal view returns (uint256 _depth) {
