@@ -223,6 +223,8 @@ contract ButtPlugWars {
     /* Game mechanics */
 
     function executeMove() external upkeep(msg.sender) {
+        if (block.timestamp < canPlayNext) revert WrongTiming();
+
         TEAM _team = _getTeam();
         uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
 
