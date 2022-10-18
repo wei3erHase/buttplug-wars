@@ -29,7 +29,7 @@ contract ButtPlugWars is ERC721 {
 
     address public immutable owner;
     uint256 public totalSupply;
-    address immutable SUDOSWAP_POOL;
+    address public immutable SUDOSWAP_POOL;
 
     STATE public state = STATE.TICKET_SALE;
     GameState public gameState;
