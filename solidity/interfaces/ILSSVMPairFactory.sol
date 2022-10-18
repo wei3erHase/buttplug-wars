@@ -6,10 +6,16 @@ interface IERC721 {}
 interface ICurve {}
 
 interface LSSVMPair {
-    enum PoolType {SELL}
+    enum PoolType {
+        TOKEN,
+        NFT,
+        TRADE
+    }
 }
 
-interface LSSVMPairETH is LSSVMPair {}
+interface LSSVMPairETH is LSSVMPair {
+    function withdrawAllETH() external;
+}
 
 interface ILSSVMPairFactory {
     function createPairETH(
