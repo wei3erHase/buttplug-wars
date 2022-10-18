@@ -267,7 +267,7 @@ contract ButtPlugWars is ERC721 {
                 if (matchScore[TEAM.A] >= matchScore[TEAM.B]) gameScore[TEAM.A]++;
                 if (matchScore[TEAM.B] >= matchScore[TEAM.A]) gameScore[TEAM.B]++;
                 ++gameState.matchNumber;
-                canPlayNext = _getNextPeriod();
+                canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
             } else {
                 matchScore[_team] += _calcScore(_board, _newBoard);
                 canPlayNext = block.timestamp + COOLDOWN;
@@ -275,7 +275,7 @@ contract ButtPlugWars is ERC721 {
         } // if playMove() reverts, team gets -1 point and next team is to play
         catch {
             --matchScore[_team];
-            canPlayNext = _getNextPeriod();
+            canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
         }
     }
 
@@ -295,12 +295,14 @@ contract ButtPlugWars is ERC721 {
         _team = TEAM((_timestamp - (_timestamp % PERIOD)) % 2);
     }
 
-    function _getNextPeriod() internal view returns (uint256 _nextPeriod) {
-        uint256 _timestamp = block.timestamp;
-        _nextPeriod = (_timestamp + PERIOD) - ((_timestamp + PERIOD) % PERIOD);
+    function _getRoundTimestamp(uint256 _timestamp, uint256 _period) internal view returns (uint256 _roundTimestamp) {
+        _roundTimestamp = (_timestamp + _period) - ((_timestamp + _period) % _period);
     }
 
-    function _calcDepth(uint256 _salt, address _keeper) internal view returns (uint256 _depth) {}
+    function _calcDepth(uint256 _salt, address _keeper) internal view returns (uint256 _depth) {
+        uint256 _timeVariable = _getRoundTimestamp(block.timestamp, COOLDOWN);
+        _depth = 3 + uint256(keccak256(abi.encode(_salt, _keeper, _timeVariable))) % 8;
+    }
 
     function _calcScore(uint256 _previousBoard, uint256 _newBoard) internal pure returns (int8 _score) {
         // counts w&b pieces on _previousBoard
