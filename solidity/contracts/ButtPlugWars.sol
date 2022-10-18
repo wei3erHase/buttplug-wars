@@ -1,5 +1,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 
+import '../interfaces/IChess.sol';
+import '../interfaces/IButtPlug.sol';
 import '../interfaces/IKeep3r.sol';
 import '../interfaces/IPairManager.sol';
 import '../interfaces/ILSSVMPairFactory.sol';
@@ -23,6 +25,7 @@ contract ButtPlugWars is ERC721 {
     address constant SWAP_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
 
     address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
+    uint256 constant CHECKMATE = 0x32562300110101000010010000000C0099999000BCDE0B000000001;
 
     address constant SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
     address constant SUDOSWAP_BONDING_CURVE = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
@@ -35,7 +38,10 @@ contract ButtPlugWars is ERC721 {
     GameState public gameState;
 
     mapping(TEAM => uint256) gameScore;
-    mapping(TEAM => uint256) matchScore;
+    mapping(TEAM => int256) matchScore;
+
+    uint256 public canPlayNext;
+    uint256 constant COOLDOWN = 30 minutes;
 
     struct GameState {
         uint256 matchNumber;
@@ -90,6 +96,7 @@ contract ButtPlugWars is ERC721 {
     error WrongTicket();
     error WrongKeeper();
     error WrongTiming();
+    error WrongMethod();
 
     mapping(uint256 => uint256) public bondedToken;
     mapping(uint256 => uint256) public ticketShares;
@@ -249,28 +256,52 @@ contract ButtPlugWars is ERC721 {
     /* Game mechanics */
 
     function executeMove() external upkeep(msg.sender) {
-        // _team = _readTeam(block.timestamp)
-        // board = 5/9.board()
+        if (block.timestamp < canPlayNext) revert WrongTiming();
 
-        /* try catch */
-        // move = buttplug[_team].readMove(board)
-        // depth = f(seed, _keeper, t(%4hrs))
-        // newBoard = 5/9.mintMove(move, depth)
-        /* if reverts, -1 point & NEXT_TEAM state */
+        TEAM _team = _getTeam();
+        uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
 
-        // seed = keccak(board);
+        try ButtPlugWars(this).playMove(_board, _team) {
+            uint256 _newBoard = IChess(FIVE_OUT_OF_NINE).board();
+            if (_newBoard == CHECKMATE) {
+                if (matchScore[TEAM.A] >= matchScore[TEAM.B]) gameScore[TEAM.A]++;
+                if (matchScore[TEAM.B] >= matchScore[TEAM.A]) gameScore[TEAM.B]++;
+                ++gameState.matchNumber;
+                canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
+            } else {
+                matchScore[_team] += _calcScore(_board, _newBoard);
+                canPlayNext = block.timestamp + COOLDOWN;
+            }
+        } // if playMove() reverts, team gets -1 point and next team is to play
+        catch {
+            --matchScore[_team];
+            canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
+        }
+    }
 
-        /* if checkmate */
-        // if score[A] >= score[B] => matches[A]++
-        // if score[B] >= score[A] => matches[B]++
+    uint256 constant PERIOD = 5 days;
 
-        // sets state = NEXT_TEAM
-        // matchNumber++
+    function playMove(uint256 _board, TEAM _team) external {
+        if (msg.sender != address(this)) revert WrongMethod();
 
-        // if matches[A] >= 5 (winner[A] = true) & state = GAME_ENDED
-        // if matches[B] >= 5 (winner[B] = true) & state = GAME_ENDED
-        /* else: no checkmate */
-        // score[_team] += _calcScore(board,newBoard)
+        address _buttPlug = buttPlug[_team];
+        uint256 _move = IButtPlug(_buttPlug).readMove(_board);
+        uint256 _depth = _calcDepth(_board, msg.sender);
+        IChess(FIVE_OUT_OF_NINE).mintMove(_move, _depth);
+    }
+
+    function _getTeam() internal view returns (TEAM _team) {
+        uint256 _timestamp = block.timestamp;
+        _team = TEAM((_getRoundTimestamp(_timestamp, PERIOD) % PERIOD) % 2);
+    }
+
+    function _getRoundTimestamp(uint256 _timestamp, uint256 _period) internal view returns (uint256 _roundTimestamp) {
+        _roundTimestamp = _timestamp - (_timestamp % _period);
+    }
+
+    function _calcDepth(uint256 _salt, address _keeper) internal view returns (uint256 _depth) {
+        uint256 _timeVariable = _getRoundTimestamp(block.timestamp, COOLDOWN);
+        _depth = 3 + uint256(keccak256(abi.encode(_salt, _keeper, _timeVariable))) % 8;
     }
 
     function _calcScore(uint256 _previousBoard, uint256 _newBoard) internal pure returns (int8 _score) {
