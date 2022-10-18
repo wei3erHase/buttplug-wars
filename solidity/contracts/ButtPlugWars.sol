@@ -14,50 +14,84 @@ import {SafeTransferLib} from 'isolmate/utils/SafeTransferLib.sol';
 contract ButtPlugWars is ERC721 {
     using SafeTransferLib for address payable;
 
+    /* Address registry */
     address constant THE_RABBIT = 0xC5233C3b46C83ADEE1039D340094173f0f7c1EcF;
+    address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
 
-    address constant KEEP3R = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
-
-    address constant KP3R_V1 = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
     address constant WETH_9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address constant KP3R_V1 = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
     address constant KP3R_LP = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
 
     address constant SWAP_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-
-    address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
-    uint256 constant CHECKMATE = 0x32562300110101000010010000000C0099999000BCDE0B000000001;
-
+    address constant KEEP3R = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
     address constant SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
     address constant SUDOSWAP_EXPONENTIAL_CURVE = 0x432f962D8209781da23fB37b6B59ee15dE7d9841;
+    address public immutable SUDOSWAP_POOL;
 
+    /* IERC721 */
     address public immutable owner;
     uint256 public totalSupply;
-    address public immutable SUDOSWAP_POOL;
+
+    /* Game mechanics */
+
+    enum TEAM {
+        A,
+        B
+    }
+
+    enum STATE {
+        TICKET_SALE, // can buy tickets
+        GAME_RUNNING, // set by the first pushLiquidityToJob
+        NEXT_TEAM, // round is over and next team should start theirs
+        GAME_ENDED, // can unbondLiquidity &
+        PRIZE_CEREMONY // can claim prize or honors
+    }
+
+    uint256 constant BASE = 1 ether;
+    uint256 constant PERIOD = 5 days;
+    uint256 constant COOLDOWN = 30 minutes;
+    uint256 constant LIQUIDITY_COOLDOWN = 3 days;
+    uint256 constant CHECKMATE = 0x32562300110101000010010000000C0099999000BCDE0B000000001;
+
+    mapping(TEAM => uint256) public gameScore;
+    mapping(TEAM => int256) public matchScore;
+    uint256 public matchNumber;
+    uint256 public canPlayNext;
+    uint256 public canPushLiquidity;
 
     STATE public state = STATE.TICKET_SALE;
 
-    mapping(TEAM => uint256) gameScore;
-    mapping(TEAM => int256) matchScore;
-    uint256 matchNumber;
+    /* Ticket mechanics */
+    uint256 public totalShares;
+    mapping(uint256 => uint256) public ticketShares;
+    mapping(uint256 => uint256) public bondedToken;
 
-    uint256 public canPlayNext;
-    uint256 constant COOLDOWN = 30 minutes;
-    uint256 constant LIQUIDITY_COOLDOWN = 3 days;
+    /* Vote mechanics */
+    mapping(TEAM => address) buttPlug;
+    mapping(address => uint256) buttPlugVotes;
+    mapping(uint256 => address) ticketVote;
+    mapping(uint256 => uint256) ticketVoteWeight;
 
+    /* Prize mechanics */
+    uint256 totalPrize;
+    uint256 totalPrizeShares;
+    mapping(address => uint256) public playerPrizeShares;
+
+    uint256 claimableSales;
+    mapping(uint256 => uint256) claimedSales;
+
+    // TODO: add a 1% royalty fee for THE_RABBIT
     constructor() ERC721('ButtPlugTicket', unicode'♙') {
-        owner = THE_RABBIT;
-
-        IKeep3r(KEEP3R).addJob(address(this));
-
+        // emit token aprovals
         IERC20(WETH_9).approve(SWAP_ROUTER, type(uint256).max);
-
         IERC20(KP3R_V1).approve(KP3R_LP, type(uint256).max);
         IERC20(WETH_9).approve(KP3R_LP, type(uint256).max);
-
         IPairManager(KP3R_LP).approve(KEEP3R, type(uint256).max);
 
-        uint256[] memory _initialNFTIDs = new uint256[](0);
+        // create Keep3r job
+        IKeep3r(KEEP3R).addJob(address(this));
 
+        // create Sudoswap pool
         SUDOSWAP_POOL = address(
             ILSSVMPairFactory(SUDOSWAP_FACTORY).createPairETH({
                 _nft: IERC721(FIVE_OUT_OF_NINE),
@@ -67,22 +101,12 @@ contract ButtPlugWars is ERC721 {
                 _spotPrice: 590000000000000000, // 0.059 ETH
                 _delta: 1059000000000000000, // 5.9 %
                 _fee: 0,
-                _initialNFTIDs: _initialNFTIDs
+                _initialNFTIDs: new uint256[](0)
             })
         );
-    }
 
-    enum TEAM {
-        A,
-        B
-    }
-
-    enum STATE {
-        TICKET_SALE, // can buy tickets
-        GAME_RUNNING, // set by the first addLiquidityToJob
-        NEXT_TEAM, // round is over and next team should start theirs
-        GAME_ENDED, // can unbondLiquidity &
-        PRIZE_CEREMONY // can claim prize or honors
+        // set the owner of the ERC721
+        owner = THE_RABBIT;
     }
 
     error WrongValue();
@@ -94,9 +118,7 @@ contract ButtPlugWars is ERC721 {
     error WrongTiming();
     error WrongMethod();
 
-    mapping(uint256 => uint256) public bondedToken;
-    mapping(uint256 => uint256) public ticketShares;
-    uint256 public totalShares;
+    /* Ticket Management */
 
     /// @dev Allows the signer to purchase a NFT, bonding a 5/9 and paying ETH price
     function buyTicket(uint256 _tokenId, TEAM _team) external payable {
@@ -116,10 +138,6 @@ contract ButtPlugWars is ERC721 {
     function _shareCoefficient() internal returns (uint256) {
         return 2 * BASE - (BASE * matchNumber / 8);
     }
-
-    mapping(address => uint256) public playerPrizeShares;
-    uint256 totalPrizeShares;
-    uint256 totalPrize;
 
     /// @dev Allows players (winner team) to burn their token in exchange for a share of the prize
     function claimPrize(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
@@ -151,9 +169,6 @@ contract ButtPlugWars is ERC721 {
         delete playerPrizeShares[msg.sender];
     }
 
-    uint256 constant BASE = 1 ether;
-    mapping(uint256 => uint256) claimed;
-
     /// @dev Allows players (who didn't claim the prize) to withdraw ETH from the pool sales
     function claimHonor(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongState();
@@ -165,24 +180,21 @@ contract ButtPlugWars is ERC721 {
         LSSVMPairETH(SUDOSWAP_POOL).withdrawAllETH();
         _sales = address(this).balance - _sales;
 
-        totalSales += _sales;
+        claimableSales += _sales;
 
         uint256 shareCoefficient = BASE * ticketShares[_ticketID] / totalShares;
-        uint256 _claimable = (shareCoefficient * totalSales / BASE) - claimed[_ticketID];
-        claimed[_ticketID] += _claimable;
+        uint256 _claimable = (shareCoefficient * claimableSales / BASE) - claimedSales[_ticketID];
+        claimedSales[_ticketID] += _claimable;
 
         payable(msg.sender).safeTransferETH(_claimable);
     }
-
-    mapping(uint256 => uint256) claimedSales;
-    uint256 totalSales;
 
     /// @dev Allows players to return their ticket and get the bonded NFT withdrawn
     function returnTicket(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongState();
 
         _claimHonor(_ticketID);
-        totalSales -= claimedSales[_ticketID];
+        claimableSales -= claimedSales[_ticketID];
         totalShares -= ticketShares[_ticketID];
 
         _burn(_ticketID);
@@ -191,17 +203,20 @@ contract ButtPlugWars is ERC721 {
         IERC20(FIVE_OUT_OF_NINE).transfer(msg.sender, _tokenId);
     }
 
+    modifier onlyTicketOwner(uint256 _ticketID) {
+        if (ownerOf[_ticketID] != msg.sender) revert WrongTicket();
+        _;
+    }
+
     /* Keep3r Management */
 
-    uint256 public addLiquidityCooldown;
-
     /// @dev Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
-    function addLiquidity() external {
+    function pushLiquidity() external {
         if (state >= STATE.GAME_ENDED) revert WrongState();
         if (state == STATE.TICKET_SALE) state = STATE.GAME_RUNNING;
 
-        if (block.timestamp < addLiquidityCooldown) revert WrongTiming();
-        addLiquidityCooldown = block.timestamp + LIQUIDITY_COOLDOWN;
+        if (block.timestamp < canPushLiquidity) revert WrongTiming();
+        canPushLiquidity = block.timestamp + LIQUIDITY_COOLDOWN;
 
         uint256 _eth = address(this).balance;
         IWeth(WETH_9).deposit{value: _eth}();
@@ -226,11 +241,15 @@ contract ButtPlugWars is ERC721 {
         IKeep3r(KEEP3R).addLiquidityToJob(address(this), KP3R_LP, kLPBalance);
     }
 
+    function _initializeGame() internal {
+        state = STATE.GAME_RUNNING;
+        ++matchNumber;
+    }
+
     /// @dev Called at checkmate routine, if one of the teams has score == 5
-    function unbondLiquidity() internal {
+    function _unbondLiquidity() internal {
         totalPrize = IKeep3r(KEEP3R).liquidityAmount(address(this), KP3R_LP);
         IKeep3r(KEEP3R).unbondLiquidityFromJob(address(this), KP3R_LP, totalPrize);
-        state = STATE.GAME_ENDED;
     }
 
     /// @dev Open method, allows signer (after unbonding) to withdraw kLPs
@@ -241,6 +260,7 @@ contract ButtPlugWars is ERC721 {
         state = STATE.PRIZE_CEREMONY;
     }
 
+    /// @dev Handles Keep3r mechanism and payment
     modifier upkeep(address _keeper) {
         if (!IKeep3r(KEEP3R).isKeeper(_keeper) || IERC20(FIVE_OUT_OF_NINE).balanceOf(_keeper) < matchNumber) {
             revert WrongKeeper();
@@ -263,6 +283,7 @@ contract ButtPlugWars is ERC721 {
                 if (matchScore[TEAM.A] >= matchScore[TEAM.B]) gameScore[TEAM.A]++;
                 if (matchScore[TEAM.B] >= matchScore[TEAM.A]) gameScore[TEAM.B]++;
                 ++matchNumber;
+                if (matchNumber > 5) _verifyWinner();
                 canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
             } else {
                 matchScore[_team] += _calcScore(_board, _newBoard);
@@ -275,7 +296,12 @@ contract ButtPlugWars is ERC721 {
         }
     }
 
-    uint256 constant PERIOD = 5 days;
+    function _verifyWinner() internal {
+        if ((matchScore[TEAM.A] == 5) || matchScore[TEAM.B] == 5) {
+            _unbondLiquidity();
+            state = STATE.GAME_ENDED;
+        }
+    }
 
     function playMove(uint256 _board, TEAM _team) external {
         if (msg.sender != address(this)) revert WrongMethod();
@@ -286,13 +312,13 @@ contract ButtPlugWars is ERC721 {
         IChess(FIVE_OUT_OF_NINE).mintMove(_move, _depth);
     }
 
+    function _getRoundTimestamp(uint256 _timestamp, uint256 _period) internal view returns (uint256 _roundTimestamp) {
+        _roundTimestamp = _timestamp - (_timestamp % _period);
+    }
+
     function _getTeam() internal view returns (TEAM _team) {
         uint256 _timestamp = block.timestamp;
         _team = TEAM((_getRoundTimestamp(_timestamp, PERIOD) % PERIOD) % 2);
-    }
-
-    function _getRoundTimestamp(uint256 _timestamp, uint256 _period) internal view returns (uint256 _roundTimestamp) {
-        _roundTimestamp = _timestamp - (_timestamp % _period);
     }
 
     function _calcDepth(uint256 _salt, address _keeper) internal view returns (uint256 _depth) {
@@ -310,11 +336,6 @@ contract ButtPlugWars is ERC721 {
 
     /* Vote mechanics */
 
-    mapping(address => uint256) buttPlugVotes;
-    mapping(uint256 => uint256) ticketVoteWeight;
-    mapping(uint256 => address) ticketVote;
-    mapping(TEAM => address) buttPlug;
-
     /// @dev Allows players to vote for their preferred ButtPlug
     function voteButtPlug(address _buttPlug, uint256 _ticketID) external onlyTicketOwner(_ticketID) {
         if (_buttPlug == address(0)) revert WrongValue();
@@ -330,18 +351,6 @@ contract ButtPlugWars is ERC721 {
         if (buttPlugVotes[_buttPlug] > buttPlugVotes[buttPlug[_team]]) buttPlug[_team] = _buttPlug;
     }
 
-    modifier onlyTicketOwner(uint256 _ticketID) {
-        if (ownerOf[_ticketID] != msg.sender) revert WrongTicket();
-        _;
-    }
-
-    function onERC721Received(address, address _from, uint256 _id, bytes calldata) external returns (bytes4) {
-        if (msg.sender != FIVE_OUT_OF_NINE) revert WrongNFT();
-        // if token is newly minted transfer to sudoswap pool
-        if (_from == address(0)) ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _id);
-        return 0x150b7a02;
-    }
-
     function _mint(address _receiver, ButtPlugWars.TEAM _team) internal returns (uint256 _ticketID) {
         _ticketID = ++totalSupply;
         _ticketID += uint256(_team) << 59;
@@ -354,4 +363,11 @@ contract ButtPlugWars is ERC721 {
     }
 
     function tokenURI(uint256 id) public view virtual override returns (string memory) {}
+
+    function onERC721Received(address, address _from, uint256 _id, bytes calldata) external returns (bytes4) {
+        if (msg.sender != FIVE_OUT_OF_NINE) revert WrongNFT();
+        // if token is newly minted transfer to sudoswap pool
+        if (_from == address(0)) ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _id);
+        return 0x150b7a02;
+    }
 }

@@ -8,7 +8,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         fiveOutOfNine.setApprovalForAll(address(buttPlugWars), true);
 
         buttPlugWars.buyTicket{value: 0.5 ether}(190, ButtPlugWars.TEAM(0));
-        buttPlugWars.addLiquidity();
+        buttPlugWars.pushLiquidity();
 
         vm.warp(block.timestamp + 1 days);
         ButtPlugWarsForTest(address(buttPlugWars)).workForTest();
@@ -17,7 +17,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         buttPlugWars.buyTicket{value: 0.2 ether}(192, ButtPlugWars.TEAM(0));
         buttPlugWars.buyTicket{value: 0.1 ether}(193, ButtPlugWars.TEAM(0));
         vm.warp(block.timestamp + 3 days + 1);
-        buttPlugWars.addLiquidity();
+        buttPlugWars.pushLiquidity();
 
         ButtPlugWarsForTest(address(buttPlugWars)).internalUnbondLiquidity();
 
