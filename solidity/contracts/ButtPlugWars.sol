@@ -250,7 +250,7 @@ contract ButtPlugWars {
         if (msg.sender != address(this)) revert WrongMethod();
 
         address _buttPlug = buttPlug[_team];
-        uint256 _move = IButtPlug(buttPlug[_team]).readMove(_board);
+        uint256 _move = IButtPlug(_buttPlug).readMove(_board);
         uint256 _depth = _calcDepth(_board, msg.sender);
         IChess(FIVE_OUT_OF_NINE).mintMove(_move, _depth);
     }
