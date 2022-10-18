@@ -292,7 +292,7 @@ contract ButtPlugWars is ERC721 {
 
     function _getTeam() internal view returns (TEAM _team) {
         uint256 _timestamp = block.timestamp;
-        _team = TEAM((_timestamp - (_timestamp % PERIOD)) % 2);
+        _team = TEAM((_getRoundTimestamp(_timestamp, PERIOD) % PERIOD) % 2);
     }
 
     function _getRoundTimestamp(uint256 _timestamp, uint256 _period) internal view returns (uint256 _roundTimestamp) {
