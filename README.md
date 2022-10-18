@@ -1,110 +1,17 @@
-<img src="https://raw.githubusercontent.com/defi-wonderland/brand/v1.0.0/external/solidity-foundry-boilerplate-banner.png" alt="wonderland banner" align="center" />
-<br />
+# ButtPlug Wars
 
-<div align="center"><strong>Start your next Solidity project with Foundry in seconds</strong></div>
-<div align="center">A highly scalable foundation focused on DX and best practices</div>
+#### ButtPlugWars is a FiveOutOfNine wrapper to play team-up one-vs-one a-la-0xMonaco style, playing in turns vs the chess engine.
 
-<br />
+The objective is to eat more pieces, and be eaten as less as possible, while playing against the board. By checkmate, team with higher score wins a match, 9 matches to play, first to 5 wins the game.
 
-## Features
+Since processing the chess engine can be gas consuming, and the board is on mainnet, the game is going to rely on keepers to execute the transactions, and will use the badge sales ETH to generate a liquidity, whose yield is going to reward keepers for the on-chain processing of the board-engine. By using the Keep3r Network, keepers are going to spend their ETH transacting the moves, while receiving yield-generated-KP3R rewards for it.
 
-<dl>
-  <dt>Sample contracts</dt>
-  <dd>Basic Greeter contract with an external interface.</dd>
+By the end of the game, all liquidity is withdrawn, and winner team players can claim their share of it. Players from the team who didn't win, or those who didn't claim their prize, can claim a share of the sales of the minted 5/9 NFTs. Each one, will be deposited into a Sudoswap sale position. And keepers are required, at each game, to hold a balance of 5/9 NFT equal to the match number (from 1 to 9).
 
-  <dt>Foundry setup</dt>
-  <dd>Foundry configuration with multiple custom profiles and remappings.</dd>
+Badge minting requires bonding a 5/9 NFT, and depositing an amount of ETH between 0.05 and 1. Burning will only be allowed after game ends, to claim the prize (depositing the 5/9 in the pool), or to withdraw the bonded 5/9 (claiming sales so far). The weight of the deposited ETH will vary with game rounds, starting at a `x2` multiplier, and having a `x1` at match n9.
 
-  <dt>Deployment scripts</dt>
-  <dd>Sample scripts to deploy contracts on both mainnet and testnet.</dd>
+> ETH will be traded for KP3R and bonded as a full-range liquidity (kLP), so value of all the inputed ETH, and all withdrawn kLP as prize may vary with time.
 
-  <dt>Sample e2e & unit tests</dt>
-  <dd>Example tests showcasing mocking, assertions and configuration for mainnet forking. As well it includes everything needed in order to check code coverage.</dd>
+The more players, the higher liquidity, the faster KP3R credits are minted, the higher the frequency with wich a the next move can be run, and give the reward to the keeper. The depth with which the move will be played (defining how smart the engine will play), will be pseudo-randomly defined by the board state and the keeper address, shuffling every 30m window.
 
-  <dt>Linter</dt>
-  <dd>Simple and fast solidity linting thanks to forge fmt</a>.</dd>
-
-  <dt>Github workflows CI</dt>
-  <dd>Run all tests and see the coverage as you push your changes.</dd>
-</dl>
-
-## Setup
-
-1. Install Foundry by following the instructions from [their repository](https://github.com/foundry-rs/foundry#installation).
-2. Copy the `.env.example` file to `.env` and fill in the variables
-3. Install the dependencies by running : `yarn install && forge install`
-
-## Build
-
-The default way to build the code is suboptimal but fast, you can run it via:
-
-```bash
-yarn build
-```
-
-In order to build a more optimized code ([via IR](https://docs.soliditylang.org/en/v0.8.15/ir-breaking-changes.html#solidity-ir-based-codegen-changes)), run:
-
-```bash
-yarn build:optimized
-```
-
-## Running tests
-
-Unit tests should be isolated from any externalities, while E2E usually run in a fork of the blockchain. In this boilerplate you will find example of both.
-
-In order to run both unit and E2E tests, run:
-
-```bash
-yarn test
-```
-
-In order to just run unit tests, run:
-
-```bash
-yarn test:unit
-```
-
-In order to run unit tests and run way more fuzzing than usual (5x), run:
-
-```bash
-yarn test:unit:deep
-```
-
-In order to just run e2e tests, run:
-
-```bash
-yarn test:e2e
-```
-
-In order to check your current code coverage, run:
-
-```bash
-yarn coverage
-```
-
-> **⚠ WARNING: Forge coverage is having some issues...**  
-> As stated in this [github issue](https://github.com/foundry-rs/foundry/issues/2165), checking the code coverage with Forge when using abstract contract is not currently working.
-
-<br>
-
-## Deploy & verify
-
-### Setup
-
-Configure the `.env` variables.
-
-### Rinkeby
-
-```bash
-yarn deploy:rinkeby
-```
-
-### Mainnet
-
-```bash
-yarn deploy:mainnet
-```
-
-The deployments are stored in ./broadcast
-
-See the [Foundry Book for available options](https://book.getfoundry.sh/reference/forge/forge-create.html).
+The teams need to deploy and vote an address, that should provide a `readMove(uint board) view returns (uint move)` method, being penalized with `-1` point should the read or the move revert. Team turns will be defined by periods of 5 days. When a transaction reverts, next team will play, when their turn comes, having acumulated credits to have more gameplay.

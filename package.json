@@ -1,17 +1,14 @@
 {
-  "name": "solidity-foundry-boilerplate",
+  "name": "buttplug-wars",
   "version": "1.0.0",
-  "description": "Production ready Solidity boilerplate with Foundry",
-  "homepage": "https://github.com/defi-wonderland/solidity-foundry-boilerplate#readme",
+  "description": "A FiveOutOfNine wrapper a-la-0xMonaco style",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/defi-wonderland/solidity-foundry-boilerplate.git"
+    "url": "git+https://github.com/wei3erhase/buttplug-wars.git"
   },
-  "author": "Wonderland",
+  "author": "wei3erHase",
   "contributors": [
-    "0xGorilla (https://github.com/0xGorilla)",
-    "0xng (https://github.com/0xng)",
-    "gas1cent (https://github.com/gas1cent)"
+    "fiveoutofnine (https://github.com/fiveoutofnine)"
   ],
   "license": "MIT",
   "private": true,
@@ -23,7 +20,6 @@
     "test:unit": "forge test --match-contract Unit -vvv",
     "test:unit:deep": "FOUNDRY_FUZZ_RUNS=5000 yarn test:unit",
     "coverage": "forge coverage --match-contract Unit",
-    "deploy:rinkeby": "bash -c 'source .env && forge script DeployRinkeby --rpc-url $RINKEBY_RPC --broadcast --private-key $RINKEBY_DEPLOYER_PK --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
     "deploy:mainnet": "bash -c 'source .env && forge script DeployMainnet --rpc-url $MAINNET_RPC --broadcast --private-key $MAINNET_DEPLOYER_PK --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
     "lint:fix": "forge fmt",
     "postinstall": "forge install",
