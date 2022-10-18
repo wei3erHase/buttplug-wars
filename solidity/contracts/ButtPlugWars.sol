@@ -28,24 +28,21 @@ contract ButtPlugWars is ERC721 {
     uint256 constant CHECKMATE = 0x32562300110101000010010000000C0099999000BCDE0B000000001;
 
     address constant SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
-    address constant SUDOSWAP_BONDING_CURVE = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
+    address constant SUDOSWAP_EXPONENTIAL_CURVE = 0x432f962D8209781da23fB37b6B59ee15dE7d9841;
 
     address public immutable owner;
     uint256 public totalSupply;
     address public immutable SUDOSWAP_POOL;
 
     STATE public state = STATE.TICKET_SALE;
-    GameState public gameState;
 
     mapping(TEAM => uint256) gameScore;
     mapping(TEAM => int256) matchScore;
+    uint256 matchNumber;
 
     uint256 public canPlayNext;
     uint256 constant COOLDOWN = 30 minutes;
-
-    struct GameState {
-        uint256 matchNumber;
-    }
+    uint256 constant LIQUIDITY_COOLDOWN = 3 days;
 
     constructor() ERC721('ButtPlugTicket', unicode'♙') {
         owner = THE_RABBIT;
@@ -61,16 +58,15 @@ contract ButtPlugWars is ERC721 {
 
         uint256[] memory _initialNFTIDs = new uint256[](0);
 
-        // TODO: setup curve / delta
         SUDOSWAP_POOL = address(
             ILSSVMPairFactory(SUDOSWAP_FACTORY).createPairETH({
                 _nft: IERC721(FIVE_OUT_OF_NINE),
-                _bondingCurve: ICurve(SUDOSWAP_BONDING_CURVE),
+                _bondingCurve: ICurve(SUDOSWAP_EXPONENTIAL_CURVE),
                 _assetRecipient: payable(address(this)),
                 _poolType: LSSVMPair.PoolType.NFT,
-                _delta: 0,
+                _spotPrice: 590000000000000000, // 0.059 ETH
+                _delta: 1059000000000000000, // 5.9 %
                 _fee: 0,
-                _spotPrice: 0,
                 _initialNFTIDs: _initialNFTIDs
             })
         );
@@ -104,7 +100,7 @@ contract ButtPlugWars is ERC721 {
 
     /// @dev Allows the signer to purchase a NFT, bonding a 5/9 and paying ETH price
     function buyTicket(uint256 _tokenId, TEAM _team) external payable {
-        if (state == STATE.GAME_ENDED || state == STATE.PRIZE_CEREMONY) revert WrongState();
+        if (state >= STATE.GAME_ENDED) revert WrongState();
 
         uint256 _value = msg.value;
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
@@ -113,13 +109,12 @@ contract ButtPlugWars is ERC721 {
         uint256 _ticketID = _mint(msg.sender, _team);
         bondedToken[_ticketID] = _tokenId;
 
-        ticketShares[_ticketID] = _value * _shareCoefficient();
+        ticketShares[_ticketID] = (_value * _shareCoefficient()) / BASE;
         totalShares += _value;
     }
 
     function _shareCoefficient() internal returns (uint256) {
-        // coeff (2 at match 1, 1 at match 8)
-        return 1;
+        return 2 * BASE - (BASE * matchNumber / 8);
     }
 
     mapping(address => uint256) public playerPrizeShares;
@@ -202,10 +197,11 @@ contract ButtPlugWars is ERC721 {
 
     /// @dev Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
     function addLiquidity() external {
-        if (state == STATE.GAME_ENDED || state == STATE.PRIZE_CEREMONY) revert WrongState();
+        if (state >= STATE.GAME_ENDED) revert WrongState();
+        if (state == STATE.TICKET_SALE) state = STATE.GAME_RUNNING;
 
         if (block.timestamp < addLiquidityCooldown) revert WrongTiming();
-        addLiquidityCooldown = block.timestamp + 3 days;
+        addLiquidityCooldown = block.timestamp + LIQUIDITY_COOLDOWN;
 
         uint256 _eth = address(this).balance;
         IWeth(WETH_9).deposit{value: _eth}();
@@ -246,7 +242,7 @@ contract ButtPlugWars is ERC721 {
     }
 
     modifier upkeep(address _keeper) {
-        if (!IKeep3r(KEEP3R).isKeeper(_keeper) || IERC20(FIVE_OUT_OF_NINE).balanceOf(_keeper) < gameState.matchNumber) {
+        if (!IKeep3r(KEEP3R).isKeeper(_keeper) || IERC20(FIVE_OUT_OF_NINE).balanceOf(_keeper) < matchNumber) {
             revert WrongKeeper();
         }
         _;
@@ -266,7 +262,7 @@ contract ButtPlugWars is ERC721 {
             if (_newBoard == CHECKMATE) {
                 if (matchScore[TEAM.A] >= matchScore[TEAM.B]) gameScore[TEAM.A]++;
                 if (matchScore[TEAM.B] >= matchScore[TEAM.A]) gameScore[TEAM.B]++;
-                ++gameState.matchNumber;
+                ++matchNumber;
                 canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
             } else {
                 matchScore[_team] += _calcScore(_board, _newBoard);
