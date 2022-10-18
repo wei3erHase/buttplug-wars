@@ -15,7 +15,6 @@ out-via-ir
 
 # Keep related abi
 out/*/*
-!out/Greeter.sol/*
 
 # Keep the latest deployment only
 broadcast/*/*/*
