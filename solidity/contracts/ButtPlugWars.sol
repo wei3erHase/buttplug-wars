@@ -1,13 +1,12 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4 <0.9.0;
 
-import '../interfaces/IChess.sol';
-import '../interfaces/IButtPlug.sol';
-import '../interfaces/IKeep3r.sol';
-import '../interfaces/IPairManager.sol';
-import '../interfaces/ILSSVMPairFactory.sol';
-import '../interfaces/ISwapRouter.sol';
-import '../interfaces/IWeth9.sol';
-import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
+import {IButtPlug, IChess} from 'interfaces/Game.sol';
+import {IKeep3r, IPairManager} from 'interfaces/Keep3r.sol';
+import {LSSVMPair, LSSVMPairETH, ILSSVMPairFactory, ICurve, IERC721} from 'interfaces/Sudoswap.sol';
+import {ISwapRouter} from 'interfaces/Uniswap.sol';
+import {IERC20, IWeth} from 'interfaces/ERC20.sol';
+
 import {ERC721} from 'isolmate/tokens/ERC721.sol';
 import {SafeTransferLib} from 'isolmate/utils/SafeTransferLib.sol';
 
@@ -40,10 +39,10 @@ contract ButtPlugWars is ERC721 {
     }
 
     enum STATE {
-        TICKET_SALE, // can buy tickets
+        TICKET_SALE, // can buy badges
         GAME_RUNNING, // set by the first pushLiquidityToJob
-        NEXT_TEAM, // round is over and next team should start theirs
-        GAME_ENDED, // can unbondLiquidity &
+        GAME_ENDED, // can unbondLiquidity
+        PREPARATIONS, // waits until liquidity is unbonded
         PRIZE_CEREMONY // can claim prize or honors
     }
 
@@ -51,7 +50,7 @@ contract ButtPlugWars is ERC721 {
     uint256 constant PERIOD = 5 days;
     uint256 constant COOLDOWN = 30 minutes;
     uint256 constant LIQUIDITY_COOLDOWN = 3 days;
-    uint256 constant CHECKMATE = 0x32562300110101000010010000000C0099999000BCDE0B000000001;
+    uint256 constant CHECKMATE = 0x3256230011111100000000000000000099999900BCDECB000000001;
 
     mapping(TEAM => uint256) public gameScore;
     mapping(TEAM => int256) public matchScore;
@@ -61,16 +60,16 @@ contract ButtPlugWars is ERC721 {
 
     STATE public state = STATE.TICKET_SALE;
 
-    /* Ticket mechanics */
+    /* Badge mechanics */
     uint256 public totalShares;
-    mapping(uint256 => uint256) public ticketShares;
+    mapping(uint256 => uint256) public badgeShares;
     mapping(uint256 => uint256) public bondedToken;
 
     /* Vote mechanics */
     mapping(TEAM => address) buttPlug;
     mapping(address => uint256) buttPlugVotes;
-    mapping(uint256 => address) ticketVote;
-    mapping(uint256 => uint256) ticketVoteWeight;
+    mapping(uint256 => address) badgeVote;
+    mapping(uint256 => uint256) badgeVoteWeight;
 
     /* Prize mechanics */
     uint256 totalPrize;
@@ -80,8 +79,7 @@ contract ButtPlugWars is ERC721 {
     uint256 claimableSales;
     mapping(uint256 => uint256) claimedSales;
 
-    // TODO: add a 1% royalty fee for THE_RABBIT
-    constructor() ERC721('ButtPlugTicket', unicode'♙') {
+    constructor() ERC721('ButtPlugBadge', unicode'♙') {
         // emit token aprovals
         IERC20(WETH_9).approve(SWAP_ROUTER, type(uint256).max);
         IERC20(KP3R_V1).approve(KP3R_LP, type(uint256).max);
@@ -90,6 +88,7 @@ contract ButtPlugWars is ERC721 {
 
         // create Keep3r job
         IKeep3r(KEEP3R).addJob(address(this));
+        canPushLiquidity = block.timestamp + 14 days;
 
         // create Sudoswap pool
         SUDOSWAP_POOL = address(
@@ -105,33 +104,32 @@ contract ButtPlugWars is ERC721 {
             })
         );
 
-        // set the owner of the ERC721
+        // set the owner of the ERC721 for royalties
         owner = THE_RABBIT;
     }
 
     error WrongValue();
-    error WrongState();
     error WrongTeam();
     error WrongNFT();
-    error WrongTicket();
+    error WrongBadge();
     error WrongKeeper();
     error WrongTiming();
     error WrongMethod();
 
-    /* Ticket Management */
+    /* Badge Management */
 
     /// @dev Allows the signer to purchase a NFT, bonding a 5/9 and paying ETH price
-    function buyTicket(uint256 _tokenId, TEAM _team) external payable {
-        if (state >= STATE.GAME_ENDED) revert WrongState();
+    function buyBadge(uint256 _tokenId, TEAM _team) external payable returns (uint256 _badgeID) {
+        if (state >= STATE.GAME_ENDED) revert WrongTiming();
 
         uint256 _value = msg.value;
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
         ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(msg.sender, address(this), _tokenId);
 
-        uint256 _ticketID = _mint(msg.sender, _team);
-        bondedToken[_ticketID] = _tokenId;
+        _badgeID = _mint(msg.sender, _team);
+        bondedToken[_badgeID] = _tokenId;
 
-        ticketShares[_ticketID] = (_value * _shareCoefficient()) / BASE;
+        badgeShares[_badgeID] = (_value * _shareCoefficient()) / BASE;
         totalShares += _value;
     }
 
@@ -140,28 +138,28 @@ contract ButtPlugWars is ERC721 {
     }
 
     /// @dev Allows players (winner team) to burn their token in exchange for a share of the prize
-    function claimPrize(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
-        if (state != STATE.GAME_ENDED) revert WrongState();
+    function claimPrize(uint256 _badgeID) external onlyBadgeOwner(_badgeID) {
+        if (state != STATE.PREPARATIONS) revert WrongTiming();
 
-        TEAM _team = TEAM(_ticketID >> 59);
+        TEAM _team = TEAM(_badgeID >> 59);
         if (gameScore[_team] < 5) revert WrongTeam();
 
-        uint256 _shares = ticketShares[_ticketID];
+        uint256 _shares = badgeShares[_badgeID];
         playerPrizeShares[msg.sender] += _shares;
         totalPrizeShares += _shares;
 
-        delete ticketShares[_ticketID];
+        delete badgeShares[_badgeID];
         totalShares -= _shares;
 
-        _burn(_ticketID);
-        uint256 _tokenId = bondedToken[_ticketID];
+        _burn(_badgeID);
+        uint256 _tokenId = bondedToken[_badgeID];
 
-        ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _ticketID);
+        ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _tokenId);
     }
 
     /// @dev Allow players who claimed prize to withdraw their funds
     function withdrawPrize() external {
-        if (state != STATE.PRIZE_CEREMONY) revert WrongState();
+        if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
 
         uint256 _withdrawnPrize = playerPrizeShares[msg.sender] * totalPrize / totalPrizeShares;
         IPairManager(KP3R_LP).transfer(msg.sender, _withdrawnPrize);
@@ -170,41 +168,41 @@ contract ButtPlugWars is ERC721 {
     }
 
     /// @dev Allows players (who didn't claim the prize) to withdraw ETH from the pool sales
-    function claimHonor(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
-        if (state != STATE.PRIZE_CEREMONY) revert WrongState();
-        _claimHonor(_ticketID);
+    function claimHonor(uint256 _badgeID) external onlyBadgeOwner(_badgeID) {
+        if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
+        _claimHonor(_badgeID);
     }
 
-    function _claimHonor(uint256 _ticketID) internal {
+    function _claimHonor(uint256 _badgeID) internal {
         uint256 _sales = address(this).balance;
         LSSVMPairETH(SUDOSWAP_POOL).withdrawAllETH();
         _sales = address(this).balance - _sales;
 
         claimableSales += _sales;
 
-        uint256 shareCoefficient = BASE * ticketShares[_ticketID] / totalShares;
-        uint256 _claimable = (shareCoefficient * claimableSales / BASE) - claimedSales[_ticketID];
-        claimedSales[_ticketID] += _claimable;
+        uint256 shareCoefficient = BASE * badgeShares[_badgeID] / totalShares;
+        uint256 _claimable = (shareCoefficient * claimableSales / BASE) - claimedSales[_badgeID];
+        claimedSales[_badgeID] += _claimable;
 
         payable(msg.sender).safeTransferETH(_claimable);
     }
 
-    /// @dev Allows players to return their ticket and get the bonded NFT withdrawn
-    function returnTicket(uint256 _ticketID) external onlyTicketOwner(_ticketID) {
-        if (state != STATE.PRIZE_CEREMONY) revert WrongState();
+    /// @dev Allows players to return their badge and get the bonded NFT withdrawn
+    function returnBadge(uint256 _badgeID) external onlyBadgeOwner(_badgeID) {
+        if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
 
-        _claimHonor(_ticketID);
-        claimableSales -= claimedSales[_ticketID];
-        totalShares -= ticketShares[_ticketID];
+        _claimHonor(_badgeID);
+        claimableSales -= claimedSales[_badgeID];
+        totalShares -= badgeShares[_badgeID];
 
-        _burn(_ticketID);
+        _burn(_badgeID);
 
-        uint256 _tokenId = bondedToken[_ticketID];
+        uint256 _tokenId = bondedToken[_badgeID];
         IERC20(FIVE_OUT_OF_NINE).transfer(msg.sender, _tokenId);
     }
 
-    modifier onlyTicketOwner(uint256 _ticketID) {
-        if (ownerOf[_ticketID] != msg.sender) revert WrongTicket();
+    modifier onlyBadgeOwner(uint256 _badgeID) {
+        if (ownerOf[_badgeID] != msg.sender) revert WrongBadge();
         _;
     }
 
@@ -212,8 +210,8 @@ contract ButtPlugWars is ERC721 {
 
     /// @dev Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
     function pushLiquidity() external {
-        if (state >= STATE.GAME_ENDED) revert WrongState();
-        if (state == STATE.TICKET_SALE) state = STATE.GAME_RUNNING;
+        if (state >= STATE.GAME_ENDED) revert WrongTiming();
+        if (state == STATE.TICKET_SALE) _initializeGame();
 
         if (block.timestamp < canPushLiquidity) revert WrongTiming();
         canPushLiquidity = block.timestamp + LIQUIDITY_COOLDOWN;
@@ -247,14 +245,16 @@ contract ButtPlugWars is ERC721 {
     }
 
     /// @dev Called at checkmate routine, if one of the teams has score == 5
-    function _unbondLiquidity() internal {
+    function unbondLiquidity() external {
+        if (state != STATE.GAME_ENDED) revert WrongTiming();
         totalPrize = IKeep3r(KEEP3R).liquidityAmount(address(this), KP3R_LP);
         IKeep3r(KEEP3R).unbondLiquidityFromJob(address(this), KP3R_LP, totalPrize);
+        state = STATE.PREPARATIONS;
     }
 
     /// @dev Open method, allows signer (after unbonding) to withdraw kLPs
     function withdrawLiquidity() external {
-        if (state != STATE.GAME_ENDED) revert WrongState();
+        if (state != STATE.PREPARATIONS) revert WrongTiming();
         /// @dev Method reverts unless 2w cooldown since unbond tx
         IKeep3r(KEEP3R).withdrawLiquidityFromJob(address(this), KP3R_LP, address(this));
         state = STATE.PRIZE_CEREMONY;
@@ -272,35 +272,37 @@ contract ButtPlugWars is ERC721 {
     /* Game mechanics */
 
     function executeMove() external upkeep(msg.sender) {
-        if (block.timestamp < canPlayNext) revert WrongTiming();
+        if ((state != STATE.GAME_RUNNING) || (block.timestamp < canPlayNext)) revert WrongTiming();
 
         TEAM _team = _getTeam();
         uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
 
+        bool _success;
         try ButtPlugWars(this).playMove(_board, _team) {
+            _success = true;
+        } catch {}
+
+        if (_success) {
             uint256 _newBoard = IChess(FIVE_OUT_OF_NINE).board();
             if (_newBoard == CHECKMATE) {
                 if (matchScore[TEAM.A] >= matchScore[TEAM.B]) gameScore[TEAM.A]++;
                 if (matchScore[TEAM.B] >= matchScore[TEAM.A]) gameScore[TEAM.B]++;
                 ++matchNumber;
-                if (matchNumber > 5) _verifyWinner();
+                if (matchNumber >= 5) _verifyWinner();
                 canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
             } else {
                 matchScore[_team] += _calcScore(_board, _newBoard);
                 canPlayNext = block.timestamp + COOLDOWN;
             }
-        } // if playMove() reverts, team gets -1 point and next team is to play
-        catch {
+        } else {
+            // if playMove() reverts, team gets -1 point and next team is to play
             --matchScore[_team];
             canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
         }
     }
 
     function _verifyWinner() internal {
-        if ((matchScore[TEAM.A] == 5) || matchScore[TEAM.B] == 5) {
-            _unbondLiquidity();
-            state = STATE.GAME_ENDED;
-        }
+        if ((gameScore[TEAM.A] >= 5) || gameScore[TEAM.B] >= 5) state = STATE.GAME_ENDED;
     }
 
     function playMove(uint256 _board, TEAM _team) external {
@@ -337,29 +339,29 @@ contract ButtPlugWars is ERC721 {
     /* Vote mechanics */
 
     /// @dev Allows players to vote for their preferred ButtPlug
-    function voteButtPlug(address _buttPlug, uint256 _ticketID) external onlyTicketOwner(_ticketID) {
+    function voteButtPlug(address _buttPlug, uint256 _badgeID) external onlyBadgeOwner(_badgeID) {
         if (_buttPlug == address(0)) revert WrongValue();
 
-        TEAM _team = TEAM(_ticketID >> 59);
-        uint256 _weight = ticketShares[_ticketID];
+        TEAM _team = TEAM(_badgeID >> 59);
+        uint256 _weight = badgeShares[_badgeID];
 
-        address _previousVote = ticketVote[_ticketID];
+        address _previousVote = badgeVote[_badgeID];
         if (_previousVote != address(0)) buttPlugVotes[_previousVote] -= _weight;
-        ticketVote[_ticketID] = _buttPlug;
+        badgeVote[_badgeID] = _buttPlug;
         buttPlugVotes[_buttPlug] += _weight;
 
         if (buttPlugVotes[_buttPlug] > buttPlugVotes[buttPlug[_team]]) buttPlug[_team] = _buttPlug;
     }
 
-    function _mint(address _receiver, ButtPlugWars.TEAM _team) internal returns (uint256 _ticketID) {
-        _ticketID = ++totalSupply;
-        _ticketID += uint256(_team) << 59;
-        _mint(_receiver, _ticketID);
+    function _mint(address _receiver, ButtPlugWars.TEAM _team) internal returns (uint256 _badgeID) {
+        _badgeID = ++totalSupply;
+        _badgeID += uint256(_team) << 59;
+        _mint(_receiver, _badgeID);
     }
 
-    function _burn(uint256 _ticketID) internal override {
+    function _burn(uint256 _badgeID) internal override {
         totalSupply--;
-        super._burn(_ticketID);
+        super._burn(_badgeID);
     }
 
     function tokenURI(uint256 id) public view virtual override returns (string memory) {}

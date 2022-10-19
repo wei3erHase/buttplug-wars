@@ -14,3 +14,6 @@
 	path = lib/isolmate
 	url = https://github.com/defi-wonderland/isolmate
 	branch = main
+[submodule "lib/fiveoutofnine-chess"]
+	path = lib/fiveoutofnine-chess
+	url = https://github.com/fiveoutofnine/fiveoutofnine-chess
