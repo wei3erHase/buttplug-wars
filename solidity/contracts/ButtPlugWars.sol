@@ -67,7 +67,7 @@ contract ButtPlugWars is ERC721 {
 
     /* Vote mechanics */
     mapping(TEAM => address) buttPlug;
-    mapping(address => uint256) buttPlugVotes;
+    mapping(TEAM => mapping(address => uint256)) buttPlugVotes;
     mapping(uint256 => address) badgeVote;
     mapping(uint256 => uint256) badgeVoteWeight;
 
@@ -244,7 +244,7 @@ contract ButtPlugWars is ERC721 {
         ++matchNumber;
     }
 
-    /// @dev Called at checkmate routine, if one of the teams has score == 5
+    /// @dev Open method, allows signer (after game ended) to start unbond period
     function unbondLiquidity() external {
         if (state != STATE.GAME_ENDED) revert WrongTiming();
         totalPrize = IKeep3r(KEEP3R).liquidityAmount(address(this), KP3R_LP);
@@ -277,12 +277,7 @@ contract ButtPlugWars is ERC721 {
         TEAM _team = _getTeam();
         uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
 
-        bool _success;
         try ButtPlugWars(this).playMove(_board, _team) {
-            _success = true;
-        } catch {}
-
-        if (_success) {
             uint256 _newBoard = IChess(FIVE_OUT_OF_NINE).board();
             if (_newBoard == CHECKMATE) {
                 if (matchScore[TEAM.A] >= matchScore[TEAM.B]) gameScore[TEAM.A]++;
@@ -294,7 +289,7 @@ contract ButtPlugWars is ERC721 {
                 matchScore[_team] += _calcScore(_board, _newBoard);
                 canPlayNext = block.timestamp + COOLDOWN;
             }
-        } else {
+        } catch {
             // if playMove() reverts, team gets -1 point and next team is to play
             --matchScore[_team];
             canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
@@ -346,11 +341,11 @@ contract ButtPlugWars is ERC721 {
         uint256 _weight = badgeShares[_badgeID];
 
         address _previousVote = badgeVote[_badgeID];
-        if (_previousVote != address(0)) buttPlugVotes[_previousVote] -= _weight;
+        if (_previousVote != address(0)) buttPlugVotes[_team][_previousVote] -= _weight;
         badgeVote[_badgeID] = _buttPlug;
-        buttPlugVotes[_buttPlug] += _weight;
+        buttPlugVotes[_team][_buttPlug] += _weight;
 
-        if (buttPlugVotes[_buttPlug] > buttPlugVotes[buttPlug[_team]]) buttPlug[_team] = _buttPlug;
+        if (buttPlugVotes[_team][_buttPlug] > buttPlugVotes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
     }
 
     function _mint(address _receiver, ButtPlugWars.TEAM _team) internal returns (uint256 _badgeID) {
