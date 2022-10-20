@@ -80,6 +80,14 @@ contract ButtPlugWars is ERC721 {
     uint256 claimableSales;
     mapping(uint256 => uint256) claimedSales;
 
+    error WrongValue(); // badge minting value should be between 0.05 and 1
+    error WrongTeam(); // only winners can claim the prize
+    error WrongNFT(); // an unknown NFT was sent to the contract
+    error WrongBadge(); // only the badge owner can access
+    error WrongKeeper(); // keeper doesn't fulfill the required params
+    error WrongTiming(); // method called at wrong roadmap state or cooldown
+    error WrongMethod(); // method should not be externally called
+
     constructor() ERC721('ButtPlugBadge', unicode'♙') {
         // emit token aprovals
         IERC20(WETH_9).approve(SWAP_ROUTER, type(uint256).max);
@@ -108,14 +116,6 @@ contract ButtPlugWars is ERC721 {
         // set the owner of the ERC721 for royalties
         owner = THE_RABBIT;
     }
-
-    error WrongValue();
-    error WrongTeam();
-    error WrongNFT();
-    error WrongBadge();
-    error WrongKeeper();
-    error WrongTiming();
-    error WrongMethod();
 
     /* Badge Management */
 
