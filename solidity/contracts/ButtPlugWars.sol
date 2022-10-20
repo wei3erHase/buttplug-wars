@@ -69,12 +69,11 @@ contract ButtPlugWars is ERC721 {
     mapping(TEAM => address) buttPlug;
     mapping(TEAM => mapping(address => uint256)) buttPlugVotes;
     mapping(uint256 => address) badgeVote;
-    mapping(uint256 => uint256) badgeVoteWeight;
 
     /* Prize mechanics */
     uint256 totalPrize;
     uint256 totalPrizeShares;
-    mapping(address => uint256) public playerPrizeShares;
+    mapping(address => uint256) playerPrizeShares;
 
     uint256 claimableSales;
     mapping(uint256 => uint256) claimedSales;
