@@ -133,7 +133,7 @@ contract ButtPlugWars is ERC721 {
         totalShares += _value;
     }
 
-    function _shareCoefficient() internal returns (uint256) {
+    function _shareCoefficient() internal view returns (uint256) {
         return 2 * BASE - (BASE * matchNumber / 8);
     }
 
@@ -309,13 +309,12 @@ contract ButtPlugWars is ERC721 {
         IChess(FIVE_OUT_OF_NINE).mintMove(_move, _depth);
     }
 
-    function _getRoundTimestamp(uint256 _timestamp, uint256 _period) internal view returns (uint256 _roundTimestamp) {
+    function _getRoundTimestamp(uint256 _timestamp, uint256 _period) internal pure returns (uint256 _roundTimestamp) {
         _roundTimestamp = _timestamp - (_timestamp % _period);
     }
 
     function _getTeam() internal view returns (TEAM _team) {
-        uint256 _timestamp = block.timestamp;
-        _team = TEAM((_getRoundTimestamp(_timestamp, PERIOD) % PERIOD) % 2);
+        _team = TEAM((_getRoundTimestamp(block.timestamp, PERIOD) % PERIOD) % 2);
     }
 
     function _calcDepth(uint256 _salt, address _keeper) internal view returns (uint256 _depth) {
