@@ -31,19 +31,21 @@ contract ButtPlugWars is ERC721 {
     address public immutable owner;
     uint256 public totalSupply;
 
+    /* Roadmap */
+
+    enum STATE {
+        TICKET_SALE, // can mint badges (@ x2)
+        GAME_RUNNING, // game runs, can mint badges (@ x2->1)
+        GAME_ENDED, // game stops, can unbondLiquidity
+        PREPARATIONS, // can claim prize, waits until kLPs are unbonded
+        PRIZE_CEREMONY // can withdraw prize or honors
+    }
+
     /* Game mechanics */
 
     enum TEAM {
         A,
         B
-    }
-
-    enum STATE {
-        TICKET_SALE, // can buy badges
-        GAME_RUNNING, // set by the first pushLiquidityToJob
-        GAME_ENDED, // can unbondLiquidity
-        PREPARATIONS, // waits until liquidity is unbonded
-        PRIZE_CEREMONY // can claim prize or honors
     }
 
     uint256 constant BASE = 1 ether;
@@ -296,10 +298,6 @@ contract ButtPlugWars is ERC721 {
         }
     }
 
-    function _verifyWinner() internal {
-        if ((gameScore[TEAM.A] >= 5) || gameScore[TEAM.B] >= 5) state = STATE.GAME_ENDED;
-    }
-
     function playMove(uint256 _board, TEAM _team) external {
         if (msg.sender != address(this)) revert WrongMethod();
 
@@ -330,6 +328,10 @@ contract ButtPlugWars is ERC721 {
         // returns 0 otherwise
     }
 
+    function _verifyWinner() internal {
+        if ((gameScore[TEAM.A] >= 5) || gameScore[TEAM.B] >= 5) state = STATE.GAME_ENDED;
+    }
+
     /* Vote mechanics */
 
     /// @dev Allows players to vote for their preferred ButtPlug
@@ -346,6 +348,8 @@ contract ButtPlugWars is ERC721 {
 
         if (buttPlugVotes[_team][_buttPlug] > buttPlugVotes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
     }
+
+    /* ERC721 */
 
     function _mint(address _receiver, ButtPlugWars.TEAM _team) internal returns (uint256 _badgeID) {
         _badgeID = ++totalSupply;
