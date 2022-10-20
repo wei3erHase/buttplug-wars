@@ -129,8 +129,9 @@ contract ButtPlugWars is ERC721 {
         _badgeID = _mint(msg.sender, _team);
         bondedToken[_badgeID] = _tokenId;
 
-        badgeShares[_badgeID] = (_value * _shareCoefficient()) / BASE;
-        totalShares += _value;
+        uint256 _shares = (_value * _shareCoefficient()) / BASE;
+        badgeShares[_badgeID] = _shares;
+        totalShares += _shares;
     }
 
     function _shareCoefficient() internal view returns (uint256) {
