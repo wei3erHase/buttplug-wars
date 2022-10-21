@@ -70,7 +70,8 @@ contract ButtPlugWars is ERC721 {
     /* Vote mechanics */
     mapping(TEAM => address) buttPlug;
     mapping(TEAM => mapping(address => uint256)) buttPlugVotes;
-    mapping(uint256 => address) badgeVote;
+    mapping(uint256 => address) public badgeVote;
+    mapping(uint256 => uint256) public canVoteNext;
 
     /* Prize mechanics */
     uint256 totalPrize;
@@ -335,8 +336,13 @@ contract ButtPlugWars is ERC721 {
     /* Vote mechanics */
 
     /// @dev Allows players to vote for their preferred ButtPlug
-    function voteButtPlug(address _buttPlug, uint256 _badgeID) external onlyBadgeOwner(_badgeID) {
+    function voteButtPlug(address _buttPlug, uint256 _badgeID, uint32 _lockTime) external onlyBadgeOwner(_badgeID) {
         if (_buttPlug == address(0)) revert WrongValue();
+
+        uint256 _timestamp = block.timestamp;
+        if (_timestamp < canVoteNext[_badgeID]) revert WrongTiming();
+        // Locking allows external actors to bribe players
+        canVoteNext[_badgeID] = _timestamp + uint256(_lockTime);
 
         TEAM _team = TEAM(_badgeID >> 59);
         uint256 _weight = badgeShares[_badgeID];
