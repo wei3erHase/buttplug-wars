@@ -5,6 +5,12 @@ import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, ButtPlugForTest, conso
 
 contract E2EButtPlugWars is CommonE2EBase {
     function test_E2E() public {
+        vm.warp(block.timestamp + 10 days);
+        buttPlugWars.startEvent();
+
+        // advances time to change random seed (avoids engine getting stuck)
+        vm.warp(block.timestamp + 60 minutes);
+
         fiveOutOfNine.setApprovalForAll(address(buttPlugWars), true);
 
         uint256 badge1 = buttPlugWars.buyBadge{value: 0.9 ether}(190, ButtPlugWars.TEAM(0));
@@ -24,8 +30,8 @@ contract E2EButtPlugWars is CommonE2EBase {
         buttPlugWars.executeMove();
 
         // NOTE: brute forces 5/9 contract to reset to checkMate state somewhen
-        for (uint256 _i; _i < 256; ++_i) {
-            vm.warp(block.timestamp + 10 days + 1);
+        for (uint256 _i; _i < 512; ++_i) {
+            vm.warp(block.timestamp + 10 days - 1);
             if (buttPlugWars.state() == ButtPlugWars.STATE.GAME_ENDED) break;
             buttPlugWars.executeMove();
         }

@@ -34,15 +34,19 @@ contract ButtPlugWars is ERC721 {
     /* Roadmap */
 
     enum STATE {
+        ANNOUNCEMENT, // rabbit can cancel event
         TICKET_SALE, // can mint badges (@ x2)
         GAME_RUNNING, // game runs, can mint badges (@ x2->1)
         GAME_ENDED, // game stops, can unbondLiquidity
         PREPARATIONS, // can claim prize, waits until kLPs are unbonded
-        PRIZE_CEREMONY // can withdraw prize or honors
+        PRIZE_CEREMONY, // can withdraw prize or honors
+        CANCELLED
     }
 
-    /* Game mechanics */
+    STATE public state = STATE.ANNOUNCEMENT;
+    uint256 canStartSales;
 
+    /* Game mechanics */
     enum TEAM {
         A,
         B
@@ -59,8 +63,6 @@ contract ButtPlugWars is ERC721 {
     uint256 public matchNumber;
     uint256 public canPlayNext;
     uint256 public canPushLiquidity;
-
-    STATE public state = STATE.TICKET_SALE;
 
     /* Badge mechanics */
     uint256 public totalShares;
@@ -98,7 +100,6 @@ contract ButtPlugWars is ERC721 {
 
         // create Keep3r job
         IKeep3r(KEEP3R).addJob(address(this));
-        canPushLiquidity = block.timestamp + 14 days;
 
         // create Sudoswap pool
         SUDOSWAP_POOL = address(
@@ -116,6 +117,24 @@ contract ButtPlugWars is ERC721 {
 
         // set the owner of the ERC721 for royalties
         owner = THE_RABBIT;
+        canStartSales = block.timestamp + 2 * PERIOD;
+    }
+
+    /// @dev Permissioned method, allows rabbit to cancel the event
+    function cancelEvent() external {
+        if (msg.sender != THE_RABBIT) revert WrongMethod();
+        if (state != STATE.ANNOUNCEMENT) revert WrongTiming();
+
+        state = STATE.CANCELLED;
+    }
+
+    /// @dev Open method, allows signer to start ticket sale
+    function startEvent() external {
+        uint256 _timestamp = block.timestamp;
+        if ((state != STATE.ANNOUNCEMENT) || (_timestamp < canStartSales)) revert WrongTiming();
+
+        state = STATE.TICKET_SALE;
+        canPushLiquidity = _timestamp + 2 * PERIOD;
     }
 
     /* Badge Management */
