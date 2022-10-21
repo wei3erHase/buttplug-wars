@@ -18,7 +18,7 @@ contract ButtPlugWars is ERC721 {
                             ADDRESS REGISTRY
     //////////////////////////////////////////////////////////////*/
 
-    address constant THE_RABBIT = 0xC5233C3b46C83ADEE1039D340094173f0f7c1EcF;
+    address constant THE_RABBIT = 0x5dD028D0832739008c5308490e6522ce04342E10;
     address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
 
     address constant WETH_9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
