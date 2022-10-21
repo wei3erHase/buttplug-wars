@@ -13,7 +13,10 @@ import {SafeTransferLib} from 'isolmate/utils/SafeTransferLib.sol';
 contract ButtPlugWars is ERC721 {
     using SafeTransferLib for address payable;
 
-    /* Address registry */
+    /*///////////////////////////////////////////////////////////////
+                            ADDRESS REGISTRY
+    //////////////////////////////////////////////////////////////*/
+
     address constant THE_RABBIT = 0xC5233C3b46C83ADEE1039D340094173f0f7c1EcF;
     address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
 
@@ -26,6 +29,10 @@ contract ButtPlugWars is ERC721 {
     address constant SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
     address constant SUDOSWAP_EXPONENTIAL_CURVE = 0x432f962D8209781da23fB37b6B59ee15dE7d9841;
     address public immutable SUDOSWAP_POOL;
+
+    /*///////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
 
     /* IERC721 */
     address public immutable owner;
@@ -91,6 +98,10 @@ contract ButtPlugWars is ERC721 {
     error WrongTiming(); // method called at wrong roadmap state or cooldown
     error WrongMethod(); // method should not be externally called
 
+    /*///////////////////////////////////////////////////////////////
+                                  SETUP
+    //////////////////////////////////////////////////////////////*/
+
     constructor() ERC721('ButtPlugBadge', unicode'♙') {
         // emit token aprovals
         IERC20(WETH_9).approve(SWAP_ROUTER, type(uint256).max);
@@ -137,7 +148,9 @@ contract ButtPlugWars is ERC721 {
         canPushLiquidity = _timestamp + 2 * PERIOD;
     }
 
-    /* Badge Management */
+    /*///////////////////////////////////////////////////////////////
+                            BADGE MANAGEMENT
+    //////////////////////////////////////////////////////////////*/
 
     /// @dev Allows the signer to purchase a NFT, bonding a 5/9 and paying ETH price
     function buyBadge(uint256 _tokenId, TEAM _team) external payable returns (uint256 _badgeID) {
@@ -228,7 +241,9 @@ contract ButtPlugWars is ERC721 {
         _;
     }
 
-    /* Keep3r Management */
+    /*///////////////////////////////////////////////////////////////
+                            KEEP3R MANAGEMENT
+    //////////////////////////////////////////////////////////////*/
 
     /// @dev Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
     function pushLiquidity() external {
@@ -291,8 +306,11 @@ contract ButtPlugWars is ERC721 {
         IKeep3r(KEEP3R).worked(_keeper);
     }
 
-    /* Game mechanics */
+    /*///////////////////////////////////////////////////////////////
+                            GAME MECHANICS
+    //////////////////////////////////////////////////////////////*/
 
+    /// @dev Called by keepers to execute the next move
     function executeMove() external upkeep(msg.sender) {
         if ((state != STATE.GAME_RUNNING) || (block.timestamp < canPlayNext)) revert WrongTiming();
 
@@ -352,7 +370,9 @@ contract ButtPlugWars is ERC721 {
         if ((gameScore[TEAM.A] >= 5) || gameScore[TEAM.B] >= 5) state = STATE.GAME_ENDED;
     }
 
-    /* Vote mechanics */
+    /*///////////////////////////////////////////////////////////////
+                            VOTE MECHANICS
+    //////////////////////////////////////////////////////////////*/
 
     /// @dev Allows players to vote for their preferred ButtPlug
     function voteButtPlug(address _buttPlug, uint256 _badgeID, uint32 _lockTime) external onlyBadgeOwner(_badgeID) {
@@ -374,7 +394,9 @@ contract ButtPlugWars is ERC721 {
         if (buttPlugVotes[_team][_buttPlug] > buttPlugVotes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
     }
 
-    /* ERC721 */
+    /*///////////////////////////////////////////////////////////////
+                                ERC721
+    //////////////////////////////////////////////////////////////*/
 
     function _mint(address _receiver, ButtPlugWars.TEAM _team) internal returns (uint256 _badgeID) {
         _badgeID = ++totalSupply;
