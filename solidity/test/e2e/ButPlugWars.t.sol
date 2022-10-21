@@ -17,8 +17,8 @@ contract E2EButtPlugWars is CommonE2EBase {
         buttPlugWars.pushLiquidity();
 
         ButtPlugForTest testButtPlug = new ButtPlugForTest();
-        buttPlugWars.voteButtPlug(address(testButtPlug), badge1);
-        buttPlugWars.voteButtPlug(address(testButtPlug), badge2);
+        buttPlugWars.voteButtPlug(address(testButtPlug), badge1, 0);
+        buttPlugWars.voteButtPlug(address(testButtPlug), badge2, 0);
 
         vm.warp(block.timestamp + 14 days + 1);
         buttPlugWars.executeMove();
