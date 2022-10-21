@@ -360,11 +360,25 @@ contract ButtPlugWars is ERC721 {
     }
 
     function _calcScore(uint256 _previousBoard, uint256 _newBoard) internal pure returns (int8 _score) {
-        // counts w&b pieces on _previousBoard
-        // counts w&b pieces on _newBoard
-        // returns +1 if black eaten and no white eaten
-        // returns -1 if no black eaten and white eaten
-        // returns 0 otherwise
+        (uint8 _whitePiecesBefore, uint8 _blackPiecesBefore) = _countPieces(_previousBoard);
+        (uint8 _whitePiecesAfter, uint8 _blackPiecesAfter) = _countPieces(_newBoard);
+
+        _score += int8(_whitePiecesBefore - _whitePiecesAfter);
+        _score -= int8(_blackPiecesBefore - _blackPiecesAfter);
+    }
+
+    function _countPieces(uint256 _board) internal pure returns (uint8 _whitePieces, uint8 _blackPieces) {
+        uint256 _space;
+        for (uint256 _i; _i < 36; ++_i) {
+            _space = (_board >> (_getAdjustedIndex(_i) << 2)) & 0xF;
+            if (_space & 0x7 > 0) _space & 0x8 == 1 ? _whitePieces++ : _blackPieces++;
+        }
+    }
+
+    function _getAdjustedIndex(uint256 _index) internal pure returns (uint256) {
+        unchecked {
+            return ((0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289 >> (_index * 6)) & 0x3F);
+        }
     }
 
     function _verifyWinner() internal {
