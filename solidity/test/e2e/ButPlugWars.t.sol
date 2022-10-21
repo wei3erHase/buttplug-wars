@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.4 <0.9.0;
 
-import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, ButtPlugForTest, console} from './Common.sol';
+import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, ButtPlugForTest, IERC20, console} from './Common.sol';
 
 contract E2EButtPlugWars is CommonE2EBase {
     function test_E2E() public {
@@ -13,11 +13,10 @@ contract E2EButtPlugWars is CommonE2EBase {
 
         fiveOutOfNine.setApprovalForAll(address(buttPlugWars), true);
 
-        uint256 badge1 = buttPlugWars.buyBadge{value: 0.9 ether}(190, ButtPlugWars.TEAM(0));
-        uint256 badge2 = buttPlugWars.buyBadge{value: 0.9 ether}(191, ButtPlugWars.TEAM(0));
-
-        buttPlugWars.buyBadge{value: 0.9 ether}(192, ButtPlugWars.TEAM(1));
-        buttPlugWars.buyBadge{value: 0.9 ether}(193, ButtPlugWars.TEAM(1));
+        uint256 badge1 = buttPlugWars.buyBadge{value: 0.99 ether}(190, ButtPlugWars.TEAM(0));
+        uint256 badge2 = buttPlugWars.buyBadge{value: 0.25 ether}(191, ButtPlugWars.TEAM(1));
+        uint256 badge3 = buttPlugWars.buyBadge{value: 0.25 ether}(192, ButtPlugWars.TEAM(1));
+        uint256 badge4 = buttPlugWars.buyBadge{value: 0.25 ether}(193, ButtPlugWars.TEAM(1));
 
         vm.warp(block.timestamp + 14 days + 1);
         buttPlugWars.pushLiquidity();
@@ -36,11 +35,17 @@ contract E2EButtPlugWars is CommonE2EBase {
             buttPlugWars.executeMove();
         }
 
+        uint256 liquidityAmount = keep3r.liquidityAmount(address(buttPlugWars), KP3R_LP);
+
         buttPlugWars.unbondLiquidity();
         vm.warp(block.timestamp + 14 days + 1);
+        address badgeOwner = buttPlugWars.ownerOf(badge1);
         buttPlugWars.claimPrize(badge1);
         buttPlugWars.withdrawLiquidity();
 
         buttPlugWars.withdrawPrize();
+        uint256 liquidityWithdrawn = IERC20(KP3R_LP).balanceOf(badgeOwner);
+
+        assertEq(liquidityAmount, liquidityWithdrawn);
     }
 }
