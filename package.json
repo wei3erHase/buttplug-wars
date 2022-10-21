@@ -20,7 +20,7 @@
     "test:unit": "forge test --match-contract Unit -vvv",
     "test:unit:deep": "FOUNDRY_FUZZ_RUNS=5000 yarn test:unit",
     "coverage": "forge coverage --match-contract Unit",
-    "deploy:mainnet": "bash -c 'source .env && forge script DeployMainnet --rpc-url $MAINNET_RPC --broadcast --private-key $MAINNET_DEPLOYER_PK --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
+    "deploy:mainnet": "bash -c 'source .env && forge script DeployMainnet --rpc-url $MAINNET_RPC --broadcast --private-key $MAINNET_DEPLOYER_PK'",
     "lint:fix": "forge fmt",
     "postinstall": "forge install",
     "lint:check": "forge fmt --check",
