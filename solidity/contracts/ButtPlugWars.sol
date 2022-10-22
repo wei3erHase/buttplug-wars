@@ -1,4 +1,16 @@
 // SPDX-License-Identifier: MIT
+
+/*
+
+  by             .__________                 ___ ___
+  __  _  __ ____ |__\_____  \  ___________  /   |   \_____    ______ ____
+  \ \/ \/ // __ \|  | _(__  <_/ __ \_  __ \/    ~    \__  \  /  ___// __ \
+   \     /\  ___/|  |/       \  ___/|  | \/\    Y    // __ \_\___ \\  ___/
+    \/\_/  \___  >__/______  /\___  >__|    \___|_  /(____  /____  >\___  >
+               \/          \/     \/              \/      \/     \/     \/
+
+*/
+
 pragma solidity >=0.8.4 <0.9.0;
 
 import {IButtPlug, IChess} from 'interfaces/Game.sol';
@@ -11,6 +23,8 @@ import {ERC721} from 'isolmate/tokens/ERC721.sol';
 import {SafeTransferLib} from 'isolmate/utils/SafeTransferLib.sol';
 import {Base64} from './Base64.sol';
 
+/// @notice Contract will not be audited, proceed at your own risk
+/// @dev THE_RABBIT will not be responsible for any loss of funds
 contract ButtPlugWars is ERC721 {
     using SafeTransferLib for address payable;
 
@@ -40,7 +54,6 @@ contract ButtPlugWars is ERC721 {
     uint256 public totalSupply;
 
     /* Roadmap */
-
     enum STATE {
         ANNOUNCEMENT, // rabbit can cancel event
         TICKET_SALE, // can mint badges (@ x2)
@@ -48,7 +61,7 @@ contract ButtPlugWars is ERC721 {
         GAME_ENDED, // game stops, can unbondLiquidity
         PREPARATIONS, // can claim prize, waits until kLPs are unbonded
         PRIZE_CEREMONY, // can withdraw prize or honors
-        CANCELLED
+        CANCELLED // a critical bug was found
     }
 
     STATE public state = STATE.ANNOUNCEMENT;
