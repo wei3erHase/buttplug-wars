@@ -65,7 +65,7 @@ contract ButtPlugWars is ERC721 {
     }
 
     STATE public state = STATE.ANNOUNCEMENT;
-    uint256 canStartSales;
+    uint256 public canStartSales;
 
     /* Game mechanics */
     enum TEAM {
@@ -133,7 +133,7 @@ contract ButtPlugWars is ERC721 {
                 _bondingCurve: ICurve(SUDOSWAP_EXPONENTIAL_CURVE),
                 _assetRecipient: payable(address(this)),
                 _poolType: LSSVMPair.PoolType.NFT,
-                _spotPrice: 590000000000000000, // 0.059 ETH
+                _spotPrice: 59000000000000000, // 0.059 ETH
                 _delta: 1059000000000000000, // 5.9 %
                 _fee: 0,
                 _initialNFTIDs: new uint256[](0)
