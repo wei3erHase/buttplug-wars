@@ -376,8 +376,8 @@ contract ButtPlugWars is ERC721 {
         (uint8 _whitePiecesBefore, uint8 _blackPiecesBefore) = _countPieces(_previousBoard);
         (uint8 _whitePiecesAfter, uint8 _blackPiecesAfter) = _countPieces(_newBoard);
 
-        _score += int8(_whitePiecesBefore - _whitePiecesAfter);
-        _score -= int8(_blackPiecesBefore - _blackPiecesAfter);
+        _score -= int8(_whitePiecesBefore - _whitePiecesAfter);
+        _score += int8(_blackPiecesBefore - _blackPiecesAfter);
     }
 
     function _countPieces(uint256 _board) internal pure returns (uint8 _whitePieces, uint8 _blackPieces) {
