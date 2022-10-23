@@ -4,7 +4,7 @@ pragma solidity >=0.8.4 <0.9.0;
 import {DSTestFull} from 'test/utils/DSTestFull.sol';
 import {console} from 'forge-std/console.sol';
 
-import {IChess} from 'interfaces/Game.sol';
+import {IChess, IButtPlug} from 'interfaces/Game.sol';
 import {LSSVMPair, ILSSVMPairFactory} from 'interfaces/Sudoswap.sol';
 import {ButtPlugWars, IKeep3r} from 'contracts/ButtPlugWars.sol';
 import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
@@ -16,7 +16,7 @@ contract CommonE2EBase is DSTestFull {
 
     address user = label('user');
     address owner = label('owner');
-    ButtPlugWars buttPlugWars;
+    ButtPlugWarsForTest buttPlugWars;
     ERC721 fiveOutOfNine = ERC721(0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0);
     IKeep3r keep3r = IKeep3r(0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC);
     LSSVMPair sudoPool;
@@ -45,12 +45,37 @@ contract CommonE2EBase is DSTestFull {
 }
 
 contract ButtPlugWarsForTest is ButtPlugWars {
-    function setState(STATE _state) external {
-        state = _state;
+    function simulateButtPlug(IButtPlug _buttPlug, uint256 _depth, uint256 _steps)
+        public
+        returns (int8 _score, uint8 _isCheckmate, uint256 _gasUsed)
+    {
+        uint256 _initialGas = gasleft();
+        uint256 _move;
+        uint256 _board;
+        uint256 _newBoard;
+
+        for (uint8 _i; _i < _steps; ++_i) {
+            _board = IChess(FIVE_OUT_OF_NINE).board();
+            _move = IButtPlug(_buttPlug).readMove(_board);
+            IChess(FIVE_OUT_OF_NINE).mintMove(_move, _depth);
+            _newBoard = IChess(FIVE_OUT_OF_NINE).board();
+            if (_newBoard == CHECKMATE) return (_score, ++_i, _initialGas - gasleft());
+            _score += _calcScore(_board, _newBoard);
+        }
+        return (_score, 0, _initialGas - gasleft());
+    }
+
+    function logScore(int8 _score, uint8 _isCheckmate, uint256 _gasUsed) public {
+        console.logString('score:');
+        console.logInt(_score);
+        console.logString('isCheckmate?');
+        console.logUint(_isCheckmate);
+        console.logString('gasUsed:');
+        console.logUint(_gasUsed);
     }
 }
 
-contract ButtPlugForTest {
+contract ButtPlugForTest is IButtPlug {
     uint256 depth = 3;
 
     function setDepth(uint256 _depth) external {

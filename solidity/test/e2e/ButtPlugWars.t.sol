@@ -18,8 +18,6 @@ contract E2EButtPlugWars is CommonE2EBase {
         uint256 badge3 = buttPlugWars.buyBadge{value: 0.25 ether}(192, ButtPlugWars.TEAM(1));
         uint256 badge4 = buttPlugWars.buyBadge{value: 0.25 ether}(193, ButtPlugWars.TEAM(1));
 
-        console.logString(buttPlugWars.tokenURI(badge1));
-
         vm.warp(block.timestamp + 14 days + 1);
         buttPlugWars.pushLiquidity();
 
