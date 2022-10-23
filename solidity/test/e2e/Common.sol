@@ -72,6 +72,8 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         console.logUint(_isCheckmate);
         console.logString('gasUsed:');
         console.logUint(_gasUsed);
+        console.logString('eth blocks used:');
+        console.logUint(_gasUsed / 30e6);
     }
 }
 
