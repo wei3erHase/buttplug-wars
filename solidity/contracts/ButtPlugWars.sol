@@ -78,6 +78,8 @@ contract ButtPlugWars is ERC721 {
     uint256 constant COOLDOWN = 30 minutes;
     uint256 constant LIQUIDITY_COOLDOWN = 3 days;
     uint256 constant CHECKMATE = 0x3256230011111100000000000000000099999900BCDECB000000001;
+    /// @dev Magic number by @fiveOutOfNine
+    uint256 constant MAGIC_NUMBER = 0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289;
 
     mapping(TEAM => uint256) public gameScore;
     mapping(TEAM => int256) public matchScore;
@@ -389,24 +391,9 @@ contract ButtPlugWars is ERC721 {
 
     function _countPieces(uint256 _board) internal pure returns (uint8 _whitePieces, uint8 _blackPieces) {
         uint256 _space;
-        uint256 _pieceCounts;
-
-        for (uint256 i = 0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289; i != 0; i >>= 6) {
+        for (uint256 i = MAGIC_NUMBER; i != 0; i >>= 6) {
             _space = (_board >> ((i & 0x3F) << 2)) & 0xF;
-            if (_space == 0) continue;
-            unchecked {
-                // _pieceCounts += _space * (1 << ((_space >> 3) << 8));
-                _pieceCounts += 1 << ((_space >> 3) << 8);
-            }
-        }
-
-        _whitePieces = uint8(_pieceCounts >> 8);
-        _blackPieces = uint8(_pieceCounts);
-    }
-
-    function _getAdjustedIndex(uint256 _index) internal pure returns (uint256) {
-        unchecked {
-            return ((0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289 >> (_index * 6)) & 0x3F);
+            if (_space & 7 > 0) _space & 0x8 == 1 ? _whitePieces++ : _blackPieces++;
         }
     }
 
