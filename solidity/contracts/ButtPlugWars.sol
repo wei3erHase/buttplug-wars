@@ -168,7 +168,7 @@ contract ButtPlugWars is ERC721 {
 
     /// @dev Allows the signer to purchase a NFT, bonding a 5/9 and paying ETH price
     function buyBadge(uint256 _tokenId, TEAM _team) external payable returns (uint256 _badgeID) {
-        if (state >= STATE.GAME_ENDED) revert WrongTiming();
+        if ((state < STATE.TICKET_SALE) || (state >= STATE.GAME_ENDED)) revert WrongTiming();
 
         uint256 _value = msg.value;
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
