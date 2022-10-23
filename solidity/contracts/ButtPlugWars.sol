@@ -81,6 +81,7 @@ contract ButtPlugWars is ERC721 {
 
     mapping(TEAM => uint256) public gameScore;
     mapping(TEAM => int256) public matchScore;
+    uint256 matchTotalMoves;
     uint256 public matchNumber;
     uint256 public canPlayNext;
     uint256 public canPushLiquidity;
@@ -328,26 +329,32 @@ contract ButtPlugWars is ERC721 {
     function executeMove() external upkeep(msg.sender) {
         if ((state != STATE.GAME_RUNNING) || (block.timestamp < canPlayNext)) revert WrongTiming();
 
+        if (++matchTotalMoves > 59) _checkMateRoutine();
+
         TEAM _team = _getTeam();
         uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
 
         try ButtPlugWars(this).playMove(_board, _team) {
             uint256 _newBoard = IChess(FIVE_OUT_OF_NINE).board();
-            if (_newBoard == CHECKMATE) {
-                if (matchScore[TEAM.A] >= matchScore[TEAM.B]) gameScore[TEAM.A]++;
-                if (matchScore[TEAM.B] >= matchScore[TEAM.A]) gameScore[TEAM.B]++;
-                ++matchNumber;
-                if (matchNumber >= 5) _verifyWinner();
-                canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
-            } else {
+            if (_newBoard != CHECKMATE) {
                 matchScore[_team] += _calcScore(_board, _newBoard);
                 canPlayNext = block.timestamp + COOLDOWN;
+            } else {
+                _checkMateRoutine();
             }
         } catch {
             // if playMove() reverts, team gets -1 point and next team is to play
             --matchScore[_team];
             canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
         }
+    }
+
+    function _checkMateRoutine() internal {
+        if (matchScore[TEAM.A] >= matchScore[TEAM.B]) gameScore[TEAM.A]++;
+        if (matchScore[TEAM.B] >= matchScore[TEAM.A]) gameScore[TEAM.B]++;
+        if (++matchNumber >= 5) _verifyWinner();
+        canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
+        delete matchTotalMoves;
     }
 
     function playMove(uint256 _board, TEAM _team) external {
