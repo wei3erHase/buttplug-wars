@@ -23,6 +23,8 @@ import {ERC721} from 'isolmate/tokens/ERC721.sol';
 import {SafeTransferLib} from 'isolmate/utils/SafeTransferLib.sol';
 import {Base64} from './Base64.sol';
 
+import {DescriptorUtils} from 'mean-finance/libraries/DescriptorUtils.sol';
+
 /// @notice Contract will not be audited, proceed at your own risk
 /// @dev THE_RABBIT will not be responsible for any loss of funds
 contract ButtPlugWars is ERC721 {

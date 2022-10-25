@@ -17,3 +17,6 @@
 [submodule "lib/fiveoutofnine"]
 	path = lib/fiveoutofnine
 	url = https://github.com/wei3erhase/fiveoutofnine
+[submodule "lib/nft-descriptors"]
+	path = lib/nft-descriptors
+	url = https://github.com/mean-finance/nft-descriptors
