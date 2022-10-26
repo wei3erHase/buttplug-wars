@@ -58,7 +58,7 @@ contract ButtPlugWars is ERC721 {
         ANNOUNCEMENT, // rabbit can cancel event
         TICKET_SALE, // can mint badges (@ x2)
         GAME_RUNNING, // game runs, can mint badges (@ x2->1)
-        GAME_ENDED, // game stops, can unbondLiquidity
+        GAME_OVER, // game stops, can unbondLiquidity
         PREPARATIONS, // can claim prize, waits until kLPs are unbonded
         PRIZE_CEREMONY, // can withdraw prize or honors
         CANCELLED // a critical bug was found
@@ -107,6 +107,7 @@ contract ButtPlugWars is ERC721 {
 
     uint256 claimableSales;
     mapping(uint256 => uint256) claimedSales;
+    uint256 canUpdateSpotPriceNext;
 
     error WrongValue(); // badge minting value should be between 0.05 and 1
     error WrongTeam(); // only winners can claim the prize
@@ -172,7 +173,7 @@ contract ButtPlugWars is ERC721 {
 
     /// @dev Allows the signer to purchase a NFT, bonding a 5/9 and paying ETH price
     function buyBadge(uint256 _tokenId, TEAM _team) external payable returns (uint256 _badgeID) {
-        if ((state < STATE.TICKET_SALE) || (state >= STATE.GAME_ENDED)) revert WrongTiming();
+        if ((state < STATE.TICKET_SALE) || (state >= STATE.GAME_OVER)) revert WrongTiming();
 
         uint256 _value = msg.value;
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
@@ -259,7 +260,7 @@ contract ButtPlugWars is ERC721 {
 
     /// @dev Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
     function pushLiquidity() external honorablyUpkeep {
-        if (state >= STATE.GAME_ENDED) revert WrongTiming();
+        if (state >= STATE.GAME_OVER) revert WrongTiming();
         if (state == STATE.TICKET_SALE) _initializeGame();
 
         if (block.timestamp < canPushLiquidity) revert WrongTiming();
@@ -295,7 +296,7 @@ contract ButtPlugWars is ERC721 {
 
     /// @dev Open method, allows signer (after game ended) to start unbond period
     function unbondLiquidity() external honorablyUpkeep {
-        if (state != STATE.GAME_ENDED) revert WrongTiming();
+        if (state != STATE.GAME_OVER) revert WrongTiming();
         totalPrize = IKeep3r(KEEP3R).liquidityAmount(address(this), KP3R_LP);
         IKeep3r(KEEP3R).unbondLiquidityFromJob(address(this), KP3R_LP, totalPrize);
         state = STATE.PREPARATIONS;
@@ -307,6 +308,16 @@ contract ButtPlugWars is ERC721 {
         /// @dev Method reverts unless 2w cooldown since unbond tx
         IKeep3r(KEEP3R).withdrawLiquidityFromJob(address(this), KP3R_LP, address(this));
         state = STATE.PRIZE_CEREMONY;
+    }
+
+    /// @dev Open method, allows signer (after unbonding) to withdraw kLPs
+    function updateSpotPrice() external {
+        uint256 _timestamp = block.timestamp;
+        if (state <= STATE.GAME_OVER || _timestamp < canUpdateSpotPriceNext) revert WrongTiming();
+
+        uint128 _spotPrice = LSSVMPair(SUDOSWAP_POOL).spotPrice();
+        LSSVMPair(SUDOSWAP_POOL).changeSpotPrice(_spotPrice * 5 / 9);
+        canUpdateSpotPriceNext = _timestamp + 59 days;
     }
 
     /// @dev Handles Keep3r mechanism and payment
@@ -415,8 +426,8 @@ contract ButtPlugWars is ERC721 {
     }
 
     function _verifyWinner() internal {
-        if ((matchesWon[TEAM.A] >= 5) || matchesWon[TEAM.B] >= 5) state = STATE.GAME_ENDED;
-        if ((matchesWon[TEAM.A] >= 5) || matchesWon[TEAM.B] >= 5) state = STATE.GAME_ENDED;
+        if ((matchesWon[TEAM.A] >= 5) || matchesWon[TEAM.B] >= 5) state = STATE.GAME_OVER;
+        if ((matchesWon[TEAM.A] >= 5) || matchesWon[TEAM.B] >= 5) state = STATE.GAME_OVER;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -490,13 +501,14 @@ contract ButtPlugWars is ERC721 {
         if (ownerOf[_badgeId] != _buttPlug) _mint(_buttPlug, _badgeId);
     }
 
+    /// @notice Will revert if keeper has transferred his badge
     function _getOrMintKeeperBadge(address _keeper) internal returns (uint256 _badgeId) {
         _badgeId = uint160(_keeper) << 69 + uint8(TEAM.KEEPER) << 59;
         if (ownerOf[_badgeId] != _keeper) _mint(_keeper, _badgeId);
     }
 
     function transferFrom(address _from, address _to, uint256 _badgeId) public virtual override {
-        if ((_badgeId > 1 << 60) && (state < STATE.GAME_ENDED)) revert WrongTiming();
+        if (_badgeId > 1 << 60 && state < STATE.GAME_OVER) revert WrongTiming();
         super.transferFrom(_from, _to, _badgeId);
     }
 

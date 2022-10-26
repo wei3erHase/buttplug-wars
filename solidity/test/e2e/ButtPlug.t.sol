@@ -8,7 +8,7 @@ contract E2EButtPlug is CommonE2EBase {
     function test_E2E() public {
         IButtPlug _buttPlug = IButtPlug(new ButtPlugForTest(address(0)));
 
-        uint256 DEPTH = 5;
+        uint256 DEPTH = 10;
         uint256 STEPS = 59;
 
         (int8 _score, uint8 _isCheckmate, uint256 _gasUsed) = buttPlugWars.simulateButtPlug(_buttPlug, DEPTH, STEPS);

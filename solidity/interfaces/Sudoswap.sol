@@ -11,6 +11,9 @@ interface LSSVMPair {
         NFT,
         TRADE
     }
+
+    function changeSpotPrice(uint128 newSpotPrice) external;
+    function spotPrice() external view returns (uint128 spotPrice);
 }
 
 interface LSSVMPairETH is LSSVMPair {

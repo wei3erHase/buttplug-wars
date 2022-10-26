@@ -36,7 +36,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         uint256 matchNumber;
         for (uint256 _i; _i < 512; ++_i) {
             vm.warp(block.timestamp + 9 days);
-            if (buttPlugWars.state() == ButtPlugWars.STATE.GAME_ENDED) break;
+            if (buttPlugWars.state() == ButtPlugWars.STATE.GAME_OVER) break;
             buttPlugWars.executeMove();
         }
 
@@ -75,6 +75,8 @@ contract E2EButtPlugWars is CommonE2EBase {
         testButtPlug.claimHonor(_buttPlugBadgeId_B);
 
         buttPlugWars.claimHonor(KEEPER_BADGE);
+
+        buttPlugWars.updateSpotPrice();
 
         uint256 _remaining = address(buttPlugWars).balance;
         assertLt(_remaining, 100);
