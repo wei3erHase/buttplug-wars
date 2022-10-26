@@ -66,7 +66,7 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         return (_score, 0, _initialGas - gasleft());
     }
 
-    function logScore(int8 _score, uint8 _isCheckmate, uint256 _gasUsed) public view {
+    function logSimulation(int8 _score, uint8 _isCheckmate, uint256 _gasUsed) public view {
         console.logString('score:');
         console.logInt(_score);
         console.logString('isCheckmate?');
@@ -81,6 +81,12 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         console.logString('badge ID and weigth');
         console.logUint(_badgeId);
         console.logUint(badgeShares[_badgeId]);
+    }
+
+    function logBadgeScore(uint256 _badgeId) public view returns (int256 _score) {
+        console.logString('badge ID and score');
+        console.logUint(_badgeId);
+        console.logInt(_getScore(_badgeId));
     }
 }
 
@@ -100,12 +106,12 @@ contract ButtPlugForTest is IButtPlug {
         (_move,) = Engine.searchMove(_board, depth);
     }
 
-    function claimHonor(uint256 _badgeID) external {
-        ButtPlugWars(payable(buttPlugWars)).claimHonor(_badgeID);
+    function claimHonor(uint256 _badgeId) external {
+        ButtPlugWars(payable(buttPlugWars)).claimHonor(_badgeId);
     }
 
-    function claimPrize(uint256 _badgeID) external {
-        ButtPlugWars(payable(buttPlugWars)).claimPrize(_badgeID);
+    function claimPrize(uint256 _badgeId) external {
+        ButtPlugWars(payable(buttPlugWars)).claimPrize(_badgeId);
     }
 
     function withdrawPrize() external {

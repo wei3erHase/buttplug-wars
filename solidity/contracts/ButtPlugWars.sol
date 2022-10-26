@@ -444,22 +444,28 @@ contract ButtPlugWars is ERC721 {
         // Locking allows external actors to bribe players
         canVoteNext[_badgeId] = _timestamp + uint256(_lockTime);
 
-        TEAM _team = TEAM(_badgeId >> 59);
+        TEAM _team = TEAM(uint8(_badgeId >> 59));
         uint256 _weight = badgeShares[_badgeId];
 
         address _previousVote = badgeVote[_badgeId];
         if (_previousVote != address(0)) {
-            uint256 _previousBadgeId = _calculateButtPlugBadge(_previousVote, _team);
+            uint256 _previousButtPlug = _calculateButtPlugBadge(_previousVote, _team);
             buttPlugVotes[_team][_previousVote] -= _weight;
-            score[_badgeId] += score[_previousBadgeId] - lastUpdatedScore[_badgeId][_previousBadgeId];
+            score[_badgeId] += score[_previousButtPlug] - lastUpdatedScore[_badgeId][_previousButtPlug];
         }
 
-        uint256 _currentBadgeId = _calculateButtPlugBadge(_buttPlug, _team);
-        lastUpdatedScore[_badgeId][_currentBadgeId] = score[_currentBadgeId];
+        uint256 _currentButtPlug = _calculateButtPlugBadge(_buttPlug, _team);
+        lastUpdatedScore[_badgeId][_currentButtPlug] = score[_currentButtPlug];
         badgeVote[_badgeId] = _buttPlug;
         buttPlugVotes[_team][_buttPlug] += _weight;
 
         if (buttPlugVotes[_team][_buttPlug] > buttPlugVotes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
+    }
+
+    function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
+        TEAM _team = TEAM(uint8(_badgeId >> 59));
+        uint256 _currentButtPlug = _calculateButtPlugBadge(badgeVote[_badgeId], _team);
+        return score[_badgeId] + score[_currentButtPlug] - lastUpdatedScore[_badgeId][_currentButtPlug];
     }
 
     /*///////////////////////////////////////////////////////////////
