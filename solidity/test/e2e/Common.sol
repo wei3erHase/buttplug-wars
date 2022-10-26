@@ -65,7 +65,7 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         return (_score, 0, _initialGas - gasleft());
     }
 
-    function logScore(int8 _score, uint8 _isCheckmate, uint256 _gasUsed) public {
+    function logScore(int8 _score, uint8 _isCheckmate, uint256 _gasUsed) public view {
         console.logString('score:');
         console.logInt(_score);
         console.logString('isCheckmate?');

@@ -370,12 +370,12 @@ contract ButtPlugWars is ERC721 {
         _team = TEAM((_getRoundTimestamp(block.timestamp, PERIOD) / PERIOD) % 2);
     }
 
-    function _calcDepth(uint256 _salt, address _keeper) internal returns (uint256 _depth) {
+    function _calcDepth(uint256 _salt, address _keeper) internal view returns (uint256 _depth) {
         uint256 _timeVariable = _getRoundTimestamp(block.timestamp, COOLDOWN);
         _depth = 3 + uint256(keccak256(abi.encode(_salt, _keeper, _timeVariable))) % 8;
     }
 
-    function _calcScore(uint256 _previousBoard, uint256 _newBoard) internal returns (int8 _score) {
+    function _calcScore(uint256 _previousBoard, uint256 _newBoard) internal pure returns (int8 _score) {
         (uint8 _whitePiecesBefore, uint8 _blackPiecesBefore) = _countPieces(_previousBoard);
         (uint8 _whitePiecesAfter, uint8 _blackPiecesAfter) = _countPieces(_newBoard);
 
@@ -383,9 +383,8 @@ contract ButtPlugWars is ERC721 {
         _score += 2 * int8(_blackPiecesBefore - _blackPiecesAfter);
     }
 
-    function _countPieces(uint256 _board) internal returns (uint8 _whitePieces, uint8 _blackPieces) {
+    function _countPieces(uint256 _board) internal pure returns (uint8 _whitePieces, uint8 _blackPieces) {
         uint256 _space;
-        uint256 _pieceCounts;
         for (uint256 i = MAGIC_NUMBER; i != 0; i >>= 6) {
             _space = (_board >> ((i & 0x3F) << 2)) & 0xF;
             if (_space == 0) continue;
@@ -517,7 +516,7 @@ contract ButtPlugWars is ERC721 {
         return string(bstr);
     }
 
-    fallback() external payable {
+    receive() external payable {
         if (msg.sender == SUDOSWAP_POOL) claimableSales += msg.value;
         return;
     }
