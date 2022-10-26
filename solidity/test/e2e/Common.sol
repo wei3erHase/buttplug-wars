@@ -22,9 +22,10 @@ contract CommonE2EBase is DSTestFull {
     LSSVMPair sudoPool;
     IChess chess = IChess(0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0);
     address constant KP3R_V1 = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
-    address ETH_WHALE = 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045;
-    address FIVEOUTOFNINE_WHALE = 0xC5233C3b46C83ADEE1039D340094173f0f7c1EcF;
-    address KP3R_LP = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
+    address constant ETH_WHALE = 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045;
+    address constant FIVEOUTOFNINE_WHALE = 0xC5233C3b46C83ADEE1039D340094173f0f7c1EcF;
+    uint256 constant KEEPER_BADGE = uint160(FIVEOUTOFNINE_WHALE) << 69 + 2 << 59;
+    address constant KP3R_LP = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
 
     function setUp() public {
         vm.createSelectFork(vm.rpcUrl('mainnet'), FORK_BLOCK);

@@ -70,7 +70,8 @@ contract ButtPlugWars is ERC721 {
     /* Game mechanics */
     enum TEAM {
         A,
-        B
+        B,
+        KEEPER
     }
 
     uint256 constant BASE = 1 ether;
@@ -157,7 +158,7 @@ contract ButtPlugWars is ERC721 {
     }
 
     /// @dev Open method, allows signer to start ticket sale
-    function startEvent() external {
+    function startEvent() external honorablyUpkeep {
         uint256 _timestamp = block.timestamp;
         if ((state != STATE.ANNOUNCEMENT) || (_timestamp < canStartSales)) revert WrongTiming();
 
@@ -257,7 +258,7 @@ contract ButtPlugWars is ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
-    function pushLiquidity() external {
+    function pushLiquidity() external honorablyUpkeep {
         if (state >= STATE.GAME_ENDED) revert WrongTiming();
         if (state == STATE.TICKET_SALE) _initializeGame();
 
@@ -293,7 +294,7 @@ contract ButtPlugWars is ERC721 {
     }
 
     /// @dev Open method, allows signer (after game ended) to start unbond period
-    function unbondLiquidity() external {
+    function unbondLiquidity() external honorablyUpkeep {
         if (state != STATE.GAME_ENDED) revert WrongTiming();
         totalPrize = IKeep3r(KEEP3R).liquidityAmount(address(this), KP3R_LP);
         IKeep3r(KEEP3R).unbondLiquidityFromJob(address(this), KP3R_LP, totalPrize);
@@ -301,7 +302,7 @@ contract ButtPlugWars is ERC721 {
     }
 
     /// @dev Open method, allows signer (after unbonding) to withdraw kLPs
-    function withdrawLiquidity() external {
+    function withdrawLiquidity() external honorablyUpkeep {
         if (state != STATE.PREPARATIONS) revert WrongTiming();
         /// @dev Method reverts unless 2w cooldown since unbond tx
         IKeep3r(KEEP3R).withdrawLiquidityFromJob(address(this), KP3R_LP, address(this));
@@ -315,6 +316,16 @@ contract ButtPlugWars is ERC721 {
         }
         _;
         IKeep3r(KEEP3R).worked(_keeper);
+    }
+
+    /// @dev Rewards signer with inflation on their NFT to claim later for sales§
+    modifier honorablyUpkeep() {
+        uint256 _initialGas = gasleft();
+        uint256 _keeperBadgeId = _getOrMintKeeperBadge(msg.sender);
+        _;
+        uint256 _inflation = (_initialGas - gasleft()) * 15e9;
+        badgeShares[_keeperBadgeId] += _inflation;
+        totalShares += _inflation;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -477,6 +488,11 @@ contract ButtPlugWars is ERC721 {
     function _getOrMintButtPlugBadge(address _buttPlug, TEAM _team) internal returns (uint256 _badgeId) {
         _badgeId = uint160(_buttPlug) << 69 + uint8(_team) << 59;
         if (ownerOf[_badgeId] != _buttPlug) _mint(_buttPlug, _badgeId);
+    }
+
+    function _getOrMintKeeperBadge(address _keeper) internal returns (uint256 _badgeId) {
+        _badgeId = uint160(_keeper) << 69 + uint8(TEAM.KEEPER) << 59;
+        if (ownerOf[_badgeId] != _keeper) _mint(_keeper, _badgeId);
     }
 
     function transferFrom(address _from, address _to, uint256 _badgeId) public virtual override {

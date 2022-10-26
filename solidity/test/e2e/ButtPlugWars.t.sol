@@ -74,6 +74,8 @@ contract E2EButtPlugWars is CommonE2EBase {
 
         testButtPlug.claimHonor(_buttPlugBadgeId_B);
 
+        buttPlugWars.claimHonor(KEEPER_BADGE);
+
         uint256 _remaining = address(buttPlugWars).balance;
         assertLt(_remaining, 100);
     }
