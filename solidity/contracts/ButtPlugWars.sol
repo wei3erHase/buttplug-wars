@@ -149,7 +149,7 @@ contract ButtPlugWars is ERC721 {
 
         // set the owner of the ERC721 for royalties
         owner = THE_RABBIT;
-        canStartSales = block.timestamp + PERIOD;
+        canStartSales = block.timestamp + 2 * PERIOD;
     }
 
     /// @dev Permissioned method, allows rabbit to cancel the event
