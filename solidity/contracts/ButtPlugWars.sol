@@ -197,7 +197,7 @@ contract ButtPlugWars is ERC721 {
     function claimPrize(uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
         if (state != STATE.PREPARATIONS) revert WrongTiming();
 
-        TEAM _team = TEAM(uint8(_badgeId) >> 59);
+        TEAM _team = TEAM(uint8(_badgeId >> 59));
         if (matchesWon[_team] < 5) revert WrongTeam();
 
         uint256 _shares = badgeShares[_badgeId];
