@@ -42,7 +42,7 @@ contract ButtPlugWars is ERC721 {
     address constant SWAP_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address constant KEEP3R = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
     address constant SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
-    address constant SUDOSWAP_EXPONENTIAL_CURVE = 0x432f962D8209781da23fB37b6B59ee15dE7d9841;
+    address constant SUDOSWAP_XYK_CURVE = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
     address public immutable SUDOSWAP_POOL;
 
     /*///////////////////////////////////////////////////////////////
@@ -137,11 +137,11 @@ contract ButtPlugWars is ERC721 {
         SUDOSWAP_POOL = address(
             ILSSVMPairFactory(SUDOSWAP_FACTORY).createPairETH({
                 _nft: IERC721(FIVE_OUT_OF_NINE),
-                _bondingCurve: ICurve(SUDOSWAP_EXPONENTIAL_CURVE),
+                _bondingCurve: ICurve(SUDOSWAP_XYK_CURVE),
                 _assetRecipient: payable(address(this)),
                 _poolType: LSSVMPair.PoolType.NFT,
                 _spotPrice: 59000000000000000, // 0.059 ETH
-                _delta: 1059000000000000000, // 5.9 %
+                _delta: 1,
                 _fee: 0,
                 _initialNFTIDs: new uint256[](0)
             })
@@ -209,7 +209,10 @@ contract ButtPlugWars is ERC721 {
 
         _burn(_badgeId);
         uint256 _tokenId = bondedToken[_badgeId];
-        if (_tokenId != 0) ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _tokenId);
+        if (_tokenId != 0) {
+            ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _tokenId);
+            _increaseSudoswapDelta();
+        }
     }
 
     /// @dev Allow players who claimed prize to withdraw their funds
@@ -312,7 +315,7 @@ contract ButtPlugWars is ERC721 {
         state = STATE.PRIZE_CEREMONY;
     }
 
-    /// @dev Open method, allows signer (after unbonding) to withdraw kLPs
+    /// @dev Open method, allows signer (after game is over) to reduce pool spotPrice
     function updateSpotPrice() external {
         uint256 _timestamp = block.timestamp;
         if (state <= STATE.GAME_OVER || _timestamp < canUpdateSpotPriceNext) revert WrongTiming();
@@ -505,8 +508,17 @@ contract ButtPlugWars is ERC721 {
     function onERC721Received(address, address _from, uint256 _id, bytes calldata) external returns (bytes4) {
         if (msg.sender != FIVE_OUT_OF_NINE) revert WrongNFT();
         // if token is newly minted transfer to sudoswap pool
-        if (_from == address(0)) ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _id);
+        if (_from == address(0)) {
+            ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _id);
+            _increaseSudoswapDelta();
+        }
+
         return 0x150b7a02;
+    }
+
+    function _increaseSudoswapDelta() internal {
+        uint128 _currentDelta = LSSVMPair(SUDOSWAP_POOL).delta();
+        LSSVMPair(SUDOSWAP_POOL).changeDelta(++_currentDelta);
     }
 
     function _getOrMintButtPlugBadge(address _buttPlug, TEAM _team) internal returns (uint256 _badgeId) {

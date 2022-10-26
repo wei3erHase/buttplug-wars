@@ -14,6 +14,8 @@ interface LSSVMPair {
 
     function changeSpotPrice(uint128 newSpotPrice) external;
     function spotPrice() external view returns (uint128 spotPrice);
+    function changeDelta(uint128 newDelta) external;
+    function delta() external view returns (uint128 delta);
 }
 
 interface LSSVMPairETH is LSSVMPair {
