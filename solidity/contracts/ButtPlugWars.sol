@@ -97,6 +97,8 @@ contract ButtPlugWars is ERC721 {
     /* Vote mechanics */
     mapping(TEAM => address) buttPlug;
     mapping(TEAM => mapping(address => uint256)) buttPlugVotes;
+    mapping(uint256 => int256) score;
+    mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
     mapping(uint256 => address) public badgeVote;
     mapping(uint256 => uint256) public canVoteNext;
 
@@ -107,7 +109,7 @@ contract ButtPlugWars is ERC721 {
 
     uint256 claimableSales;
     mapping(uint256 => uint256) claimedSales;
-    uint256 canUpdateSpotPriceNext;
+    uint256 public canUpdateSpotPriceNext;
 
     error WrongValue(); // badge minting value should be between 0.05 and 1
     error WrongTeam(); // only winners can claim the prize
@@ -172,18 +174,18 @@ contract ButtPlugWars is ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Allows the signer to purchase a NFT, bonding a 5/9 and paying ETH price
-    function buyBadge(uint256 _tokenId, TEAM _team) external payable returns (uint256 _badgeID) {
+    function buyBadge(uint256 _tokenId, TEAM _team) external payable returns (uint256 _badgeId) {
         if ((state < STATE.TICKET_SALE) || (state >= STATE.GAME_OVER)) revert WrongTiming();
 
         uint256 _value = msg.value;
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
         ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(msg.sender, address(this), _tokenId);
 
-        _badgeID = _mint(msg.sender, _team);
-        bondedToken[_badgeID] = _tokenId;
+        _badgeId = _mint(msg.sender, _team);
+        bondedToken[_badgeId] = _tokenId;
 
         uint256 _shares = (_value * _shareCoefficient()) / BASE;
-        badgeShares[_badgeID] = _shares;
+        badgeShares[_badgeId] = _shares;
         totalShares += _shares;
     }
 
@@ -192,21 +194,21 @@ contract ButtPlugWars is ERC721 {
     }
 
     /// @dev Allows players (winner team) to burn their token in exchange for a share of the prize
-    function claimPrize(uint256 _badgeID) external onlyBadgeOwner(_badgeID) {
+    function claimPrize(uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
         if (state != STATE.PREPARATIONS) revert WrongTiming();
 
-        TEAM _team = TEAM(uint8(_badgeID) >> 59);
+        TEAM _team = TEAM(uint8(_badgeId) >> 59);
         if (matchesWon[_team] < 5) revert WrongTeam();
 
-        uint256 _shares = badgeShares[_badgeID];
+        uint256 _shares = badgeShares[_badgeId];
         playerPrizeShares[msg.sender] += _shares;
         totalPrizeShares += _shares;
 
-        delete badgeShares[_badgeID];
+        delete badgeShares[_badgeId];
         totalShares -= _shares;
 
-        _burn(_badgeID);
-        uint256 _tokenId = bondedToken[_badgeID];
+        _burn(_badgeId);
+        uint256 _tokenId = bondedToken[_badgeId];
         if (_tokenId != 0) ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _tokenId);
     }
 
@@ -221,36 +223,36 @@ contract ButtPlugWars is ERC721 {
     }
 
     /// @dev Allows players (who didn't claim the prize) to withdraw ETH from the pool sales
-    function claimHonor(uint256 _badgeID) external onlyBadgeOwner(_badgeID) {
+    function claimHonor(uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
-        _claimHonor(_badgeID);
+        _claimHonor(_badgeId);
     }
 
-    function _claimHonor(uint256 _badgeID) internal {
-        uint256 shareCoefficient = BASE * badgeShares[_badgeID] / totalShares;
-        uint256 _claimable = (shareCoefficient * claimableSales / BASE) - claimedSales[_badgeID];
-        claimedSales[_badgeID] += _claimable;
+    function _claimHonor(uint256 _badgeId) internal {
+        uint256 shareCoefficient = BASE * badgeShares[_badgeId] / totalShares;
+        uint256 _claimable = (shareCoefficient * claimableSales / BASE) - claimedSales[_badgeId];
+        claimedSales[_badgeId] += _claimable;
 
         payable(msg.sender).safeTransferETH(_claimable);
     }
 
     /// @dev Allows players to return their badge and get the bonded NFT withdrawn
-    function returnBadge(uint256 _badgeID) external onlyBadgeOwner(_badgeID) {
+    function returnBadge(uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
-        if (_badgeID > 1 << 60) revert WrongMethod();
+        if (_badgeId > 1 << 60) revert WrongMethod();
 
-        _claimHonor(_badgeID);
-        claimableSales -= claimedSales[_badgeID];
-        totalShares -= badgeShares[_badgeID];
+        _claimHonor(_badgeId);
+        claimableSales -= claimedSales[_badgeId];
+        totalShares -= badgeShares[_badgeId];
 
-        _burn(_badgeID);
+        _burn(_badgeId);
 
-        uint256 _tokenId = bondedToken[_badgeID];
+        uint256 _tokenId = bondedToken[_badgeId];
         ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), msg.sender, _tokenId);
     }
 
-    modifier onlyBadgeOwner(uint256 _badgeID) {
-        if (ownerOf[_badgeID] != msg.sender) revert WrongBadge();
+    modifier onlyBadgeOwner(uint256 _badgeId) {
+        if (ownerOf[_badgeId] != msg.sender) revert WrongBadge();
         _;
     }
 
@@ -343,8 +345,6 @@ contract ButtPlugWars is ERC721 {
                             GAME MECHANICS
     //////////////////////////////////////////////////////////////*/
 
-    mapping(uint256 => int256) score;
-
     /// @dev Called by keepers to execute the next move
     function executeMove() external upkeep(msg.sender) {
         if ((state != STATE.GAME_RUNNING) || (block.timestamp < canPlayNext)) revert WrongTiming();
@@ -435,21 +435,28 @@ contract ButtPlugWars is ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Allows players to vote for their preferred ButtPlug
-    function voteButtPlug(address _buttPlug, uint256 _badgeID, uint32 _lockTime) external onlyBadgeOwner(_badgeID) {
+    function voteButtPlug(address _buttPlug, uint256 _badgeId, uint32 _lockTime) external onlyBadgeOwner(_badgeId) {
         if (_buttPlug == address(0)) revert WrongValue();
-        if (_badgeID > 1 << 60) revert WrongMethod();
+        if (_badgeId > 1 << 60) revert WrongMethod();
 
         uint256 _timestamp = block.timestamp;
-        if (_timestamp < canVoteNext[_badgeID]) revert WrongTiming();
+        if (_timestamp < canVoteNext[_badgeId]) revert WrongTiming();
         // Locking allows external actors to bribe players
-        canVoteNext[_badgeID] = _timestamp + uint256(_lockTime);
+        canVoteNext[_badgeId] = _timestamp + uint256(_lockTime);
 
-        TEAM _team = TEAM(_badgeID >> 59);
-        uint256 _weight = badgeShares[_badgeID];
+        TEAM _team = TEAM(_badgeId >> 59);
+        uint256 _weight = badgeShares[_badgeId];
 
-        address _previousVote = badgeVote[_badgeID];
-        if (_previousVote != address(0)) buttPlugVotes[_team][_previousVote] -= _weight;
-        badgeVote[_badgeID] = _buttPlug;
+        address _previousVote = badgeVote[_badgeId];
+        if (_previousVote != address(0)) {
+            uint256 _previousBadgeId = _calculateButtPlugBadge(_previousVote, _team);
+            buttPlugVotes[_team][_previousVote] -= _weight;
+            score[_badgeId] += score[_previousBadgeId] - lastUpdatedScore[_badgeId][_previousBadgeId];
+        }
+
+        uint256 _currentBadgeId = _calculateButtPlugBadge(_buttPlug, _team);
+        lastUpdatedScore[_badgeId][_currentBadgeId] = score[_currentBadgeId];
+        badgeVote[_badgeId] = _buttPlug;
         buttPlugVotes[_team][_buttPlug] += _weight;
 
         if (buttPlugVotes[_team][_buttPlug] > buttPlugVotes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
@@ -459,15 +466,15 @@ contract ButtPlugWars is ERC721 {
                                 ERC721
     //////////////////////////////////////////////////////////////*/
 
-    function _mint(address _receiver, TEAM _team) internal returns (uint256 _badgeID) {
-        _badgeID = ++totalSupply;
-        _badgeID += uint256(_team) << 59;
-        _mint(_receiver, _badgeID);
+    function _mint(address _receiver, TEAM _team) internal returns (uint256 _badgeId) {
+        _badgeId = ++totalSupply;
+        _badgeId += uint256(_team) << 59;
+        _mint(_receiver, _badgeId);
     }
 
-    function _burn(uint256 _badgeID) internal override {
+    function _burn(uint256 _badgeId) internal override {
         totalSupply--;
-        super._burn(_badgeID);
+        super._burn(_badgeId);
     }
 
     function tokenURI(uint256 _badgeId) public view virtual override returns (string memory) {
@@ -497,8 +504,12 @@ contract ButtPlugWars is ERC721 {
     }
 
     function _getOrMintButtPlugBadge(address _buttPlug, TEAM _team) internal returns (uint256 _badgeId) {
-        _badgeId = uint160(_buttPlug) << 69 + uint8(_team) << 59;
+        _badgeId = _calculateButtPlugBadge(_buttPlug, _team);
         if (ownerOf[_badgeId] != _buttPlug) _mint(_buttPlug, _badgeId);
+    }
+
+    function _calculateButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
+        return uint160(_buttPlug) << 69 + uint8(_team) << 59;
     }
 
     /// @notice Will revert if keeper has transferred his badge
