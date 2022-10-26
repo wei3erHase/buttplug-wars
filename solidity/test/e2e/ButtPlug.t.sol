@@ -6,7 +6,7 @@ import {CommonE2EBase, ButtPlugForTest, console} from './Common.sol';
 
 contract E2EButtPlug is CommonE2EBase {
     function test_E2E() public {
-        IButtPlug _buttPlug = IButtPlug(new ButtPlugForTest());
+        IButtPlug _buttPlug = IButtPlug(new ButtPlugForTest(address(0)));
 
         uint256 DEPTH = 5;
         uint256 STEPS = 59;

@@ -75,10 +75,21 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         console.logString('eth blocks used:');
         console.logUint(_gasUsed / 30e6);
     }
+
+    function logBadgeWeigth(uint256 _badgeId) public view {
+        console.logString('badge ID and weigth');
+        console.logUint(_badgeId);
+        console.logUint(badgeShares[_badgeId]);
+    }
 }
 
 contract ButtPlugForTest is IButtPlug {
     uint256 depth = 10;
+    address buttPlugWars;
+
+    constructor(address _buttPlugWars) {
+        buttPlugWars = _buttPlugWars;
+    }
 
     function setDepth(uint256 _depth) external {
         depth = _depth;
@@ -87,4 +98,18 @@ contract ButtPlugForTest is IButtPlug {
     function readMove(uint256 _board) external view returns (uint256 _move) {
         (_move,) = Engine.searchMove(_board, depth);
     }
+
+    function claimHonor(uint256 _badgeID) external {
+        ButtPlugWars(payable(buttPlugWars)).claimHonor(_badgeID);
+    }
+
+    function claimPrize(uint256 _badgeID) external {
+        ButtPlugWars(payable(buttPlugWars)).claimPrize(_badgeID);
+    }
+
+    function withdrawPrize() external {
+        ButtPlugWars(payable(buttPlugWars)).withdrawPrize();
+    }
+
+    receive() external payable {}
 }

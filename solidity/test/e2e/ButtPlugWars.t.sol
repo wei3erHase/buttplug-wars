@@ -22,7 +22,10 @@ contract E2EButtPlugWars is CommonE2EBase {
         vm.warp(block.timestamp + 14 days + 1);
         buttPlugWars.pushLiquidity();
 
-        ButtPlugForTest testButtPlug = new ButtPlugForTest();
+        ButtPlugForTest testButtPlug = new ButtPlugForTest(address(buttPlugWars));
+        uint256 _buttPlugBadgeId_A = uint160(address(testButtPlug)) << 69 + 0 << 59;
+        uint256 _buttPlugBadgeId_B = uint160(address(testButtPlug)) << 69 + 1 << 59;
+
         buttPlugWars.voteButtPlug(address(testButtPlug), badge1, 0);
         buttPlugWars.voteButtPlug(address(testButtPlug), badge2, 0);
 
@@ -43,13 +46,16 @@ contract E2EButtPlugWars is CommonE2EBase {
         vm.warp(block.timestamp + 14 days + 1);
         address badgeOwner = buttPlugWars.ownerOf(badge1);
         buttPlugWars.claimPrize(badge1);
+        testButtPlug.claimPrize(_buttPlugBadgeId_A);
         buttPlugWars.withdrawLiquidity();
 
         // Prize distribution
 
         buttPlugWars.withdrawPrize();
-        uint256 liquidityWithdrawn = IERC20(KP3R_LP).balanceOf(badgeOwner);
-        assertEq(liquidityAmount, liquidityWithdrawn);
+        testButtPlug.withdrawPrize();
+        uint256 liquidityWithdrawn =
+            IERC20(KP3R_LP).balanceOf(badgeOwner) + IERC20(KP3R_LP).balanceOf(address(testButtPlug));
+        assertLt(liquidityAmount - liquidityWithdrawn, 100);
 
         ILSSVMRouter.PairSwapAny[] memory _swapList = new ILSSVMRouter.PairSwapAny[](1);
         _swapList[0] = ILSSVMRouter.PairSwapAny(sudoPool, 10);
@@ -66,7 +72,9 @@ contract E2EButtPlugWars is CommonE2EBase {
         buttPlugWars.returnBadge(badge5);
         buttPlugWars.claimHonor(badge6);
 
+        testButtPlug.claimHonor(_buttPlugBadgeId_B);
+
         uint256 _remaining = address(buttPlugWars).balance;
-        assertLt(_remaining, 5);
+        assertLt(_remaining, 100);
     }
 }
