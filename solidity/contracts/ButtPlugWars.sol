@@ -271,7 +271,9 @@ contract ButtPlugWars is ERC721 {
         if (block.timestamp < canPushLiquidity) revert WrongTiming();
         canPushLiquidity = block.timestamp + LIQUIDITY_COOLDOWN;
 
-        uint256 _eth = address(this).balance;
+        uint256 _eth = address(this).balance - claimableSales;
+        if (_eth == 0) revert WrongTiming();
+
         IWeth(WETH_9).deposit{value: _eth}();
 
         ISwapRouter.ExactInputSingleParams memory _params = ISwapRouter.ExactInputSingleParams({

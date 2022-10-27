@@ -16,7 +16,6 @@ contract E2EButtPlugWars is CommonE2EBase {
         uint256 badge3 = buttPlugWars.buyBadge{value: 0.25 ether}(185, ButtPlugWars.TEAM(1));
         uint256 badge4 = buttPlugWars.buyBadge{value: 0.25 ether}(186, ButtPlugWars.TEAM(1));
         uint256 badge5 = buttPlugWars.buyBadge{value: 0.25 ether}(187, ButtPlugWars.TEAM(1));
-        uint256 badge6 = buttPlugWars.buyBadge{value: 0.25 ether}(188, ButtPlugWars.TEAM(1));
         payable(address(buttPlugWars)).call{value: 10 ether}('');
 
         vm.warp(block.timestamp + 14 days + 1);
@@ -41,6 +40,20 @@ contract E2EButtPlugWars is CommonE2EBase {
             buttPlugWars.executeMove();
         }
 
+        uint256 badge6;
+        {
+            badge6 = buttPlugWars.buyBadge{value: 0.25 ether}(188, ButtPlugWars.TEAM(1));
+
+            ILSSVMRouter.PairSwapAny[] memory _swapList = new ILSSVMRouter.PairSwapAny[](1);
+            _swapList[0] = ILSSVMRouter.PairSwapAny(sudoPool, 10);
+
+            ILSSVMRouter(0x844d04f79D2c58dCeBf8Fff1e389Fccb1401aa49).swapETHForAnyNFTs{value: 10 ether}(
+                _swapList, payable(FIVEOUTOFNINE_WHALE), FIVEOUTOFNINE_WHALE, block.timestamp
+            );
+        }
+
+        buttPlugWars.pushLiquidity();
+
         buttPlugWars.voteButtPlug(address(69), badge3, 0);
         for (uint256 _i; _i < 256; ++_i) {
             vm.warp(block.timestamp + 9 days);
@@ -64,13 +77,6 @@ contract E2EButtPlugWars is CommonE2EBase {
         uint256 liquidityWithdrawn =
             IERC20(KP3R_LP).balanceOf(badgeOwner) + IERC20(KP3R_LP).balanceOf(address(testButtPlug));
         assertLt(liquidityAmount - liquidityWithdrawn, 100);
-
-        ILSSVMRouter.PairSwapAny[] memory _swapList = new ILSSVMRouter.PairSwapAny[](1);
-        _swapList[0] = ILSSVMRouter.PairSwapAny(sudoPool, 10);
-
-        ILSSVMRouter(0x844d04f79D2c58dCeBf8Fff1e389Fccb1401aa49).swapETHForAnyNFTs{value: 10 ether}(
-            _swapList, payable(FIVEOUTOFNINE_WHALE), FIVEOUTOFNINE_WHALE, block.timestamp
-        );
 
         // Honor distribution
 
