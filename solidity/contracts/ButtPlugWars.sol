@@ -101,6 +101,7 @@ contract ButtPlugWars is ERC721 {
     mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
     mapping(uint256 => address) public badgeVote;
     mapping(uint256 => uint256) public canVoteNext;
+    uint256 constant BUTT_PLUG_GAS_LIMIT = 10_000_000;
 
     /* Prize mechanics */
     uint256 totalPrize;
@@ -365,7 +366,7 @@ contract ButtPlugWars is ERC721 {
         badgeShares[_buttPlugBadgeId] += _inflation;
         totalShares += _inflation;
 
-        try ButtPlugWars(this).playMove(_board, _buttPlug) {
+        try ButtPlugWars(this).playMove{gas: BUTT_PLUG_GAS_LIMIT}(_board, _buttPlug) {
             uint256 _newBoard = IChess(FIVE_OUT_OF_NINE).board();
             if (_newBoard != CHECKMATE) {
                 int8 _score = _calcScore(_board, _newBoard);
