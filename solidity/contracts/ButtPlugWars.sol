@@ -375,6 +375,7 @@ contract ButtPlugWars is ERC721 {
             } else {
                 score[_buttPlugBadgeId] += 3 * int256(_buttPlugVotes);
                 _checkMateRoutine();
+                canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
             }
         } catch {
             // if playMove() reverts, team gets -1 point, buttPlug -2 * weigth, and next team is to play
@@ -388,7 +389,6 @@ contract ButtPlugWars is ERC721 {
         if (matchScore[TEAM.A] >= matchScore[TEAM.B]) matchesWon[TEAM.A]++;
         if (matchScore[TEAM.B] >= matchScore[TEAM.A]) matchesWon[TEAM.B]++;
         if (++matchNumber >= 5) _verifyWinner();
-        canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
         delete matchTotalMoves;
     }
 
@@ -431,8 +431,11 @@ contract ButtPlugWars is ERC721 {
     }
 
     function _verifyWinner() internal {
-        if ((matchesWon[TEAM.A] >= 5) || matchesWon[TEAM.B] >= 5) state = STATE.GAME_OVER;
-        if ((matchesWon[TEAM.A] >= 5) || matchesWon[TEAM.B] >= 5) state = STATE.GAME_OVER;
+        if ((matchesWon[TEAM.A] >= 5) || matchesWon[TEAM.B] >= 5) {
+            state = STATE.GAME_OVER;
+            // all remaining ETH will be considered to distribute
+            claimableSales = address(this).balance;
+        }
     }
 
     /*///////////////////////////////////////////////////////////////
