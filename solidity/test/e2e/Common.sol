@@ -87,6 +87,7 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         console.logString('badge ID and score');
         console.logUint(_badgeId);
         console.logInt(_getScore(_badgeId));
+        return _getScore(_badgeId);
     }
 }
 

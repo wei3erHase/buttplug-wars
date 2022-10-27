@@ -160,7 +160,7 @@ contract ButtPlugWars is ERC721 {
         state = STATE.CANCELLED;
     }
 
-    /// @dev Open method, allows signer to start ticket sale
+    /// @dev Open rewarded method, allows signer to start ticket sale
     function startEvent() external honorablyUpkeep {
         uint256 _timestamp = block.timestamp;
         if ((state != STATE.ANNOUNCEMENT) || (_timestamp < canStartSales)) revert WrongTiming();
@@ -263,7 +263,7 @@ contract ButtPlugWars is ERC721 {
                             KEEP3R MANAGEMENT
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
+    /// @dev Open rewarded method, allows signer to swap ETH => KP3R, mints kLP and adds to job
     function pushLiquidity() external honorablyUpkeep {
         if (state >= STATE.GAME_OVER) revert WrongTiming();
         if (state == STATE.TICKET_SALE) _initializeGame();
@@ -301,7 +301,7 @@ contract ButtPlugWars is ERC721 {
         ++matchNumber;
     }
 
-    /// @dev Open method, allows signer (after game ended) to start unbond period
+    /// @dev Open rewarded method, allows signer (after game ended) to start unbond period
     function unbondLiquidity() external honorablyUpkeep {
         if (state != STATE.GAME_OVER) revert WrongTiming();
         totalPrize = IKeep3r(KEEP3R).liquidityAmount(address(this), KP3R_LP);
@@ -309,7 +309,7 @@ contract ButtPlugWars is ERC721 {
         state = STATE.PREPARATIONS;
     }
 
-    /// @dev Open method, allows signer (after unbonding) to withdraw kLPs
+    /// @dev Open rewarded method, allows signer (after unbonding) to withdraw kLPs
     function withdrawLiquidity() external honorablyUpkeep {
         if (state != STATE.PREPARATIONS) revert WrongTiming();
         /// @dev Method reverts unless 2w cooldown since unbond tx
@@ -336,7 +336,7 @@ contract ButtPlugWars is ERC721 {
         IKeep3r(KEEP3R).worked(_keeper);
     }
 
-    /// @dev Rewards signer with inflation on their NFT to claim later for sales§
+    /// @dev Rewards signer with inflation on their NFT to claim later for sales
     modifier honorablyUpkeep() {
         uint256 _initialGas = gasleft();
         uint256 _keeperBadgeId = _getOrMintKeeperBadge(msg.sender);

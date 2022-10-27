@@ -16,7 +16,9 @@ contract E2EButtPlugWars is CommonE2EBase {
         uint256 badge3 = buttPlugWars.buyBadge{value: 0.25 ether}(185, ButtPlugWars.TEAM(1));
         uint256 badge4 = buttPlugWars.buyBadge{value: 0.25 ether}(186, ButtPlugWars.TEAM(1));
         uint256 badge5 = buttPlugWars.buyBadge{value: 0.25 ether}(187, ButtPlugWars.TEAM(1));
-        payable(address(buttPlugWars)).call{value: 10 ether}('');
+        {
+            (bool _success, bytes memory _return) = payable(address(buttPlugWars)).call{value: 10 ether}('');
+        }
 
         vm.warp(block.timestamp + 14 days + 1);
         buttPlugWars.pushLiquidity();
@@ -33,7 +35,6 @@ contract E2EButtPlugWars is CommonE2EBase {
         buttPlugWars.executeMove();
 
         // NOTE: brute forces 5/9 contract to reset to checkMate state somewhen
-        uint256 matchNumber;
         for (uint256 _i; _i < 256; ++_i) {
             vm.warp(block.timestamp + 9 days);
             if (buttPlugWars.state() == ButtPlugWars.STATE.GAME_OVER) break;
