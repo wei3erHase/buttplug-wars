@@ -9,6 +9,17 @@ library DescriptorUtils {
     using Strings for uint256;
     using Strings for uint32;
 
+    function intToDecimalString(int256 _value, uint8 _decimals) internal pure returns (string memory) {
+        bool _isNegative;
+        uint256 _uintValue;
+        if (_value < 0) {
+            _isNegative = true;
+            _uintValue = uint256(-_value);
+        }
+        if (_isNegative) return string(abi.encodePacked('-', fixedPointToDecimalString(_uintValue, _decimals)));
+        return fixedPointToDecimalString(_uintValue, _decimals);
+    }
+
     function fixedPointToDecimalString(uint256 _value, uint8 _decimals) internal pure returns (string memory) {
         if (_value == 0) return '0.0000';
 
