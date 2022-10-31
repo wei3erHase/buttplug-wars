@@ -74,6 +74,7 @@ contract ButtPlugWars is ERC721 {
         KEEPER
     }
 
+    uint256 constant MAX_UINT = type(uint256).max;
     uint256 constant BASE = 1 ether;
     uint256 constant PERIOD = 5 days;
     uint256 constant COOLDOWN = 30 minutes;
@@ -126,10 +127,10 @@ contract ButtPlugWars is ERC721 {
 
     constructor() ERC721('ButtPlugBadge', unicode'♙') {
         // emit token aprovals
-        IERC20(WETH_9).approve(SWAP_ROUTER, type(uint256).max);
-        IERC20(KP3R_V1).approve(KP3R_LP, type(uint256).max);
-        IERC20(WETH_9).approve(KP3R_LP, type(uint256).max);
-        IPairManager(KP3R_LP).approve(KEEP3R, type(uint256).max);
+        IERC20(WETH_9).approve(SWAP_ROUTER, MAX_UINT);
+        IERC20(KP3R_V1).approve(KP3R_LP, MAX_UINT);
+        IERC20(WETH_9).approve(KP3R_LP, MAX_UINT);
+        IPairManager(KP3R_LP).approve(KEEP3R, MAX_UINT);
 
         // create Keep3r job
         IKeep3r(KEEP3R).addJob(address(this));
@@ -180,7 +181,6 @@ contract ButtPlugWars is ERC721 {
 
         uint256 _value = msg.value;
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
-        ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(msg.sender, address(this), _tokenId);
 
         _badgeId = _mint(msg.sender, _team);
         bondedToken[_badgeId] = _tokenId;
@@ -188,6 +188,8 @@ contract ButtPlugWars is ERC721 {
         uint256 _shares = (_value * _shareCoefficient()) / BASE;
         badgeShares[_badgeId] = _shares;
         totalShares += _shares;
+
+        ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(msg.sender, address(this), _tokenId);
     }
 
     function _shareCoefficient() internal view returns (uint256) {
@@ -209,8 +211,10 @@ contract ButtPlugWars is ERC721 {
         totalShares -= _shares;
 
         _burn(_badgeId);
-        uint256 _tokenId = bondedToken[_badgeId];
-        if (_tokenId != 0) {
+
+        // if badge corresponds to a player deposit the bonded token in the pool
+        if (_badgeId < 1 << 60) {
+            uint256 _tokenId = bondedToken[_badgeId];
             ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), SUDOSWAP_POOL, _tokenId);
             _increaseSudoswapDelta();
         }
@@ -221,9 +225,9 @@ contract ButtPlugWars is ERC721 {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
 
         uint256 _withdrawnPrize = playerPrizeShares[msg.sender] * totalPrize / totalPrizeShares;
-        IPairManager(KP3R_LP).transfer(msg.sender, _withdrawnPrize);
-
         delete playerPrizeShares[msg.sender];
+
+        IPairManager(KP3R_LP).transfer(msg.sender, _withdrawnPrize);
     }
 
     /// @dev Allows players (who didn't claim the prize) to withdraw ETH from the pool sales
@@ -379,9 +383,9 @@ contract ButtPlugWars is ERC721 {
                 canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
             }
         } catch {
-            // if playMove() reverts, team gets -1 point, buttPlug -2 * weigth, and next team is to play
+            // if playMove() reverts, team gets -1 point, buttPlug -2 * weight, and next team is to play
             --matchScore[_team];
-            score[_buttPlugBadgeId] -= 2 * int256(buttPlugVotes[_team][_buttPlug]);
+            score[_buttPlugBadgeId] -= 2 * int256(_buttPlugVotes);
             canPlayNext = _getRoundTimestamp(block.timestamp + PERIOD, PERIOD);
         }
     }
@@ -389,7 +393,7 @@ contract ButtPlugWars is ERC721 {
     function _checkMateRoutine() internal {
         if (matchScore[TEAM.A] >= matchScore[TEAM.B]) matchesWon[TEAM.A]++;
         if (matchScore[TEAM.B] >= matchScore[TEAM.A]) matchesWon[TEAM.B]++;
-        if (++matchNumber >= 5) _verifyWinner();
+        if (matchNumber++ >= 5) _verifyWinner();
         delete matchTotalMoves;
     }
 
