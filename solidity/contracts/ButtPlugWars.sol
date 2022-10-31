@@ -13,7 +13,7 @@
 
 pragma solidity >=0.8.4 <0.9.0;
 
-import {IButtPlug, IChess} from 'interfaces/Game.sol';
+import {IButtPlug, IChess, INftDescriptor} from 'interfaces/Game.sol';
 import {IKeep3r, IPairManager} from 'interfaces/Keep3r.sol';
 import {LSSVMPair, LSSVMPairETH, ILSSVMPairFactory, ICurve, IERC721} from 'interfaces/Sudoswap.sol';
 import {ISwapRouter} from 'interfaces/Uniswap.sol';
@@ -44,6 +44,7 @@ contract ButtPlugWars is ERC721 {
     address constant SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
     address constant SUDOSWAP_XYK_CURVE = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
     address public immutable SUDOSWAP_POOL;
+    address public nftDescriptor;
 
     /*///////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -51,7 +52,7 @@ contract ButtPlugWars is ERC721 {
 
     /* IERC721 */
     address public immutable owner;
-    uint256 public totalSupply;
+    uint256 totalPlayers;
 
     /* Roadmap */
     enum STATE {
@@ -152,6 +153,9 @@ contract ButtPlugWars is ERC721 {
         // set the owner of the ERC721 for royalties
         owner = THE_RABBIT;
         canStartSales = block.timestamp + 2 * PERIOD;
+
+        // mint token 0 to itself
+        _mint(address(this), 0);
     }
 
     /// @dev Permissioned method, allows rabbit to cancel the event
@@ -160,6 +164,13 @@ contract ButtPlugWars is ERC721 {
         if (state != STATE.ANNOUNCEMENT) revert WrongTiming();
 
         state = STATE.CANCELLED;
+    }
+
+    function setNftDescriptor(address _nftDescriptor) external {
+        if (msg.sender != THE_RABBIT) revert WrongMethod();
+        if (state >= STATE.GAME_OVER) revert WrongTiming();
+
+        nftDescriptor = _nftDescriptor;
     }
 
     /// @dev Open rewarded method, allows signer to start ticket sale
@@ -486,33 +497,16 @@ contract ButtPlugWars is ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     function _mint(address _receiver, TEAM _team) internal returns (uint256 _badgeId) {
-        _badgeId = ++totalSupply;
+        _badgeId = ++totalPlayers;
         _badgeId += uint256(_team) << 59;
         _mint(_receiver, _badgeId);
     }
 
-    function _burn(uint256 _badgeId) internal override {
-        totalSupply--;
-        super._burn(_badgeId);
-    }
-
     function tokenURI(uint256 _badgeId) public view virtual override returns (string memory) {
-        string memory _json = Base64.encode(
-            bytes(
-                string(
-                    abi.encodePacked(
-                        '{"name": "ButtPlugBadge",',
-                        '"image_data": "',
-                        _getSvg(_badgeId),
-                        '",',
-                        '"attributes": [{"trait_type": "Weigth", "value": ',
-                        _uint2str(badgeShares[_badgeId]),
-                        '}]}'
-                    )
-                )
-            )
-        );
-        return string(abi.encodePacked('data:application/json;base64,', _json));
+        /**
+         * fetch badge data
+         */
+        return INftDescriptor(nftDescriptor).getMetadata();
     }
 
     function onERC721Received(address, address _from, uint256 _id, bytes calldata) external returns (bytes4) {
@@ -551,8 +545,8 @@ contract ButtPlugWars is ERC721 {
         super.transferFrom(_from, _to, _badgeId);
     }
 
-    function _getSvg(uint256 tokenId) internal view returns (string memory) {
-        TEAM _team = TEAM(tokenId >> 59);
+    function _getSvg(uint256 _badgeId) internal view returns (string memory) {
+        TEAM _team = TEAM(_badgeId >> 59);
         string memory _svg =
             "<svg width='300px' height='300px' viewBox='0 0 300 300' fill='none' xmlns='http://www.w3.org/2000/svg'><path width='48' height='48' fill='white' d='M0 0H300V300H0V0z'/><path d='M275 25H193L168 89C196 95 220 113 232 137L275 25Z' fill='#2F88FF' stroke='black' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'/><path d='M106 25H25L67 137C79 113 103 95 131 89L106 25Z' fill='#2F88FF' stroke='black' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'/><path d='M243 181C243 233 201 275 150 275C98 275 56 233 56 181 C56 165 60 150 67 137 C79 113 103 95 131 89 C137 88 143 87 150 87 C156 87 162 88 168 89 C196 95 220 113 232 137C239 150.561 243.75 165.449 243 181Z' fill='";
 
@@ -577,7 +571,7 @@ contract ButtPlugWars is ERC721 {
             abi.encodePacked(
                 _svg,
                 "stroke='white' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'/></svg><text x='50%' y='80%' stroke='black' dominant-baseline='middle' text-anchor='middle'>",
-                _uint2str(tokenId % (1 << 59)),
+                _uint2str(_badgeId % (1 << 59)),
                 '</text></svg>'
             )
         );

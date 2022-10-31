@@ -10,3 +10,7 @@ interface IChess {
 
     function board() external view returns (uint256 _board);
 }
+
+interface INftDescriptor {
+    function getMetadata() external view returns (string memory);
+}
