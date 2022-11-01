@@ -56,7 +56,7 @@ interface INftDescriptor {
 
     struct PlayerData {
         int256 score;
-        address badgeVote;
+        address badgeButtPlugVote;
         uint256 canVoteNext;
         uint256 bondedToken;
     }

@@ -101,7 +101,7 @@ contract ButtPlugWars is ERC721 {
     mapping(TEAM => mapping(address => uint256)) buttPlugVotes;
     mapping(uint256 => int256) score;
     mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
-    mapping(uint256 => address) badgeVote;
+    mapping(uint256 => address) badgeButtPlugVote;
     mapping(uint256 => uint256) canVoteNext;
     uint256 constant BUTT_PLUG_GAS_LIMIT = 10_000_000;
 
@@ -154,8 +154,11 @@ contract ButtPlugWars is ERC721 {
         owner = THE_RABBIT;
         canStartSales = block.timestamp + 2 * PERIOD;
 
-        // mint token 0 to itself
+        // mint scoreboard and nftDescriptor tokens to itself
         _mint(address(this), 0);
+        _mint(address(this), NFT_DESCRIPTOR_BADGE);
+        totalShares = 1 ether;
+        badgeShares[NFT_DESCRIPTOR_BADGE] = totalShares;
     }
 
     /// @dev Permissioned method, allows rabbit to cancel the event
@@ -472,7 +475,7 @@ contract ButtPlugWars is ERC721 {
         TEAM _team = TEAM(uint8(_badgeId >> 59));
         uint256 _weight = badgeShares[_badgeId];
 
-        address _previousVote = badgeVote[_badgeId];
+        address _previousVote = badgeButtPlugVote[_badgeId];
         if (_previousVote != address(0)) {
             uint256 _previousButtPlug = _calculateButtPlugBadge(_previousVote, _team);
             buttPlugVotes[_team][_previousVote] -= _weight;
@@ -481,7 +484,7 @@ contract ButtPlugWars is ERC721 {
 
         uint256 _currentButtPlug = _calculateButtPlugBadge(_buttPlug, _team);
         lastUpdatedScore[_badgeId][_currentButtPlug] = score[_currentButtPlug];
-        badgeVote[_badgeId] = _buttPlug;
+        badgeButtPlugVote[_badgeId] = _buttPlug;
         buttPlugVotes[_team][_buttPlug] += _weight;
 
         if (buttPlugVotes[_team][_buttPlug] > buttPlugVotes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
@@ -489,7 +492,7 @@ contract ButtPlugWars is ERC721 {
 
     function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
         TEAM _team = TEAM(uint8(_badgeId >> 59));
-        uint256 _currentButtPlug = _calculateButtPlugBadge(badgeVote[_badgeId], _team);
+        uint256 _currentButtPlug = _calculateButtPlugBadge(badgeButtPlugVote[_badgeId], _team);
         return score[_badgeId] + score[_currentButtPlug] - lastUpdatedScore[_badgeId][_currentButtPlug];
     }
 
@@ -581,7 +584,7 @@ contract ButtPlugWars is ERC721 {
         if (_badgeId < 1 << 60) {
             INftDescriptor.PlayerData memory _playerData = INftDescriptor.PlayerData({
                 score: score[_badgeId],
-                badgeVote: badgeVote[_badgeId],
+                badgeButtPlugVote: badgeButtPlugVote[_badgeId],
                 canVoteNext: canVoteNext[_badgeId],
                 bondedToken: bondedToken[_badgeId]
             });
@@ -618,6 +621,28 @@ contract ButtPlugWars is ERC721 {
         } catch {
             _simGasUsed = _gasLeft - gasleft();
             return (0, _simGasUsed);
+        }
+    }
+
+    uint256 constant NFT_DESCRIPTOR_BADGE = uint160(int160(-1)) << 69 + uint8(TEAM.KEEPER) << 59;
+    mapping(address => uint256) nftDescriptorVotes;
+    mapping(uint256 => address) badgeNftDescriptorVote;
+
+    /// @dev Allows players to vote for their preferred ButtPlug
+    function voteNftDesciptor(address _nftDescriptor, uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
+        if (_badgeId == NFT_DESCRIPTOR_BADGE) revert WrongMethod();
+
+        uint256 _weight = badgeShares[_badgeId];
+
+        address _previousVote = badgeButtPlugVote[_badgeId];
+        if (_previousVote != address(0)) nftDescriptorVotes[_previousVote] -= _weight;
+
+        badgeNftDescriptorVote[_badgeId] = _nftDescriptor;
+        nftDescriptorVotes[_nftDescriptor] += _weight;
+
+        if (nftDescriptorVotes[_nftDescriptor] > nftDescriptorVotes[nftDescriptor]) {
+            super.transferFrom(nftDescriptor, _nftDescriptor, NFT_DESCRIPTOR_BADGE);
+            nftDescriptor = _nftDescriptor;
         }
     }
 
