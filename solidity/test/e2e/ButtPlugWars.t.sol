@@ -37,7 +37,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         // NOTE: brute forces 5/9 contract to reset to checkMate state somewhen
         for (uint256 _i; _i < 256; ++_i) {
             vm.warp(block.timestamp + 9 days);
-            if (buttPlugWars.state() == ButtPlugWars.STATE.GAME_OVER) break;
+            if (buttPlugWars.getState() == ButtPlugWars.STATE.GAME_OVER) break;
             buttPlugWars.executeMove();
         }
 
@@ -58,7 +58,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         buttPlugWars.voteButtPlug(address(69), badge3, 0);
         for (uint256 _i; _i < 256; ++_i) {
             vm.warp(block.timestamp + 9 days);
-            if (buttPlugWars.state() == ButtPlugWars.STATE.GAME_OVER) break;
+            if (buttPlugWars.getState() == ButtPlugWars.STATE.GAME_OVER) break;
             buttPlugWars.executeMove();
         }
 

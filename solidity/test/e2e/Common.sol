@@ -46,6 +46,10 @@ contract CommonE2EBase is DSTestFull {
 }
 
 contract ButtPlugWarsForTest is ButtPlugWars {
+    function getState() external view returns (STATE) {
+        return state;
+    }
+
     function simulateButtPlug(IButtPlug _buttPlug, uint256 _depth, uint256 _steps)
         public
         returns (int8 _score, uint8 _isCheckmate, uint256 _gasUsed)

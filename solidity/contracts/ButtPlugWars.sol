@@ -65,8 +65,8 @@ contract ButtPlugWars is ERC721 {
         CANCELLED // a critical bug was found
     }
 
-    STATE public state = STATE.ANNOUNCEMENT;
-    uint256 public canStartSales;
+    STATE state = STATE.ANNOUNCEMENT;
+    uint256 canStartSales;
 
     /* Game mechanics */
     enum TEAM {
@@ -84,25 +84,25 @@ contract ButtPlugWars is ERC721 {
     /// @dev Magic number by @fiveOutOfNine
     uint256 constant MAGIC_NUMBER = 0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289;
 
-    mapping(TEAM => uint256) public matchesWon;
-    mapping(TEAM => int256) public matchScore;
+    mapping(TEAM => uint256) matchesWon;
+    mapping(TEAM => int256) matchScore;
     uint256 matchTotalMoves;
-    uint256 public matchNumber;
-    uint256 public canPlayNext;
-    uint256 public canPushLiquidity;
+    uint256 matchNumber;
+    uint256 canPlayNext;
+    uint256 canPushLiquidity;
 
     /* Badge mechanics */
-    uint256 public totalShares;
-    mapping(uint256 => uint256) public badgeShares;
-    mapping(uint256 => uint256) public bondedToken;
+    uint256 totalShares;
+    mapping(uint256 => uint256) badgeShares;
+    mapping(uint256 => uint256) bondedToken;
 
     /* Vote mechanics */
     mapping(TEAM => address) buttPlug;
     mapping(TEAM => mapping(address => uint256)) buttPlugVotes;
     mapping(uint256 => int256) score;
     mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
-    mapping(uint256 => address) public badgeVote;
-    mapping(uint256 => uint256) public canVoteNext;
+    mapping(uint256 => address) badgeVote;
+    mapping(uint256 => uint256) canVoteNext;
     uint256 constant BUTT_PLUG_GAS_LIMIT = 10_000_000;
 
     /* Prize mechanics */
@@ -112,7 +112,7 @@ contract ButtPlugWars is ERC721 {
 
     uint256 claimableSales;
     mapping(uint256 => uint256) claimedSales;
-    uint256 public canUpdateSpotPriceNext;
+    uint256 canUpdateSpotPriceNext;
 
     error WrongValue(); // badge minting value should be between 0.05 and 1
     error WrongTeam(); // only winners can claim the prize
@@ -309,6 +309,7 @@ contract ButtPlugWars is ERC721 {
         uint256 kp3rBalance = IERC20(KP3R_V1).balanceOf(address(this));
 
         uint256 kLPBalance = IPairManager(KP3R_LP).mint(kp3rBalance, wethBalance, 0, 0, address(this));
+        totalPrize += kLPBalance;
         IKeep3r(KEEP3R).addLiquidityToJob(address(this), KP3R_LP, kLPBalance);
     }
 
@@ -502,13 +503,6 @@ contract ButtPlugWars is ERC721 {
         _mint(_receiver, _badgeId);
     }
 
-    function tokenURI(uint256 _badgeId) public view virtual override returns (string memory) {
-        /**
-         * fetch badge data
-         */
-        return INftDescriptor(nftDescriptor).getMetadata();
-    }
-
     function onERC721Received(address, address _from, uint256 _id, bytes calldata) external returns (bytes4) {
         if (msg.sender != FIVE_OUT_OF_NINE) revert WrongNFT();
         // if token is newly minted transfer to sudoswap pool
@@ -545,59 +539,91 @@ contract ButtPlugWars is ERC721 {
         super.transferFrom(_from, _to, _badgeId);
     }
 
-    function _getSvg(uint256 _badgeId) internal view returns (string memory) {
-        TEAM _team = TEAM(_badgeId >> 59);
-        string memory _svg =
-            "<svg width='300px' height='300px' viewBox='0 0 300 300' fill='none' xmlns='http://www.w3.org/2000/svg'><path width='48' height='48' fill='white' d='M0 0H300V300H0V0z'/><path d='M275 25H193L168 89C196 95 220 113 232 137L275 25Z' fill='#2F88FF' stroke='black' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'/><path d='M106 25H25L67 137C79 113 103 95 131 89L106 25Z' fill='#2F88FF' stroke='black' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'/><path d='M243 181C243 233 201 275 150 275C98 275 56 233 56 181 C56 165 60 150 67 137 C79 113 103 95 131 89 C137 88 143 87 150 87 C156 87 162 88 168 89 C196 95 220 113 232 137C239 150.561 243.75 165.449 243 181Z' fill='";
+    function tokenURI(uint256 _badgeId) public view virtual override returns (string memory) {
+        // Scoreboard metadata
+        if (_badgeId == 0) {
+            INftDescriptor.ScoreboardData memory _scoreboardData = INftDescriptor.ScoreboardData({
+                state: uint8(state),
+                matchNumber: matchNumber,
+                matchTotalMoves: matchTotalMoves,
+                matchesWonA: matchesWon[TEAM.A],
+                matchesWonB: matchesWon[TEAM.B],
+                matchScoreA: matchScore[TEAM.A],
+                matchScoreB: matchScore[TEAM.B],
+                buttPlugA: buttPlug[TEAM.A],
+                buttPlugB: buttPlug[TEAM.B]
+            });
 
-        if (matchesWon[_team] >= 5) {
-            _svg = string(abi.encodePacked(_svg, '#FEA914'));
-        } else {
-            if (_team == TEAM.A) _svg = string(abi.encodePacked(_svg, '#2F88FF'));
-            else _svg = string(abi.encodePacked(_svg, '#C1292E'));
+            return INftDescriptor(nftDescriptor).getScoreboardMetadata(_scoreboardData);
         }
 
-        _svg = string(
-            abi.encodePacked(
-                _svg,
-                "' stroke='black' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'/><svg viewBox='-115 -25 300 100'><path "
-            )
-        );
+        INftDescriptor.GameData memory _gameData = INftDescriptor.GameData({
+            totalPlayers: totalPlayers,
+            totalShares: totalShares,
+            totalPrize: totalPrize,
+            totalPrizeShares: totalPrizeShares,
+            claimableSales: claimableSales
+        });
 
-        if (_team == TEAM.A) _svg = string(abi.encodePacked(_svg, "d='M5,90 l30,-80 30,80 M20,50 l30,0' "));
-        else _svg = string(abi.encodePacked(_svg, "d='M5,5 c80,0 80,45 0,45 c80,0 80,45 0,45z' "));
+        TEAM _team = TEAM(uint8(_badgeId) >> 59);
 
-        _svg = string(
-            abi.encodePacked(
-                _svg,
-                "stroke='white' stroke-width='25' stroke-linecap='round' stroke-linejoin='round'/></svg><text x='50%' y='80%' stroke='black' dominant-baseline='middle' text-anchor='middle'>",
-                _uint2str(_badgeId % (1 << 59)),
-                '</text></svg>'
-            )
-        );
+        INftDescriptor.BadgeData memory _badgeData = INftDescriptor.BadgeData({
+            team: uint8(_team),
+            badgeId: _badgeId,
+            badgeShares: badgeShares[_badgeId],
+            claimedSales: claimedSales[_badgeId],
+            firstSeen: 0 // TODO: add minting date
+        });
 
-        return _svg;
+        if (_team == TEAM.KEEPER) return INftDescriptor(nftDescriptor).getKeeperBadgeMetadata(_gameData, _badgeData);
+
+        // Player metadata
+        if (_badgeId < 1 << 60) {
+            INftDescriptor.PlayerData memory _playerData = INftDescriptor.PlayerData({
+                score: score[_badgeId],
+                badgeVote: badgeVote[_badgeId],
+                canVoteNext: canVoteNext[_badgeId],
+                bondedToken: bondedToken[_badgeId]
+            });
+
+            return INftDescriptor(nftDescriptor).getPlayerBadgeMetadata(_gameData, _badgeData, _playerData);
+        }
+
+        // ButtPlug metadata
+        if (_badgeId > 1 << 60 && _team != TEAM.KEEPER) {
+            address _buttPlug = address(uint160(_badgeId >> 69));
+            uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
+            (uint256 _simMove, uint256 _simGasUsed) = _simulateButtPlug(_buttPlug, _board);
+
+            INftDescriptor.ButtPlugData memory _buttPlugData = INftDescriptor.ButtPlugData({
+                board: _board,
+                simulatedMove: _simMove,
+                simulatedGasSpent: _simGasUsed,
+                buttPlugVotes: buttPlugVotes[_team][_buttPlug]
+            });
+
+            return INftDescriptor(nftDescriptor).getButtPlugBadgeMetadata(_gameData, _badgeData, _buttPlugData);
+        }
     }
 
-    function _uint2str(uint256 _i) internal pure returns (string memory _uintAsString) {
-        if (_i == 0) return '0';
-        uint256 j = _i;
-        uint256 len;
-        while (j != 0) {
-            len++;
-            j /= 10;
+    function _simulateButtPlug(address _buttPlug, uint256 _board)
+        internal
+        view
+        returns (uint256 _simMove, uint256 _simGasUsed)
+    {
+        uint256 _gasLeft = gasleft();
+        try IButtPlug(_buttPlug).readMove(_board) returns (uint256 _move) {
+            _simMove = _move;
+            _simGasUsed = _gasLeft - gasleft();
+        } catch {
+            _simGasUsed = _gasLeft - gasleft();
+            return (0, _simGasUsed);
         }
-        bytes memory bstr = new bytes(len);
-        uint256 k = len;
-        while (_i != 0) {
-            k = k - 1;
-            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
-            bytes1 b1 = bytes1(temp);
-            bstr[k] = b1;
-            _i /= 10;
-        }
-        return string(bstr);
     }
+
+    /*///////////////////////////////////////////////////////////////
+                                RECEIVE
+    //////////////////////////////////////////////////////////////*/
 
     receive() external payable {
         if (msg.sender == SUDOSWAP_POOL) claimableSales += msg.value;
