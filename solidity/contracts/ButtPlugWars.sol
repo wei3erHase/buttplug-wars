@@ -632,7 +632,7 @@ contract ButtPlugWars is ERC721 {
     mapping(address => uint256) nftDescriptorVotes;
     mapping(uint256 => address) badgeNftDescriptorVote;
 
-    /// @dev Allows players to vote for their preferred ButtPlug
+    /// @dev Allows players/buttplugs/keepers to vote for their preferred ButtPlug
     function voteNftDescriptorPlug(address _nftDescriptor, uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
         if (_badgeId == NFT_DESCRIPTOR_BADGE) revert WrongMethod();
 
