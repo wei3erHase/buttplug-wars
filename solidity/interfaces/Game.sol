@@ -11,7 +11,7 @@ interface IChess {
     function board() external view returns (uint256 _board);
 }
 
-interface INftDescriptor {
+interface IDescriptorPlug {
     function getScoreboardMetadata(ScoreboardData memory) external view returns (string memory);
 
     function getPlayerBadgeMetadata(GameData memory, BadgeData memory, PlayerData memory)

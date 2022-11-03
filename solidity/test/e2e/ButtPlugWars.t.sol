@@ -24,12 +24,15 @@ contract E2EButtPlugWars is CommonE2EBase {
         buttPlugWars.pushLiquidity();
 
         ButtPlugForTest testButtPlug = new ButtPlugForTest(address(buttPlugWars));
-        uint256 _buttPlugBadgeId_A = uint160(address(testButtPlug)) << 69 + 0 << 59;
-        uint256 _buttPlugBadgeId_B = uint160(address(testButtPlug)) << 69 + 1 << 59;
+        uint256 _buttPlugBadgeId_A = uint256(uint160(address(testButtPlug))) << 69 + 0 << 59;
+        uint256 _buttPlugBadgeId_B = uint256(uint160(address(testButtPlug))) << 69 + 1 << 59;
 
         buttPlugWars.voteButtPlug(address(testButtPlug), badge1, 0);
         buttPlugWars.voteButtPlug(address(testButtPlug), badge2, 0);
         buttPlugWars.voteButtPlug(address(testButtPlug), badge3, 0);
+
+        // votes EOA as nftDescriptorPlug
+        buttPlugWars.voteNftDescriptorPlug(FIVEOUTOFNINE_WHALE, badge1);
 
         vm.warp(block.timestamp + 14 days + 1);
         buttPlugWars.executeMove();
@@ -69,6 +72,8 @@ contract E2EButtPlugWars is CommonE2EBase {
         address badgeOwner = buttPlugWars.ownerOf(badge1);
         buttPlugWars.claimPrize(badge1);
         testButtPlug.claimPrize(_buttPlugBadgeId_A);
+        buttPlugWars.claimPrize(NFT_DESCRIPTOR_BADGE);
+
         buttPlugWars.withdrawLiquidity();
 
         // Prize distribution
