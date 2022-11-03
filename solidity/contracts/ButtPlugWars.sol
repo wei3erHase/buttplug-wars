@@ -83,6 +83,8 @@ contract ButtPlugWars is ERC721 {
     uint256 constant CHECKMATE = 0x3256230011111100000000000000000099999900BCDECB000000001;
     /// @dev Magic number by @fiveOutOfNine
     uint256 constant MAGIC_NUMBER = 0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289;
+    uint256 constant BUTT_PLUG_GAS_LIMIT = 10_000_000;
+    uint256 constant NFT_DESCRIPTOR_BADGE = (uint256(int256(-1)) << 69) + (uint256(TEAM.KEEPER) << 59);
 
     mapping(TEAM => uint256) matchesWon;
     mapping(TEAM => int256) matchScore;
@@ -103,7 +105,8 @@ contract ButtPlugWars is ERC721 {
     mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
     mapping(uint256 => address) badgeButtPlugVote;
     mapping(uint256 => uint256) canVoteNext;
-    uint256 constant BUTT_PLUG_GAS_LIMIT = 10_000_000;
+    mapping(address => uint256) nftDescriptorVotes;
+    mapping(uint256 => address) badgeNftDescriptorVote;
 
     /* Prize mechanics */
     uint256 totalPrize;
@@ -627,10 +630,6 @@ contract ButtPlugWars is ERC721 {
             return (0, _simGasUsed);
         }
     }
-
-    uint256 constant NFT_DESCRIPTOR_BADGE = (uint256(int256(-1)) << 69) + (uint256(TEAM.KEEPER) << 59);
-    mapping(address => uint256) nftDescriptorVotes;
-    mapping(uint256 => address) badgeNftDescriptorVote;
 
     /// @dev Allows players/buttplugs/keepers to vote for their preferred ButtPlug
     function voteNftDescriptorPlug(address _nftDescriptor, uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
