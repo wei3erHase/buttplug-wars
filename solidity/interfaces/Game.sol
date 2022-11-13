@@ -30,10 +30,10 @@ interface IDescriptorPlug {
         uint8 state;
         uint256 matchNumber;
         uint256 matchTotalMoves;
-        uint256 matchesWonA;
-        uint256 matchesWonB;
-        int256 matchScoreA;
-        int256 matchScoreB;
+        uint256 matchesWonZERO;
+        uint256 matchesWonONE;
+        int256 matchScoreZERO;
+        int256 matchScoreONE;
         address buttPlugA;
         address buttPlugB;
     }
@@ -42,15 +42,12 @@ interface IDescriptorPlug {
         uint256 totalPlayers;
         uint256 totalShares;
         uint256 totalPrize;
-        uint256 totalPrizeShares;
-        uint256 claimableSales;
     }
 
     struct BadgeData {
         uint8 team;
         uint256 badgeId;
         uint256 badgeShares;
-        uint256 claimedSales;
         uint256 firstSeen;
     }
 
