@@ -58,8 +58,8 @@ contract ButtPlugWars is ERC721 {
     /* Roadmap */
     enum STATE {
         ANNOUNCEMENT, // rabbit can cancel event
-        TICKET_SALE, // can mint badges (@ x2)
-        GAME_RUNNING, // game runs, can mint badges (@ x2->1)
+        TICKET_SALE, // can mint badges
+        GAME_RUNNING, // game runs, can mint badges
         GAME_OVER, // game stops, can unbondLiquidity
         PREPARATIONS, // can claim prize, waits until kLPs are unbonded
         PRIZE_CEREMONY, // can withdraw prize or honors
@@ -199,17 +199,18 @@ contract ButtPlugWars is ERC721 {
 
         uint256 _value = msg.value;
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
+        uint256 _shares = Math.sqrt(_value);
 
         _badgeId = _mint(msg.sender, _team);
         bondedToken[_badgeId] = _tokenId;
 
-        badgeShares[_badgeId] = _value;
-        totalShares += _value;
+        badgeShares[_badgeId] = _shares;
+        totalShares += _shares;
 
         ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(msg.sender, address(this), _tokenId);
     }
 
-    /// @dev Allows players (winner team) claim a share of the prize acording to their badge weight
+    /// @dev Allows players (winner team) claim a share of the prize acording to their value sent
     function claimPrize(uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
         if (state != STATE.PREPARATIONS) revert WrongTiming();
 
@@ -217,6 +218,7 @@ contract ButtPlugWars is ERC721 {
         if (matchesWon[_team] < 5) revert WrongTeam();
 
         uint256 _shares = badgeShares[_badgeId];
+        _shares *= _shares;
         playerPrizeShares[msg.sender] += _shares;
         totalPrizeShares += _shares;
 
@@ -366,7 +368,7 @@ contract ButtPlugWars is ERC721 {
         uint256 _initialGas = gasleft();
         uint256 _keeperBadgeId = _getOrMintKeeperBadge(msg.sender);
         _;
-        score[_keeperBadgeId] += int256((_initialGas - gasleft()) * 15e9 * ++honorableNonce);
+        score[_keeperBadgeId] += int256(1e9 * honorableNonce);
     }
 
     /*///////////////////////////////////////////////////////////////
