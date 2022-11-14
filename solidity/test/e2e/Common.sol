@@ -51,6 +51,14 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         return state;
     }
 
+    function getTeamButtPlug(uint8 _team) public returns (address _buttPlug) {
+        return buttPlug[TEAM(_team)];
+    }
+
+    function getCanPlayNext() public returns (uint256 _canPlayNext) {
+        return canPlayNext;
+    }
+
     function simulateButtPlug(IButtPlug _buttPlug, uint256 _depth, uint256 _steps)
         public
         returns (int8 _score, uint8 _isCheckmate, uint256 _gasUsed)
@@ -66,7 +74,7 @@ contract ButtPlugWarsForTest is ButtPlugWars {
             IChess(FIVE_OUT_OF_NINE).mintMove(_move, _depth);
             _newBoard = IChess(FIVE_OUT_OF_NINE).board();
             if (_newBoard == CHECKMATE) return (_score, ++_i, _initialGas - gasleft());
-            _score += _calcScore(_board, _newBoard);
+            _score += _moveScoreFn(_board, _newBoard);
         }
         return (_score, 0, _initialGas - gasleft());
     }
@@ -94,10 +102,28 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         console.logInt(_getScore(_badgeId));
         return _getScore(_badgeId);
     }
+
+    function logGameScore() public view {
+        console.logString('team ZERO won');
+        console.logUint(matchesWon[TEAM.ZERO]);
+        console.logString('team ONE won');
+        console.logUint(matchesWon[TEAM.ONE]);
+    }
+
+    function logMatchScore() public view {
+        console.logString('team ZERO score');
+        console.logInt(matchScore[TEAM.ZERO]);
+        console.logString('team ONE score');
+        console.logInt(matchScore[TEAM.ZERO]);
+    }
+
+    function _depthFn(uint256, address) internal view virtual override returns (uint256) {
+        return 3;
+    }
 }
 
 contract ButtPlugForTest is IButtPlug {
-    uint256 depth = 10;
+    uint256 depth = 7;
     address buttPlugWars;
 
     constructor(address _buttPlugWars) {
