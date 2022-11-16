@@ -294,7 +294,7 @@ contract ButtPlugWars is ERC721 {
         canPushLiquidity = block.timestamp + LIQUIDITY_COOLDOWN;
 
         uint256 _eth = address(this).balance - claimableSales;
-        if (_eth == 0) revert WrongTiming();
+        if (_eth < 0.05 ether) revert WrongTiming();
 
         IWeth(WETH_9).deposit{value: _eth}();
 
@@ -361,7 +361,9 @@ contract ButtPlugWars is ERC721 {
         uint256 _initialGas = gasleft();
         uint256 _keeperBadgeId = _getOrMintSoulBondBadge(msg.sender, TEAM.STAFF);
         _;
-        score[_keeperBadgeId] += int256(block.basefee);
+        // Rewards keeper as if all players voted him with weight eq. to tx base cost
+        uint256 _scoreReward = Math.sqrt((_initialGas - gasleft()) * block.basefee) * totalPlayers;
+        score[_keeperBadgeId] += int256(_scoreReward);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -383,7 +385,7 @@ contract ButtPlugWars is ERC721 {
             return;
         }
 
-        uint256 _buttPlugBadgeId = _getOrMintSoulBondBadge(_buttPlug, _team);
+        uint256 _buttPlugBadgeId = _calculateSoulBondBadge(_buttPlug, _team);
         uint256 _buttPlugVotes = buttPlugVotes[_team][_buttPlug];
 
         uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
@@ -491,7 +493,10 @@ contract ButtPlugWars is ERC721 {
         badgeButtPlugVote[_badgeId] = _buttPlug;
         buttPlugVotes[_team][_buttPlug] += _weight;
 
-        if (buttPlugVotes[_team][_buttPlug] > buttPlugVotes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
+        if (buttPlugVotes[_team][_buttPlug] > buttPlugVotes[_team][buttPlug[_team]]) {
+            buttPlug[_team] = _buttPlug;
+            _getOrMintSoulBondBadge(_buttPlug, _team);
+        }
     }
 
     function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
@@ -596,7 +601,6 @@ contract ButtPlugWars is ERC721 {
         }
 
         // ButtPlug metadata
-        // _team != TEAM.STAFF
         if (_badgeId > 1 << 60) {
             address _buttPlug = address(uint160(_badgeId >> 69));
             uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
@@ -611,6 +615,8 @@ contract ButtPlugWars is ERC721 {
 
             return IDescriptorPlug(nftDescriptor).getButtPlugBadgeMetadata(_gameData, _badgeData, _buttPlugData);
         }
+
+        revert WrongNFT();
     }
 
     function _generateURI(uint256 _badgeId, string memory _svgImage, string memory _metadata) internal {}
