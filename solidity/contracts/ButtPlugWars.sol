@@ -437,9 +437,11 @@ contract ButtPlugWars is ERC721 {
         if (matchScore[TEAM.ONE] >= matchScore[TEAM.ZERO]) matchesWon[TEAM.ONE]++;
 
         delete matchMoves;
+        delete matchScore[TEAM.ZERO];
+        delete matchScore[TEAM.ONE];
 
         // verifies if game has ended
-        if ((matchesWon[TEAM.ZERO] >= 5) || matchesWon[TEAM.ONE] >= 5) {
+        if ((matchesWon[TEAM.ZERO] == 5) || matchesWon[TEAM.ONE] == 5) {
             state = STATE.GAME_OVER;
             // all remaining ETH will be considered to distribute as sales
             claimableSales = address(this).balance;
