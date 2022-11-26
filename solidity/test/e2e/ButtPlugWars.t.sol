@@ -7,18 +7,17 @@ import {ILSSVMRouter} from 'interfaces/Sudoswap.sol';
 contract E2EButtPlugWars is CommonE2EBase {
     function test_E2E() public {
         vm.warp(block.timestamp + 10 days);
-        // genesis - 1 is minted pre game start
-        chess.mintMove((10 << 6) | 25, 3); // g - 1
 
-        buttPlugWars.startEvent();
         uint256 genesis = IERC20(address(chess)).totalSupply();
+        buttPlugWars.startEvent();
 
-        // genesis is minted post game start
+        // some NFTs are minted post game start
         // performs a checkmate to restart the board
-        chess.mintMove((13 << 6) | 30, 3); // g
-        chess.mintMove((20 << 6) | 28, 3); // g + 1
-        chess.mintMove((12 << 6) | 28, 3); // g + 2
-        chess.mintMove((28 << 6) | 42, 3); // g + 3
+        chess.mintMove((10 << 6) | 25, 3); // g
+        chess.mintMove((13 << 6) | 30, 3); // g + 1
+        chess.mintMove((20 << 6) | 28, 3); // g + 2
+        chess.mintMove((12 << 6) | 28, 3); // g + 3
+        chess.mintMove((28 << 6) | 42, 3); // g + 4
 
         {
             assertEq(chess.board(), 0x3256230011111100000000000000000099999900BCDECB000000001);
@@ -27,17 +26,19 @@ contract E2EButtPlugWars is CommonE2EBase {
         fiveOutOfNine.setApprovalForAll(address(buttPlugWars), true);
 
         // uses pre-genesis 5/9s to mint badges
-        uint256 badge1 = buttPlugWars.buyBadge{value: 1 ether}(183, ButtPlugWars.TEAM(0));
-        uint256 badge2 = buttPlugWars.buyBadge{value: 0.25 ether}(184, ButtPlugWars.TEAM(0));
-        uint256 badge3 = buttPlugWars.buyBadge{value: 0.25 ether}(185, ButtPlugWars.TEAM(0));
-        uint256 badge4 = buttPlugWars.buyBadge{value: 0.25 ether}(186, ButtPlugWars.TEAM(0));
+        uint256 badge1 = buttPlugWars.mintPlayerBadge{value: 1 ether}(183, ButtPlugWars.TEAM(0));
+        uint256 badge2 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(184, ButtPlugWars.TEAM(0));
+        uint256 badge3 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(185, ButtPlugWars.TEAM(0));
+        uint256 badge4 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(186, ButtPlugWars.TEAM(0));
+        vm.expectRevert(ButtPlugWars.WrongNFT.selector);
+        buttPlugWars.mintPlayerBadge{value: 0.25 ether}(genesis, ButtPlugWars.TEAM(0));
 
         // checks value limits
         vm.expectRevert(ButtPlugWars.WrongValue.selector);
-        buttPlugWars.buyBadge{value: 0.05 ether - 1}(187, ButtPlugWars.TEAM(1));
+        buttPlugWars.mintPlayerBadge{value: 0.05 ether - 1}(187, ButtPlugWars.TEAM(1));
         vm.expectRevert(ButtPlugWars.WrongValue.selector);
-        buttPlugWars.buyBadge{value: 1 ether + 1}(187, ButtPlugWars.TEAM(1));
-        uint256 badge5 = buttPlugWars.buyBadge{value: 0.5 ether + 1}(187, ButtPlugWars.TEAM(0));
+        buttPlugWars.mintPlayerBadge{value: 1 ether + 1}(187, ButtPlugWars.TEAM(1));
+        uint256 badge5 = buttPlugWars.mintPlayerBadge{value: 0.5 ether + 1}(187, ButtPlugWars.TEAM(0));
 
         {
             // ETH is artificially added to increase liquidity
@@ -48,8 +49,8 @@ contract E2EButtPlugWars is CommonE2EBase {
         buttPlugWars.pushLiquidity();
 
         ButtPlugForTest testButtPlug = new ButtPlugForTest(address(buttPlugWars));
-        uint256 _buttPlugBadgeId_ZERO = uint256(uint160(address(testButtPlug))) << 69 + 0 << 59;
-        uint256 _buttPlugBadgeId_ONE = uint256(uint160(address(testButtPlug))) << 69 + 1 << 59;
+        uint256 _buttPlugBadgeId_ZERO = buttPlugWars.mintButtPlugScoreBadge(address(testButtPlug), ButtPlugWars.TEAM(0));
+        uint256 _buttPlugBadgeId_ONE = buttPlugWars.mintButtPlugScoreBadge(address(testButtPlug), ButtPlugWars.TEAM(1));
 
         /**
          * Quadratic voting mechanism
@@ -63,26 +64,18 @@ contract E2EButtPlugWars is CommonE2EBase {
          */
 
         // (a)
-        buttPlugWars.voteButtPlug(address(testButtPlug), badge1, 0); // 1 eth
-        buttPlugWars.voteButtPlug(address(69), badge2, 0); // 0.25 eth
-        buttPlugWars.voteButtPlug(address(69), badge3, 0); // 0.25 eth
+        buttPlugWars.voteButtPlug(address(testButtPlug), badge1); // 1 eth
+        buttPlugWars.voteButtPlug(address(69), badge2); // 0.25 eth
+        buttPlugWars.voteButtPlug(address(69), badge3); // 0.25 eth
         assertEq(ButtPlugWarsForTest(buttPlugWars).getTeamButtPlug(0), address(testButtPlug), '(a)');
 
         // (b)
-        buttPlugWars.voteButtPlug(address(69), badge4, 0); // 0.25 eth
+        buttPlugWars.voteButtPlug(address(69), badge4); // 0.25 eth
         assertEq(ButtPlugWarsForTest(buttPlugWars).getTeamButtPlug(0), address(69), '(b)');
 
-        // checks vote locking cooldown method
-        buttPlugWars.voteButtPlug(address(testButtPlug), badge5, 10); // 0.25 eth
-        vm.expectRevert(ButtPlugWars.WrongTiming.selector);
-        buttPlugWars.voteButtPlug(address(testButtPlug), badge5, 10);
-        vm.warp(block.timestamp + 10);
-        buttPlugWars.voteButtPlug(address(testButtPlug), badge5, 10);
         // (c)
+        buttPlugWars.voteButtPlug(address(testButtPlug), badge5); // 0.25 eth
         assertEq(ButtPlugWarsForTest(buttPlugWars).getTeamButtPlug(0), address(testButtPlug), '(c)');
-
-        // votes EOA as nftDescriptorPlug
-        buttPlugWars.voteNftDescriptorPlug(FIVEOUTOFNINE_WHALE, badge1);
 
         vm.expectRevert(bytes('Bonding curve error'));
         _purchaseAtSudoswap(1);
@@ -94,15 +87,15 @@ contract E2EButtPlugWars is CommonE2EBase {
         // purchases 5/9 from official pool
         _purchaseAtSudoswap(1);
 
-        // move-minted before genesis can mint badge
-        uint256 preGenToken = buttPlugWars.buyBadge{value: 0.25 ether}(genesis - 1, ButtPlugWars.TEAM(1));
-        buttPlugWars.voteButtPlug(address(testButtPlug), preGenToken, 0);
+        // // move-minted before genesis can mint badge
+        uint256 preGenToken = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(genesis - 1, ButtPlugWars.TEAM(1));
+        buttPlugWars.voteButtPlug(address(testButtPlug), preGenToken);
 
         // move minted after genesis cannot mint badge
         vm.expectRevert(ButtPlugWars.WrongNFT.selector);
-        buttPlugWars.buyBadge{value: 0.25 ether}(genesis, ButtPlugWars.TEAM(0));
+        buttPlugWars.mintPlayerBadge{value: 0.25 ether}(genesis, ButtPlugWars.TEAM(0));
         // move minted during game can mint badge
-        buttPlugWars.buyBadge{value: 0.25 ether}(postGenesis, ButtPlugWars.TEAM(0));
+        buttPlugWars.mintPlayerBadge{value: 0.25 ether}(postGenesis, ButtPlugWars.TEAM(0));
         // eth collected in sales is pushed as liquidity
         uint256 _previousLiquidity = keep3r.liquidityAmount(address(buttPlugWars), KP3R_LP);
         buttPlugWars.pushLiquidity();
@@ -111,7 +104,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         // until move ~16 the buttPlug has a positive score
         _forceBruteChess(16);
         _purchaseAtSudoswap(16);
-        buttPlugWars.voteButtPlug(address(420), preGenToken, 0);
+        buttPlugWars.voteButtPlug(address(420), preGenToken);
         assertEq(ButtPlugWarsForTest(buttPlugWars).getTeamButtPlug(1), address(420), '420');
 
         _forceBruteChess(2056);
@@ -125,18 +118,10 @@ contract E2EButtPlugWars is CommonE2EBase {
         // Prize claim
         buttPlugWars.claimPrize(badge1);
         // Honor claim
-
         buttPlugWars.claimHonor(preGenToken);
-        testButtPlug.claimHonor(_buttPlugBadgeId_ZERO);
-        testButtPlug.claimHonor(_buttPlugBadgeId_ONE);
-
-        /**
-         * NOTE: reverts if keeper badge for msg.sender is already claimed
-         *      buttPlugWars.claimHonor(STAFF_BADGE);
-         *      vm.stopPrank();
-         */
+        buttPlugWars.claimHonor(_buttPlugBadgeId_ZERO);
+        buttPlugWars.claimHonor(_buttPlugBadgeId_ONE);
         buttPlugWars.withdrawLiquidity();
-        // vm.startPrank(FIVEOUTOFNINE_WHALE);
 
         // Prize distribution
 
@@ -148,7 +133,7 @@ contract E2EButtPlugWars is CommonE2EBase {
 
         // Honor distribution
         buttPlugWars.withdrawHonor();
-        testButtPlug.withdrawHonor();
+        buttPlugWars.withdrawHonor();
         uint256 _remaining = address(buttPlugWars).balance;
         assertLt(_remaining, 100, 'all sales were distributed');
 
@@ -164,7 +149,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         _remaining = address(buttPlugWars).balance;
         assertGt(_remaining, 100, 'more sales to be distributed');
         buttPlugWars.withdrawHonor();
-        testButtPlug.withdrawHonor();
+        buttPlugWars.withdrawHonor();
         _remaining = address(buttPlugWars).balance;
         assertLt(_remaining, 100, 'all sales were distributed');
     }

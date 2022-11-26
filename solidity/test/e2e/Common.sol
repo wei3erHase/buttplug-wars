@@ -24,9 +24,7 @@ contract CommonE2EBase is DSTestFull {
     address constant KP3R_V1 = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
     address constant ETH_WHALE = 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045;
     address constant FIVEOUTOFNINE_WHALE = 0xC5233C3b46C83ADEE1039D340094173f0f7c1EcF;
-    uint256 constant STAFF_BADGE = uint256(uint160(FIVEOUTOFNINE_WHALE)) << 69 + 2 << 59;
     address constant KP3R_LP = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
-    uint256 constant NFT_DESCRIPTOR_BADGE = (uint256(int256(-1)) << 69) + (uint256(2) << 59);
 
     function setUp() public {
         vm.createSelectFork(vm.rpcUrl('mainnet'), FORK_BLOCK);
@@ -74,7 +72,7 @@ contract ButtPlugWarsForTest is ButtPlugWars {
             IChess(FIVE_OUT_OF_NINE).mintMove(_move, _depth);
             _newBoard = IChess(FIVE_OUT_OF_NINE).board();
             if (_newBoard == CHECKMATE) return (_score, ++_i, _initialGas - gasleft());
-            _score += _moveScoreFn(_board, _newBoard);
+            _score += _calcMoveScore(_board, _newBoard);
         }
         return (_score, 0, _initialGas - gasleft());
     }
@@ -117,7 +115,7 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         console.logInt(matchScore[TEAM.ZERO]);
     }
 
-    function _depthFn(uint256, address) internal view virtual override returns (uint256) {
+    function _calcDepth(uint256, address) internal view virtual override returns (uint256) {
         return 3;
     }
 }
@@ -125,9 +123,11 @@ contract ButtPlugWarsForTest is ButtPlugWars {
 contract ButtPlugForTest is IButtPlug {
     uint256 depth = 7;
     address buttPlugWars;
+    address public owner;
 
     constructor(address _buttPlugWars) {
         buttPlugWars = _buttPlugWars;
+        owner = msg.sender;
     }
 
     function setDepth(uint256 _depth) external {
@@ -136,14 +136,6 @@ contract ButtPlugForTest is IButtPlug {
 
     function readMove(uint256 _board) external view returns (uint256 _move) {
         (_move,) = Engine.searchMove(_board, depth);
-    }
-
-    function claimHonor(uint256 _badgeId) external {
-        ButtPlugWars(payable(buttPlugWars)).claimHonor(_badgeId);
-    }
-
-    function withdrawHonor() external {
-        ButtPlugWars(payable(buttPlugWars)).withdrawHonor();
     }
 
     receive() external payable {}
