@@ -227,7 +227,7 @@ contract ButtPlugWars is ERC721 {
         TEAM _team = _getTeam(_badgeId);
         if (matchesWon[_team] < 5) revert WrongTeam();
 
-        int256 _badgeScore = score[_badgeId];
+        int256 _badgeScore = _getScore(_badgeId);
         bool _isPositive = _badgeScore > 0;
         uint256 _shares = _isPositive ? uint256(_badgeScore) : badgeShares[_badgeId];
 
