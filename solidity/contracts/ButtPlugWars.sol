@@ -25,6 +25,7 @@ import {Math} from 'openzeppelin/utils/math/Math.sol';
 /// @dev THE_RABBIT will not be responsible for any loss of funds
 contract ButtPlugWars is ERC721 {
     using SafeTransferLib for address payable;
+    using Math for uint256;
 
     /*///////////////////////////////////////////////////////////////
                             ADDRESS REGISTRY
@@ -78,8 +79,6 @@ contract ButtPlugWars is ERC721 {
     }
 
     uint256 constant MAX_UINT = type(uint256).max;
-    uint256 constant BASE = 1 ether;
-    uint256 constant BASIS_POINTS = 10_000;
     uint256 constant PERIOD = 5 days;
     uint256 constant COOLDOWN = 30 minutes;
     uint256 constant LIQUIDITY_COOLDOWN = 3 days;
@@ -192,7 +191,7 @@ contract ButtPlugWars is ERC721 {
 
         uint256 _value = msg.value;
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
-        uint256 _shares = Math.sqrt(_value);
+        uint256 _shares = _value.sqrt();
 
         _badgeId = ++totalPlayers + (uint256(_team) << 59);
         _mint(msg.sender, _badgeId);
@@ -264,8 +263,8 @@ contract ButtPlugWars is ERC721 {
     function withdrawHonor() external {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
 
-        uint256 shareCoefficient = BASE * playerHonorShares[msg.sender] / totalHonorShares;
-        uint256 _claimable = (shareCoefficient * claimableSales / BASE) - claimedSales[msg.sender];
+        uint256 _claimableShares = claimableSales.mulDiv(playerHonorShares[msg.sender], totalHonorShares);
+        uint256 _claimable = _claimableShares - claimedSales[msg.sender];
         claimedSales[msg.sender] += _claimable;
 
         payable(msg.sender).safeTransferETH(_claimable);
@@ -358,9 +357,9 @@ contract ButtPlugWars is ERC721 {
         uint256 _timestamp = block.timestamp;
         if (state <= STATE.GAME_OVER || _timestamp < canUpdateSpotPriceNext) revert WrongTiming();
 
+        canUpdateSpotPriceNext = _timestamp + PERIOD;
         uint128 _spotPrice = LSSVMPair(SUDOSWAP_POOL).spotPrice();
         LSSVMPair(SUDOSWAP_POOL).changeSpotPrice(_spotPrice * 5 / 9);
-        canUpdateSpotPriceNext = _timestamp + PERIOD;
     }
 
     /// @dev Handles Keep3r mechanism and payment
@@ -601,8 +600,6 @@ contract ButtPlugWars is ERC721 {
 
         revert WrongNFT();
     }
-
-    function _generateURI(uint256 _badgeId, string memory _svgImage, string memory _metadata) internal {}
 
     function _simulateButtPlug(address _buttPlug, uint256 _board)
         internal
