@@ -49,6 +49,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         buttPlugWars.pushLiquidity();
 
         ButtPlugForTest testButtPlug = new ButtPlugForTest(address(buttPlugWars));
+        uint256 _buttPlugBadgeId = buttPlugWars.mintButtPlugBadge(address(testButtPlug));
         uint256 _buttPlugBadgeId_ZERO = buttPlugWars.mintButtPlugScoreBadge(address(testButtPlug), ButtPlugWars.TEAM(0));
         uint256 _buttPlugBadgeId_ONE = buttPlugWars.mintButtPlugScoreBadge(address(testButtPlug), ButtPlugWars.TEAM(1));
 
@@ -109,49 +110,58 @@ contract E2EButtPlugWars is CommonE2EBase {
 
         _forceBruteChess(2056);
 
-        uint256 liquidityAmount = keep3r.liquidityAmount(address(buttPlugWars), KP3R_LP);
+        {
+            uint256 liquidityAmount = keep3r.liquidityAmount(address(buttPlugWars), KP3R_LP);
 
-        buttPlugWars.unbondLiquidity();
-        vm.warp(block.timestamp + 14 days + 1);
-        address badgeOwner = buttPlugWars.ownerOf(badge1);
+            buttPlugWars.unbondLiquidity();
+            vm.warp(block.timestamp + 14 days + 1);
+            address badgeOwner = buttPlugWars.ownerOf(badge1);
 
-        // Prize claim
-        buttPlugWars.claimPrize(badge1);
-        // Honor claim
-        buttPlugWars.claimHonor(preGenToken);
-        buttPlugWars.claimHonor(_buttPlugBadgeId_ZERO);
-        buttPlugWars.claimHonor(_buttPlugBadgeId_ONE);
-        buttPlugWars.withdrawLiquidity();
+            // Prize claim
+            buttPlugWars.claimPrize(badge1);
+            // Honor claim
+            buttPlugWars.claimHonor(preGenToken);
+            buttPlugWars.claimHonor(_buttPlugBadgeId_ZERO);
+            buttPlugWars.claimHonor(_buttPlugBadgeId_ONE);
+            buttPlugWars.withdrawLiquidity();
 
-        // Prize distribution
+            // Prize distribution
 
-        buttPlugWars.withdrawPrize();
+            buttPlugWars.withdrawPrize();
 
-        uint256 liquidityWithdrawn = IERC20(KP3R_LP).balanceOf(badgeOwner);
+            uint256 liquidityWithdrawn = IERC20(KP3R_LP).balanceOf(badgeOwner);
 
-        assertLt(liquidityAmount - liquidityWithdrawn, 100, 'all liquidity was distributed');
+            assertLt(liquidityAmount - liquidityWithdrawn, 100, 'all liquidity was distributed');
 
-        // Honor distribution
-        buttPlugWars.withdrawHonor();
-        buttPlugWars.withdrawHonor();
-        uint256 _remaining = address(buttPlugWars).balance;
-        assertLt(_remaining, 100, 'all sales were distributed');
+            // Honor distribution
+            buttPlugWars.withdrawHonor();
+            buttPlugWars.withdrawHonor();
+            uint256 _remaining = address(buttPlugWars).balance;
+            assertLt(_remaining, 100, 'all sales were distributed');
 
-        // Can update spotPrice
-        buttPlugWars.updateSpotPrice();
-        vm.expectRevert(ButtPlugWars.WrongTiming.selector);
-        buttPlugWars.updateSpotPrice();
-        vm.warp(block.timestamp + 59 days);
-        buttPlugWars.updateSpotPrice();
+            // Can update spotPrice
+            buttPlugWars.updateSpotPrice();
+            vm.expectRevert(ButtPlugWars.WrongTiming.selector);
+            buttPlugWars.updateSpotPrice();
+            vm.warp(block.timestamp + 59 days);
+            buttPlugWars.updateSpotPrice();
 
-        // Honor re-distribution
-        _purchaseAtSudoswap(1);
-        _remaining = address(buttPlugWars).balance;
-        assertGt(_remaining, 100, 'more sales to be distributed');
-        buttPlugWars.withdrawHonor();
-        buttPlugWars.withdrawHonor();
-        _remaining = address(buttPlugWars).balance;
-        assertLt(_remaining, 100, 'all sales were distributed');
+            // Honor re-distribution
+            _purchaseAtSudoswap(1);
+            _remaining = address(buttPlugWars).balance;
+            assertGt(_remaining, 100, 'more sales to be distributed');
+            buttPlugWars.withdrawHonor();
+            buttPlugWars.withdrawHonor();
+            _remaining = address(buttPlugWars).balance;
+            assertLt(_remaining, 100, 'all sales were distributed');
+        }
+
+        // {
+        //   console.log(buttPlugWars.tokenURI(0));
+        //   console.log(buttPlugWars.tokenURI(badge1));
+        //   console.log(buttPlugWars.tokenURI(_buttPlugBadgeId));
+        //   console.log(buttPlugWars.tokenURI(_buttPlugBadgeId_ONE));
+        // }
     }
 
     function _purchaseAtSudoswap(uint256 _amount) internal {

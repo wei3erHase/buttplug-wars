@@ -7,8 +7,7 @@
   \ \/ \/ // __ \|  | _(__  <_/ __ \_  __ \/    ~    \__  \  /  ___// __ \
    \     /\  ___/|  |/       \  ___/|  | \/\    Y    // __ \_\___ \\  ___/
     \/\_/  \___  >__/______  /\___  >__|    \___|_  /(____  /____  >\___  >
-               \/          \/     \/              \/      \/     \/     \/
-*/
+               \/          \/     \/              \/      \/     \/     \/*/
 
 pragma solidity >=0.8.4 <0.9.0;
 
@@ -91,14 +90,15 @@ contract ButtPlugWars is ERC721 {
 
     mapping(TEAM => uint256) matchesWon;
     mapping(TEAM => int256) matchScore;
-    uint256 matchTotalMoves;
+    uint256 matchMoves;
     uint256 matchNumber;
-    uint256 honorableNonce;
 
     /* Badge mechanics */
     uint256 totalShares;
     mapping(uint256 => uint256) badgeShares;
     mapping(uint256 => uint256) bondedToken;
+
+    /* NFT whitelisting mechanics */
     uint256 genesis;
     mapping(uint256 => bool) whitelistedToken;
 
@@ -208,7 +208,7 @@ contract ButtPlugWars is ERC721 {
     function mintButtPlugBadge(address _buttPlug) external returns (uint256 _badgeId) {
         if ((state < STATE.TICKET_SALE) || (state >= STATE.GAME_OVER)) revert WrongTiming();
 
-        _badgeId = _calculateSoulBondBadge(_buttPlug, TEAM.STAFF);
+        _badgeId = _calculateButtPlugBadge(_buttPlug, TEAM.STAFF);
         _mint(_buttPlug, _badgeId);
     }
 
@@ -216,7 +216,7 @@ contract ButtPlugWars is ERC721 {
     function mintButtPlugScoreBadge(address _buttPlug, TEAM _team) external returns (uint256 _badgeId) {
         if ((state < STATE.TICKET_SALE) || (state >= STATE.GAME_OVER)) revert WrongTiming();
         address _owner = IButtPlug(_buttPlug).owner();
-        _badgeId = _calculateSoulBondBadge(_buttPlug, _team);
+        _badgeId = _calculateButtPlugBadge(_buttPlug, _team);
         _mint(_owner, _badgeId);
     }
 
@@ -224,7 +224,7 @@ contract ButtPlugWars is ERC721 {
     function claimPrize(uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
         if (state != STATE.PREPARATIONS) revert WrongTiming();
 
-        TEAM _team = TEAM(uint8(_badgeId >> 59));
+        TEAM _team = _getTeam(_badgeId);
         if (matchesWon[_team] < 5) revert WrongTeam();
 
         int256 _badgeScore = score[_badgeId];
@@ -260,6 +260,7 @@ contract ButtPlugWars is ERC721 {
         _returnNftIfStaked(_badgeId);
     }
 
+    /// @dev Allows players to withdraw their correspondant ETH from the pool sales
     function withdrawHonor() external {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
 
@@ -275,6 +276,10 @@ contract ButtPlugWars is ERC721 {
             uint256 _tokenId = bondedToken[_badgeId];
             ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), msg.sender, _tokenId);
         }
+    }
+
+    function _getTeam(uint256 _badgeId) internal pure returns (TEAM _team) {
+        return TEAM(uint8(_badgeId >> 59));
     }
 
     modifier onlyBadgeOwner(uint256 _badgeId) {
@@ -376,7 +381,7 @@ contract ButtPlugWars is ERC721 {
         if ((state != STATE.GAME_RUNNING) || (block.timestamp < canPlayNext)) revert WrongTiming();
 
         // each match is limited to 59 moves
-        if (++matchTotalMoves > 59) _checkMateRoutine();
+        if (++matchMoves > 59) _checkMateRoutine();
 
         TEAM _team = TEAM((_roundT(block.timestamp, PERIOD) / PERIOD) % 2);
         address _buttPlug = buttPlug[_team];
@@ -387,7 +392,7 @@ contract ButtPlugWars is ERC721 {
             return;
         }
 
-        uint256 _buttPlugBadgeId = _calculateSoulBondBadge(_buttPlug, _team);
+        uint256 _buttPlugBadgeId = _calculateButtPlugBadge(_buttPlug, _team);
         uint256 _buttPlugVotes = buttPlugVotes[_team][_buttPlug];
 
         uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
@@ -431,7 +436,7 @@ contract ButtPlugWars is ERC721 {
         if (matchScore[TEAM.ZERO] >= matchScore[TEAM.ONE]) matchesWon[TEAM.ZERO]++;
         if (matchScore[TEAM.ONE] >= matchScore[TEAM.ZERO]) matchesWon[TEAM.ONE]++;
 
-        delete matchTotalMoves;
+        delete matchMoves;
 
         // verifies if game has ended
         if ((matchesWon[TEAM.ZERO] >= 5) || matchesWon[TEAM.ONE] >= 5) {
@@ -480,18 +485,18 @@ contract ButtPlugWars is ERC721 {
         if (_buttPlug == address(0)) revert WrongValue();
         if (_badgeId > 1 << 60) revert WrongMethod();
 
-        TEAM _team = TEAM(uint8(_badgeId >> 59));
+        TEAM _team = _getTeam(_badgeId);
         uint256 _weight = badgeShares[_badgeId];
 
         address _previousVote = badgeButtPlugVote[_badgeId];
         if (_previousVote != address(0)) {
-            uint256 _previousButtPlug = _calculateSoulBondBadge(_previousVote, _team);
+            uint256 _previousButtPlugBadge = _calculateButtPlugBadge(_previousVote, _team);
             buttPlugVotes[_team][_previousVote] -= _weight;
-            score[_badgeId] += score[_previousButtPlug] - lastUpdatedScore[_badgeId][_previousButtPlug];
+            score[_badgeId] += score[_previousButtPlugBadge] - lastUpdatedScore[_badgeId][_previousButtPlugBadge];
         }
 
-        uint256 _currentButtPlug = _calculateSoulBondBadge(_buttPlug, _team);
-        lastUpdatedScore[_badgeId][_currentButtPlug] = score[_currentButtPlug];
+        uint256 _currentButtPlugBadge = _calculateButtPlugBadge(_buttPlug, _team);
+        lastUpdatedScore[_badgeId][_currentButtPlugBadge] = score[_currentButtPlugBadge];
         badgeButtPlugVote[_badgeId] = _buttPlug;
         buttPlugVotes[_team][_buttPlug] += _weight;
 
@@ -499,9 +504,9 @@ contract ButtPlugWars is ERC721 {
     }
 
     function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
-        TEAM _team = TEAM(uint8(_badgeId >> 59));
-        uint256 _currentButtPlug = _calculateSoulBondBadge(badgeButtPlugVote[_badgeId], _team);
-        return score[_badgeId] + score[_currentButtPlug] - lastUpdatedScore[_badgeId][_currentButtPlug];
+        TEAM _team = _getTeam(_badgeId);
+        uint256 _currentButtPlugBadge = _calculateButtPlugBadge(badgeButtPlugVote[_badgeId], _team);
+        return score[_badgeId] + score[_currentButtPlugBadge] - lastUpdatedScore[_badgeId][_currentButtPlugBadge];
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -529,13 +534,13 @@ contract ButtPlugWars is ERC721 {
         LSSVMPair(SUDOSWAP_POOL).changeDelta(++_currentDelta);
     }
 
-    function _calculateSoulBondBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
+    function _calculateButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
         return uint256(uint160(_buttPlug)) << 69 + uint256(_team) << 59;
     }
 
-    /// @dev Avoids transference of SoulBond Badges before game ended
+    /// @dev Avoids transference of ButtPlug Badges
     function transferFrom(address _from, address _to, uint256 _badgeId) public virtual override {
-        if (_badgeId > 1 << 60 && state < STATE.GAME_OVER) revert WrongTiming();
+        if (_getTeam(_badgeId) == TEAM.STAFF) revert WrongMethod();
         super.transferFrom(_from, _to, _badgeId);
     }
 
@@ -545,7 +550,7 @@ contract ButtPlugWars is ERC721 {
             IDescriptorPlug.ScoreboardData memory _scoreboardData = IDescriptorPlug.ScoreboardData({
                 state: uint8(state),
                 matchNumber: matchNumber,
-                matchTotalMoves: matchTotalMoves,
+                matchMoves: matchMoves,
                 matchesWonZERO: matchesWon[TEAM.ZERO],
                 matchesWonONE: matchesWon[TEAM.ONE],
                 matchScoreZERO: matchScore[TEAM.ZERO],
@@ -560,14 +565,10 @@ contract ButtPlugWars is ERC721 {
         IDescriptorPlug.GameData memory _gameData =
             IDescriptorPlug.GameData({totalPlayers: totalPlayers, totalShares: totalShares, totalPrize: totalPrize});
 
-        TEAM _team = TEAM(uint8(_badgeId >> 59));
+        TEAM _team = _getTeam(_badgeId);
 
-        IDescriptorPlug.BadgeData memory _badgeData = IDescriptorPlug.BadgeData({
-            team: uint8(_team),
-            badgeId: _badgeId,
-            badgeShares: badgeShares[_badgeId],
-            firstSeen: 0
-        });
+        IDescriptorPlug.BadgeData memory _badgeData =
+            IDescriptorPlug.BadgeData({team: uint8(_team), badgeId: _badgeId, badgeShares: badgeShares[_badgeId]});
 
         // Player metadata
         if (_badgeId < 1 << 60) {

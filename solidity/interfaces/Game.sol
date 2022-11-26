@@ -31,7 +31,7 @@ interface IDescriptorPlug {
     struct ScoreboardData {
         uint8 state;
         uint256 matchNumber;
-        uint256 matchTotalMoves;
+        uint256 matchMoves;
         uint256 matchesWonZERO;
         uint256 matchesWonONE;
         int256 matchScoreZERO;
@@ -50,7 +50,6 @@ interface IDescriptorPlug {
         uint8 team;
         uint256 badgeId;
         uint256 badgeShares;
-        uint256 firstSeen;
     }
 
     struct PlayerData {
