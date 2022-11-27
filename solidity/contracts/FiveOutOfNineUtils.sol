@@ -11,6 +11,8 @@ library FiveOutOfNineUtils {
     using Math for uint256;
     using Chess for uint256;
 
+    bytes32 internal constant FILE_NAMES = 'abcdef';
+
     /*///////////////////////////////////////////////////////////////
                               FIVEOUTOFNINE
     //////////////////////////////////////////////////////////////*/
@@ -60,6 +62,19 @@ library FiveOutOfNineUtils {
         return boardString;
     }
 
+    function describeMove(uint256 _board, uint256 _move) internal pure returns (string memory) {
+        bool isCapture = _board.isCapture(_board >> ((_move & 0x3F) << 2));
+        return string(
+            abi.encodePacked(
+                indexToPosition(_move >> 6, true),
+                ' ',
+                getPieceName((_board >> ((_move >> 6) << 2)) & 7),
+                isCapture ? ' captures ' : ' to ',
+                indexToPosition(_move & 0x3F, true)
+            )
+        );
+    }
+
     /// @notice Maps pieces to its corresponding unicode character.
     /// @param _piece A piece.
     /// @return The unicode character corresponding to `_piece`. It returns ``.'' otherwise.
@@ -77,5 +92,29 @@ library FiveOutOfNineUtils {
         if (_piece == 0xD) return unicode'♕';
         if (_piece == 0xE) return unicode'♔';
         return unicode'·';
+    }
+
+    /// @notice Converts a position's index to algebraic notation.
+    /// @param _index The index of the position.
+    /// @param _isWhite Whether the piece is being determined for a white piece or not.
+    /// @return The algebraic notation of `_index`.
+    function indexToPosition(uint256 _index, bool _isWhite) internal pure returns (string memory) {
+        unchecked {
+            return _isWhite
+                ? string(abi.encodePacked(FILE_NAMES[6 - (_index & 7)], Strings.toString(_index >> 3)))
+                : string(abi.encodePacked(FILE_NAMES[(_index & 7) - 1], Strings.toString(7 - (_index >> 3))));
+        }
+    }
+
+    /// @notice Maps piece type to its corresponding name.
+    /// @param _type A piece type defined in {Chess}.
+    /// @return The name corresponding to `_type`.
+    function getPieceName(uint256 _type) internal pure returns (string memory) {
+        if (_type == 1) return 'pawn';
+        else if (_type == 2) return 'bishop';
+        else if (_type == 3) return 'rook';
+        else if (_type == 4) return 'knight';
+        else if (_type == 5) return 'queen';
+        return 'king';
     }
 }

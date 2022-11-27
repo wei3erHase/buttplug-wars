@@ -174,7 +174,6 @@ contract ButtPlugWars is ERC721 {
     /// @dev Permissioned method, allows rabbit to cancel the event
     function cancelEvent() external onlyRabbit {
         if (state != STATE.ANNOUNCEMENT) revert WrongTiming();
-
         state = STATE.CANCELLED;
     }
 
@@ -203,7 +202,7 @@ contract ButtPlugWars is ERC721 {
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
         uint256 _shares = _value.sqrt();
 
-        _badgeId = ++totalPlayers + (uint256(_team) << 59);
+        _badgeId = ++totalPlayers + (uint256(_team) << 32);
         _mint(msg.sender, _badgeId);
 
         bondedToken[_badgeId] = _tokenId;
@@ -216,41 +215,47 @@ contract ButtPlugWars is ERC721 {
     /// @dev Allows the signer to register a ButtPlug NFT
     function mintButtPlugBadge(address _buttPlug) external returns (uint256 _badgeId) {
         if ((state < STATE.TICKET_SALE) || (state >= STATE.GAME_OVER)) revert WrongTiming();
+        address _owner = IButtPlug(_buttPlug).owner();
 
         _badgeId = _calculateButtPlugBadge(_buttPlug, TEAM.STAFF);
-        _mint(_buttPlug, _badgeId);
-    }
-
-    /// @dev Open method, allows anyone to mint a buttPlug's score badge to its owner
-    function mintButtPlugScoreBadge(address _buttPlug, TEAM _team) external returns (uint256 _badgeId) {
-        if ((state < STATE.TICKET_SALE) || (state >= STATE.GAME_OVER)) revert WrongTiming();
-        address _owner = IButtPlug(_buttPlug).owner();
-        _badgeId = _calculateButtPlugBadge(_buttPlug, _team);
         _mint(_owner, _badgeId);
     }
 
     function getBadgeId(uint256 _playerNumber) external view returns (uint256 _badgeId) {
         if (ownerOf[_playerNumber] != address(0)) return _playerNumber;
-        _playerNumber = _playerNumber + (uint256(TEAM.ONE) << 59);
+        _playerNumber = _playerNumber + (uint256(TEAM.ONE) << 32);
         if (ownerOf[_playerNumber] != address(0)) return _playerNumber;
         revert WrongNFT();
     }
 
-    /// @dev Allows players (winner team) claim a share of the prize acording to their value sent
-    function claimPrize(uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
-        if (state != STATE.PREPARATIONS) revert WrongTiming();
+    function getBadgeId(address _buttPlug) external view returns (uint256 _badgeId) {
+        _badgeId = _calculateButtPlugBadge(_buttPlug, TEAM.STAFF);
+        if (ownerOf[_badgeId] == address(0)) revert WrongNFT();
+    }
 
+    /// @dev Allows players (winner team) claim a share of the prize acording to their value sent
+    function claimPrize(uint256 _badgeId) external {
+        if (state != STATE.PREPARATIONS) revert WrongTiming();
+        _claimPrize(_badgeId);
+    }
+
+    function claimPrize(uint256[] memory _badgeIds) external {
+        if (state != STATE.PREPARATIONS) revert WrongTiming();
+        for (uint256 _i; _i < _badgeIds.length; _i++) {
+            _claimPrize(_badgeIds[_i]);
+        }
+    }
+
+    function _claimPrize(uint256 _badgeId) internal onlyBadgeOwner(_badgeId) {
         TEAM _team = _getTeam(_badgeId);
         if (matchesWon[_team] < 5) revert WrongTeam();
 
-        int256 _badgeScore = _getScore(_badgeId);
-        bool _isPositive = _badgeScore > 0;
-        uint256 _shares = _isPositive ? uint256(_badgeScore) : badgeShares[_badgeId];
-
+        uint256 _shares = badgeShares[_badgeId];
+        _shares *= _shares; // prize is claimed by inputted ETH (weight^2)
         playerPrizeShares[msg.sender] += _shares;
         totalPrizeShares += _shares;
 
-        super.transferFrom(msg.sender, address(this), _badgeId);
+        transferFrom(msg.sender, address(this), _badgeId);
         _returnNftIfStaked(_badgeId);
     }
 
@@ -265,14 +270,27 @@ contract ButtPlugWars is ERC721 {
     }
 
     /// @dev Allows badge owners to claim ETH from the pool sales according to their score
-    function claimHonor(uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
+    function claimHonor(uint256 _badgeId) external {
         if (state != STATE.PREPARATIONS) revert WrongTiming();
+        _claimHonor(_badgeId);
+    }
 
-        uint256 _shares = badgeShares[_badgeId];
+    function claimHonor(uint256[] memory _badgeIds) external {
+        if (state != STATE.PREPARATIONS) revert WrongTiming();
+        for (uint256 _i; _i < _badgeIds.length; _i++) {
+            _claimHonor(_badgeIds[_i]);
+        }
+    }
+
+    function _claimHonor(uint256 _badgeId) internal onlyBadgeOwner(_badgeId) {
+        int256 _badgeScore = _getScore(_badgeId);
+        bool _isPositive = _badgeScore > 0;
+        uint256 _shares = _isPositive ? uint256(_badgeScore) : 1;
+
         playerHonorShares[msg.sender] += _shares;
         totalHonorShares += _shares;
 
-        super.transferFrom(msg.sender, address(this), _badgeId);
+        transferFrom(msg.sender, address(this), _badgeId);
         _returnNftIfStaked(_badgeId);
     }
 
@@ -295,7 +313,7 @@ contract ButtPlugWars is ERC721 {
     }
 
     function _getTeam(uint256 _badgeId) internal pure returns (TEAM _team) {
-        return TEAM(uint8(_badgeId >> 59));
+        return TEAM(uint8(_badgeId >> 32));
     }
 
     modifier onlyBadgeOwner(uint256 _badgeId) {
@@ -504,13 +522,23 @@ contract ButtPlugWars is ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Allows players to vote for their preferred ButtPlug
-    function voteButtPlug(address _buttPlug, uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
+    function voteButtPlug(address _buttPlug, uint256 _badgeId) external {
         if (_buttPlug == address(0)) revert WrongValue();
-        if (_badgeId > 1 << 60) revert WrongMethod();
+        _voteButtPlug(_buttPlug, _badgeId);
+    }
 
+    function voteButtPlug(address _buttPlug, uint256[] memory _badgeIds) external {
+        if (_buttPlug == address(0)) revert WrongValue();
+        for (uint256 _i; _i < _badgeIds.length; _i++) {
+            _voteButtPlug(_buttPlug, _badgeIds[_i]);
+        }
+    }
+
+    function _voteButtPlug(address _buttPlug, uint256 _badgeId) internal onlyBadgeOwner(_badgeId) {
         TEAM _team = _getTeam(_badgeId);
-        uint256 _weight = badgeShares[_badgeId];
+        if (_team == TEAM.STAFF) revert WrongBadge();
 
+        uint256 _weight = badgeShares[_badgeId];
         address _previousVote = badgeButtPlugVote[_badgeId];
         if (_previousVote != address(0)) {
             uint256 _previousButtPlugBadge = _calculateButtPlugBadge(_previousVote, _team);
@@ -528,8 +556,15 @@ contract ButtPlugWars is ERC721 {
 
     function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
         TEAM _team = _getTeam(_badgeId);
-        uint256 _currentButtPlugBadge = _calculateButtPlugBadge(badgeButtPlugVote[_badgeId], _team);
-        return score[_badgeId] + score[_currentButtPlugBadge] - lastUpdatedScore[_badgeId][_currentButtPlugBadge];
+        if (_team < TEAM.STAFF) {
+            uint256 _currentButtPlugBadge = _calculateButtPlugBadge(badgeButtPlugVote[_badgeId], _team);
+            return score[_badgeId] + score[_currentButtPlugBadge] - lastUpdatedScore[_badgeId][_currentButtPlugBadge];
+        } else {
+            address _buttPlug = _calculateButtPlugAddress(_badgeId);
+            uint256 _buttPlugZERO = _calculateButtPlugBadge(_buttPlug, TEAM.ZERO);
+            uint256 _buttPlugONE = _calculateButtPlugBadge(_buttPlug, TEAM.ONE);
+            return score[_buttPlugZERO] + score[_buttPlugONE];
+        }
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -557,14 +592,12 @@ contract ButtPlugWars is ERC721 {
         LSSVMPair(SUDOSWAP_POOL).changeDelta(++_currentDelta);
     }
 
-    function _calculateButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
-        return uint256(uint160(_buttPlug)) << 69 + uint256(_team) << 59;
+    function _calculateButtPlugBadge(address _buttPlug, TEAM _team) public pure returns (uint256 _badgeId) {
+        return uint256(uint256(uint160(_buttPlug)) << 64) + (uint256(_team) << 32);
     }
 
-    /// @dev Avoids transference of ButtPlug Badges
-    function transferFrom(address _from, address _to, uint256 _badgeId) public virtual override {
-        if (_getTeam(_badgeId) == TEAM.STAFF) revert WrongMethod();
-        super.transferFrom(_from, _to, _badgeId);
+    function _calculateButtPlugAddress(uint256 _badgeId) public pure returns (address _buttPlug) {
+        return address(uint160((_badgeId - (uint256(TEAM.STAFF) << 32)) >> 64));
     }
 
     function tokenURI(uint256 _badgeId) public view virtual override returns (string memory _tokenURI) {
@@ -646,16 +679,19 @@ contract ButtPlugWars is ERC721 {
         }
 
         // ButtPlug metadata
-        if (_getTeam(_badgeId) == TEAM.STAFF) {
+        if (_team == TEAM.STAFF) {
             Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](5);
             Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
 
             {
-                address _buttPlug = address(uint160(_badgeId >> 69));
+                address _buttPlug = _calculateButtPlugAddress(_badgeId);
+
                 uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
                 (bool _isLegal, uint256 _simMove, uint256 _simGasUsed, string memory _description) =
                     _simulateButtPlug(_buttPlug, _board);
-                _metadata[1] = Jeison.create(_datapoints);
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'score');
+                _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
+                _metadata[0] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'simulated_move');
                 _datapoints[1] = Jeison.dataPoint('value', _simMove);
                 _metadata[1] = Jeison.create(_datapoints);
@@ -700,7 +736,7 @@ contract ButtPlugWars is ERC721 {
         _isLegal = _board.isLegalMove(_simMove);
         if (_isLegal) {
             uint256 _boardAfterMove = _board.applyMove(_simMove);
-            _description = FiveOutOfNineUtils.drawMove(_boardAfterMove, _simMove >> 6);
+            _description = FiveOutOfNineUtils.describeMove(_board, _simMove);
         }
     }
 

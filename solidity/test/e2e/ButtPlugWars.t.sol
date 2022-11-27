@@ -30,8 +30,13 @@ contract E2EButtPlugWars is CommonE2EBase {
         uint256 badge2 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(184, ButtPlugWars.TEAM(0));
         uint256 badge3 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(185, ButtPlugWars.TEAM(0));
         uint256 badge4 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(186, ButtPlugWars.TEAM(0));
+
         vm.expectRevert(ButtPlugWars.WrongNFT.selector);
         buttPlugWars.mintPlayerBadge{value: 0.25 ether}(genesis, ButtPlugWars.TEAM(0));
+
+        uint256[] memory _badgesBatch = new uint256[](2);
+        _badgesBatch[0] = badge2;
+        _badgesBatch[1] = badge3;
 
         // checks value limits
         vm.expectRevert(ButtPlugWars.WrongValue.selector);
@@ -50,8 +55,6 @@ contract E2EButtPlugWars is CommonE2EBase {
 
         ButtPlugForTest testButtPlug = new ButtPlugForTest(address(buttPlugWars));
         uint256 _buttPlugBadgeId = buttPlugWars.mintButtPlugBadge(address(testButtPlug));
-        uint256 _buttPlugBadgeId_ZERO = buttPlugWars.mintButtPlugScoreBadge(address(testButtPlug), ButtPlugWars.TEAM(0));
-        uint256 _buttPlugBadgeId_ONE = buttPlugWars.mintButtPlugScoreBadge(address(testButtPlug), ButtPlugWars.TEAM(1));
 
         /**
          * Quadratic voting mechanism
@@ -68,6 +71,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         buttPlugWars.voteButtPlug(address(testButtPlug), badge1); // 1 eth
         buttPlugWars.voteButtPlug(address(69), badge2); // 0.25 eth
         buttPlugWars.voteButtPlug(address(69), badge3); // 0.25 eth
+        buttPlugWars.voteButtPlug(address(69), _badgesBatch);
         assertEq(ButtPlugWarsForTest(buttPlugWars).getTeamButtPlug(0), address(testButtPlug), '(a)');
 
         // (b)
@@ -121,8 +125,6 @@ contract E2EButtPlugWars is CommonE2EBase {
             buttPlugWars.claimPrize(badge1);
             // Honor claim
             buttPlugWars.claimHonor(preGenToken);
-            buttPlugWars.claimHonor(_buttPlugBadgeId_ZERO);
-            buttPlugWars.claimHonor(_buttPlugBadgeId_ONE);
             buttPlugWars.withdrawLiquidity();
 
             // Prize distribution
@@ -134,7 +136,6 @@ contract E2EButtPlugWars is CommonE2EBase {
             assertLt(liquidityAmount - liquidityWithdrawn, 100, 'all liquidity was distributed');
 
             // Honor distribution
-            buttPlugWars.withdrawHonor();
             buttPlugWars.withdrawHonor();
             uint256 _remaining = address(buttPlugWars).balance;
             assertLt(_remaining, 100, 'all sales were distributed');
@@ -156,12 +157,9 @@ contract E2EButtPlugWars is CommonE2EBase {
             assertLt(_remaining, 100, 'all sales were distributed');
         }
 
-        // {
         console.log(buttPlugWars.tokenURI(0));
-        //   console.log(buttPlugWars.tokenURI(badge1));
-        //   console.log(buttPlugWars.tokenURI(_buttPlugBadgeId));
-        //   console.log(buttPlugWars.tokenURI(_buttPlugBadgeId_ONE));
-        // }
+        console.log(buttPlugWars.tokenURI(badge1));
+        console.log(buttPlugWars.tokenURI(_buttPlugBadgeId));
     }
 
     function _purchaseAtSudoswap(uint256 _amount) internal {
