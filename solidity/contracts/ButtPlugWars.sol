@@ -229,6 +229,13 @@ contract ButtPlugWars is ERC721 {
         _mint(_owner, _badgeId);
     }
 
+    function getBadgeId(uint256 _playerNumber) external view returns (uint256 _badgeId) {
+        if (ownerOf[_playerNumber] != address(0)) return _playerNumber;
+        _playerNumber = _playerNumber + (uint256(TEAM.ONE) << 59);
+        if (ownerOf[_playerNumber] != address(0)) return _playerNumber;
+        revert WrongNFT();
+    }
+
     /// @dev Allows players (winner team) claim a share of the prize acording to their value sent
     function claimPrize(uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
         if (state != STATE.PREPARATIONS) revert WrongTiming();
@@ -368,6 +375,7 @@ contract ButtPlugWars is ERC721 {
         if (state <= STATE.GAME_OVER || _timestamp < canUpdateSpotPriceNext) revert WrongTiming();
 
         canUpdateSpotPriceNext = _timestamp + PERIOD;
+        // TODO: consider .changeDelta ++
         uint128 _spotPrice = LSSVMPair(SUDOSWAP_POOL).spotPrice();
         LSSVMPair(SUDOSWAP_POOL).changeSpotPrice(_spotPrice * 5 / 9);
     }
@@ -450,13 +458,17 @@ contract ButtPlugWars is ERC721 {
         delete matchScore[TEAM.ONE];
 
         // verifies if game has ended
-        if ((matchesWon[TEAM.ZERO] == 5) || matchesWon[TEAM.ONE] == 5) {
+        if (_gameOver()) {
             state = STATE.GAME_OVER;
             // all remaining ETH will be considered to distribute as sales
             claimableSales = address(this).balance;
             canPlayNext = MAX_UINT;
             return;
         }
+    }
+
+    function _gameOver() internal view returns (bool _gameOver) {
+        return matchesWon[TEAM.ZERO] == 5 || matchesWon[TEAM.ONE] == 5;
     }
 
     function _roundT(uint256 _timestamp, uint256 _period) internal pure returns (uint256 _roundTimestamp) {
@@ -556,32 +568,13 @@ contract ButtPlugWars is ERC721 {
     }
 
     function tokenURI(uint256 _badgeId) public view virtual override returns (string memory _tokenURI) {
-        Jeison.JsonObject memory _metadata = Jeison.initialize();
-        Jeison.JsonObject memory _attributes = Jeison.initialize();
-        Jeison.JsonObject memory _traits = Jeison.initialize();
-
-        /*
-        {
-          "description": "Friendly OpenSea Creature that enjoys long swims in the ocean.",
-          "external_url": "https://openseacreatures.io/3",
-          "image": "https://storage.googleapis.com/opensea-prod.appspot.com/puffs/3.png",
-          "name": "Dave Starbelly",
-          "attributes": [ ... ]
-        }
-        */
-
-        // Scoreboard metadata
+        if (ownerOf[_badgeId] == address(0)) revert WrongNFT();
+        // Scoreboard
         if (_badgeId == 0) {
-            _metadata.load('name', 'Scoreboard');
-            _metadata.load('description', 'ButtPlug Wars scoreboard token');
-            _metadata.load('image_data', _drawSVG());
+            Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](2);
+            Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
 
-            _traits.load('trait_type', 'weight');
-            _traits.load('value', totalShares);
-            _attributes.load('', _traits.get());
-            // _traits.initialize();
-
-            _traits.load('trait_type', 'game-score');
+            // creates metadata array[{traits}]
             string memory scoreboard;
             scoreboard = string(
                 abi.encodePacked(
@@ -595,49 +588,95 @@ contract ButtPlugWars is ERC721 {
                     ')'
                 )
             );
-            _traits.load('value', scoreboard);
-            _attributes.load('', _traits.get());
-            // _traits.initialize();
+            _datapoints[0] = Jeison.dataPoint('trait_type', 'game-score');
+            _datapoints[1] = Jeison.dataPoint('value', scoreboard);
+            _metadata[0] = Jeison.create(_datapoints);
+            _datapoints[0] = Jeison.dataPoint('trait_type', 'weight');
+            _datapoints[1] = Jeison.dataPoint('value', totalShares / 1e6);
+            _metadata[1] = Jeison.create(_datapoints);
 
-            // _metadata.load('attributes', _attributes.getAsArray());
+            // creates json
+            _datapoints = new Jeison.DataPoint[](4);
+            _datapoints[0] = Jeison.dataPoint('name', 'Scoreboard');
+            string memory _descriptionStr = string(abi.encodePacked('ButtPlug Wars Scoreboard \n', scoreboard, ' \n'));
+            _descriptionStr = string(
+                abi.encodePacked(_descriptionStr, FiveOutOfNineUtils.drawBoard(IChess(FIVE_OUT_OF_NINE).board()))
+            );
+            _datapoints[1] = Jeison.dataPoint('description', _descriptionStr);
+            _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
+            _datapoints[3] = Jeison.arrayfy('attributes', _metadata);
 
-            return _metadata.get();
+            return Jeison.create(_datapoints).get();
         }
-
-        IDescriptorPlug.GameData memory _gameData =
-            IDescriptorPlug.GameData({totalPlayers: totalPlayers, totalShares: totalShares, totalPrize: totalPrize});
 
         TEAM _team = _getTeam(_badgeId);
 
-        IDescriptorPlug.BadgeData memory _badgeData =
-            IDescriptorPlug.BadgeData({team: uint8(_team), badgeId: _badgeId, badgeShares: badgeShares[_badgeId]});
-
         // Player metadata
-        if (_badgeId < 1 << 60) {
-            IDescriptorPlug.PlayerData memory _playerData = IDescriptorPlug.PlayerData({
-                score: _getScore(_badgeId),
-                badgeButtPlugVote: badgeButtPlugVote[_badgeId],
-                bondedToken: bondedToken[_badgeId]
-            });
+        if (_team < TEAM.STAFF) {
+            // if buttplug remove weight (or add inflation)
+            Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](5);
+            Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
 
-            return IDescriptorPlug(nftDescriptor).getPlayerBadgeMetadata(_gameData, _badgeData, _playerData);
+            {
+                string memory teamString = _team == TEAM.ZERO ? 'ZERO' : 'ONE';
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'team');
+                _datapoints[1] = Jeison.dataPoint('value', teamString);
+                _metadata[0] = Jeison.create(_datapoints);
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'weight');
+                _datapoints[1] = Jeison.dataPoint('value', badgeShares[_badgeId] / 1e6);
+                _metadata[1] = Jeison.create(_datapoints);
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'score');
+                _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
+                _metadata[2] = Jeison.create(_datapoints);
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'vote');
+                _datapoints[1] = Jeison.dataPoint('value', badgeButtPlugVote[_badgeId]);
+                _metadata[3] = Jeison.create(_datapoints);
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'bonded_token');
+                _datapoints[1] = Jeison.dataPoint('value', bondedToken[_badgeId].toString());
+                _metadata[4] = Jeison.create(_datapoints);
+            }
+            // creates json
+            _datapoints = new Jeison.DataPoint[](4);
+            _datapoints[0] = Jeison.dataPoint('name', 'Player');
+            _datapoints[1] = Jeison.dataPoint('description', 'ButtPlug Wars player badge');
+            _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
+            _datapoints[3] = Jeison.arrayfy('attributes', _metadata);
+
+            return Jeison.create(_datapoints).get();
         }
 
         // ButtPlug metadata
-        if (_badgeId > 1 << 60) {
-            address _buttPlug = address(uint160(_badgeId >> 69));
-            uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
-            (bool _isLegal, uint256 _simMove, uint256 _simGasUsed, string memory _description) =
-                _simulateButtPlug(_buttPlug, _board);
+        if (_getTeam(_badgeId) == TEAM.STAFF) {
+            Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](5);
+            Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
 
-            IDescriptorPlug.ButtPlugData memory _buttPlugData = IDescriptorPlug.ButtPlugData({
-                board: _board,
-                simulatedMove: _simMove,
-                simulatedGasSpent: _simGasUsed,
-                buttPlugVotes: buttPlugVotes[_team][_buttPlug]
-            });
+            {
+                address _buttPlug = address(uint160(_badgeId >> 69));
+                uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
+                (bool _isLegal, uint256 _simMove, uint256 _simGasUsed, string memory _description) =
+                    _simulateButtPlug(_buttPlug, _board);
+                _metadata[1] = Jeison.create(_datapoints);
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'simulated_move');
+                _datapoints[1] = Jeison.dataPoint('value', _simMove);
+                _metadata[1] = Jeison.create(_datapoints);
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'simulated_gas');
+                _datapoints[1] = Jeison.dataPoint('value', _simGasUsed);
+                _metadata[2] = Jeison.create(_datapoints);
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'simulated_description');
+                _datapoints[1] = Jeison.dataPoint('value', _description);
+                _metadata[3] = Jeison.create(_datapoints);
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'is_legal_move');
+                _datapoints[1] = Jeison.dataPoint('value', _isLegal);
+                _metadata[4] = Jeison.create(_datapoints);
+            }
+            // creates json
+            _datapoints = new Jeison.DataPoint[](4);
+            _datapoints[0] = Jeison.dataPoint('name', 'ButtPlug');
+            _datapoints[1] = Jeison.dataPoint('description', 'ButtPlug contract badge');
+            _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
+            _datapoints[3] = Jeison.arrayfy('attributes', _metadata);
 
-            return IDescriptorPlug(nftDescriptor).getButtPlugBadgeMetadata(_gameData, _badgeData, _buttPlugData);
+            return Jeison.create(_datapoints).get();
         }
 
         revert WrongNFT();

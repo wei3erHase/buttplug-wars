@@ -38,6 +38,28 @@ library FiveOutOfNineUtils {
         return boardString;
     }
 
+    function drawBoard(uint256 _board) internal pure returns (string memory) {
+        string memory boardString = '```\n';
+
+        if (_board & 1 == 0) _board = _board.rotate();
+
+        for (uint256 index = 0x24A2CC34E4524D455665A6DC75E8628E4966A6AAECB6EC72CF4D76; index != 0; index >>= 6) {
+            uint256 indexToDraw = index & 0x3F;
+            boardString = string(
+                abi.encodePacked(
+                    boardString,
+                    indexToDraw & 7 == 6 ? string(abi.encodePacked(Strings.toString((indexToDraw >> 3)), ' ')) : '',
+                    getPieceChar((_board >> (indexToDraw << 2)) & 0xF),
+                    indexToDraw & 7 == 1 && indexToDraw != 9 ? '\n' : indexToDraw != 9 ? ' ' : ''
+                )
+            );
+        }
+
+        boardString = string(abi.encodePacked(boardString, '\n  a b c d e f\n```'));
+
+        return boardString;
+    }
+
     /// @notice Maps pieces to its corresponding unicode character.
     /// @param _piece A piece.
     /// @return The unicode character corresponding to `_piece`. It returns ``.'' otherwise.

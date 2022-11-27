@@ -15,6 +15,12 @@ library Jeison {
     using Strings for address;
     using IntStrings for int256;
 
+    struct DataPoint {
+        string name;
+        string value;
+        bool isNumeric;
+    }
+
     struct JsonObject {
         string[] varNames;
         string[] varValues;
@@ -22,44 +28,65 @@ library Jeison {
         uint256 i;
     }
 
-    function load(JsonObject memory self, string memory varName, string memory varValue)
-        internal
-        view
-        returns (JsonObject memory)
-    {
-        return _load(self, varName, varValue, false);
+    function dataPoint(string memory varName, bool varValue) internal view returns (DataPoint memory _datapoint) {
+        string memory boolStr = varValue ? 'true' : 'false';
+        _datapoint = DataPoint(varName, boolStr, true);
     }
 
-    function nest(JsonObject memory self, string memory varName, string memory nestedJson)
+    function dataPoint(string memory varName, string memory varValue)
         internal
         view
-        returns (JsonObject memory)
+        returns (DataPoint memory _datapoint)
     {
-        return _load(self, varName, nestedJson, true);
+        _datapoint = DataPoint(varName, varValue, false);
     }
 
-    function load(JsonObject memory self, string memory varName, address varValue)
-        internal
-        view
-        returns (JsonObject memory)
-    {
-        return _load(self, varName, varValue.toHexString(), false);
+    function dataPoint(string memory varName, address varValue) internal view returns (DataPoint memory _datapoint) {
+        _datapoint = DataPoint(varName, varValue.toHexString(), false);
     }
 
-    function load(JsonObject memory self, string memory varName, uint256 varValue)
-        internal
-        view
-        returns (JsonObject memory)
-    {
-        return _load(self, varName, varValue.toString(), true);
+    function dataPoint(string memory varName, uint256 varValue) internal view returns (DataPoint memory _datapoint) {
+        _datapoint = DataPoint(varName, varValue.toString(), true);
     }
 
-    function load(JsonObject memory self, string memory varName, int256 varValue)
+    function dataPoint(string memory varName, int256 varValue) internal view returns (DataPoint memory _datapoint) {
+        _datapoint = DataPoint(varName, varValue.toString(), true);
+    }
+
+    function dataPoint(string memory varName, uint256[] memory uintValues)
         internal
         view
-        returns (JsonObject memory)
+        returns (DataPoint memory _datapoint)
     {
-        return _load(self, varName, varValue.toString(), true);
+        string memory batchStr = '[';
+        for (uint256 _i; _i < uintValues.length; _i++) {
+            string memory varStr;
+            varStr = uintValues[_i].toString();
+            if (_i != 0) varStr = string(abi.encodePacked(', ', varStr));
+            batchStr = string(abi.encodePacked(batchStr, varStr));
+        }
+
+        batchStr = string(abi.encodePacked(batchStr, ']'));
+
+        _datapoint = DataPoint(varName, batchStr, true);
+    }
+
+    function dataPoint(string memory varName, int256[] memory intValues)
+        internal
+        view
+        returns (DataPoint memory _datapoint)
+    {
+        string memory batchStr = '[';
+        for (uint256 _i; _i < intValues.length; _i++) {
+            string memory varStr;
+            varStr = intValues[_i].toString();
+            if (_i != 0) varStr = string(abi.encodePacked(', ', varStr));
+            batchStr = string(abi.encodePacked(batchStr, varStr));
+        }
+
+        batchStr = string(abi.encodePacked(batchStr, ']'));
+
+        _datapoint = DataPoint(varName, batchStr, true);
     }
 
     function _load(JsonObject memory self, string memory varName, string memory varValue, bool varType)
@@ -74,48 +101,8 @@ library Jeison {
         return self;
     }
 
-    function load(JsonObject memory self, string memory varName, uint256[] memory uintValues)
-        internal
-        view
-        returns (JsonObject memory)
-    {
-        string memory batchStr = '[';
-        for (uint256 _i; _i < uintValues.length; _i++) {
-            string memory varStr;
-            varStr = uintValues[_i].toString();
-            if (_i != 0) varStr = string(abi.encodePacked(', ', varStr));
-            batchStr = string(abi.encodePacked(batchStr, varStr));
-        }
-
-        batchStr = string(abi.encodePacked(batchStr, ']'));
-
-        return _load(self, varName, batchStr, true);
-    }
-
-    function load(JsonObject memory self, string memory varName, int256[] memory intValues)
-        internal
-        view
-        returns (JsonObject memory)
-    {
-        string memory batchStr = '[';
-        for (uint256 _i; _i < intValues.length; _i++) {
-            string memory varStr;
-            varStr = intValues[_i].toString();
-            if (_i != 0) varStr = string(abi.encodePacked(', ', varStr));
-            batchStr = string(abi.encodePacked(batchStr, varStr));
-        }
-
-        batchStr = string(abi.encodePacked(batchStr, ']'));
-
-        return _load(self, varName, batchStr, true);
-    }
-
-    function separator(bool _isNumeric) internal pure returns (string memory _separator) {
-        if (!_isNumeric) return '"';
-    }
-
-    function get(JsonObject memory self) internal view returns (string memory batchStr) {
-        batchStr = '{';
+    function get(JsonObject memory self) internal view returns (string memory jsonStr) {
+        jsonStr = '{';
         for (uint256 _i; _i < self.i; _i++) {
             string memory varStr;
             varStr = string(
@@ -123,52 +110,45 @@ library Jeison {
                     '"',
                     self.varNames[_i],
                     '" : ',
-                    separator(self.isNumeric[_i]),
+                    _separator(self.isNumeric[_i]),
                     self.varValues[_i], // "value" / value
-                    separator(self.isNumeric[_i])
+                    _separator(self.isNumeric[_i])
                 )
             );
             if (_i != 0) {
                 // , "var" : "value"
                 varStr = string(abi.encodePacked(', ', varStr));
             }
-            batchStr = string(abi.encodePacked(batchStr, varStr));
+            jsonStr = string(abi.encodePacked(jsonStr, varStr));
         }
 
-        batchStr = string(abi.encodePacked(batchStr, '}'));
+        jsonStr = string(abi.encodePacked(jsonStr, '}'));
     }
 
-    function initialize() internal view returns (JsonObject memory json) {
-        json.varNames = new string[](64);
-        json.varValues = new string[](64);
-        json.isNumeric = new bool[](64);
+    function _separator(bool _isNumeric) private pure returns (string memory _separator) {
+        if (!_isNumeric) return '"';
+    }
+
+    function _initialize(uint256 _jsonLength) private view returns (JsonObject memory json) {
+        json.varNames = new string[](_jsonLength);
+        json.varValues = new string[](_jsonLength);
+        json.isNumeric = new bool[](_jsonLength);
         json.i = 0;
     }
 
-    struct DataPoint {
-        string name;
-        string value;
-        bool isNumeric;
-    }
-
     function create(DataPoint[] memory _datapoints) internal view returns (JsonObject memory json) {
-        json = initialize();
+        json = _initialize(_datapoints.length);
         for (uint256 _i; _i < _datapoints.length; _i++) {
             json = _load(json, _datapoints[_i].name, _datapoints[_i].value, _datapoints[_i].isNumeric);
         }
         return json;
     }
 
-    /*
-
-    "arrayName" : [
-      {json1},
-      {json2}
-    ]
-
-    */
-
-    function array(string memory varName, JsonObject[] memory jsons) internal returns (DataPoint memory datapoint) {
+    function arrayfy(string memory varName, JsonObject[] memory jsons)
+        internal
+        view
+        returns (DataPoint memory datapoint)
+    {
         datapoint.name = varName;
         datapoint.isNumeric = true;
 
@@ -184,14 +164,5 @@ library Jeison {
         }
 
         datapoint.value = string(abi.encodePacked(batchStr, ']'));
-    }
-
-    function playground() internal returns (JsonObject memory json) {
-        DataPoint[] memory _datapoints = new DataPoint[](3);
-        _datapoints[0] = DataPoint('1', '2', false);
-        _datapoints[1] = DataPoint('1', '2', false);
-        _datapoints[2] = DataPoint('1', '2', false);
-
-        return create(_datapoints);
     }
 }

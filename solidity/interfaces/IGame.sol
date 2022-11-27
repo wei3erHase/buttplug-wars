@@ -8,7 +8,7 @@ interface IButtPlug {
 }
 
 interface IChess {
-    function mintMove(uint256 _move, uint256 _depth) external;
+    function mintMove(uint256 _move, uint256 _depth) external payable;
 
     function board() external view returns (uint256 _board);
 }

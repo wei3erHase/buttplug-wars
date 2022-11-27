@@ -47,6 +47,8 @@
     "dotenv": "16.0.0",
     "ethereum-waffle": "3.4.0",
     "ethers": "5.6.0",
+    "@dethcrypto/eth-sdk": "0.3.1",
+    "@dethcrypto/eth-sdk-client": "0.1.6",
     "hardhat": "2.11.1",
     "husky": "7.0.4",
     "lint-staged": "12.3.5",
