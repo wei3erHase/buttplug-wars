@@ -11,11 +11,14 @@
 
 pragma solidity >=0.8.4 <0.9.0;
 
-import {IButtPlug, IChess, IDescriptorPlug} from 'interfaces/Game.sol';
-import {IKeep3r, IPairManager} from 'interfaces/Keep3r.sol';
-import {LSSVMPair, LSSVMPairETH, ILSSVMPairFactory, ICurve, IERC721} from 'interfaces/Sudoswap.sol';
-import {ISwapRouter} from 'interfaces/Uniswap.sol';
-import {IERC20, IWeth} from 'interfaces/ERC20.sol';
+import {IButtPlug, IChess, IDescriptorPlug} from 'interfaces/IGame.sol';
+import {IKeep3r, IPairManager} from 'interfaces/IKeep3r.sol';
+import {LSSVMPair, LSSVMPairETH, ILSSVMPairFactory, ICurve, IERC721} from 'interfaces/ISudoswap.sol';
+import {ISwapRouter} from 'interfaces/IUniswap.sol';
+import {IERC20, IWeth} from 'interfaces/IERC20.sol';
+
+import {FiveOutOfNineUtils, Chess} from './FiveOutOfNineUtils.sol';
+import {Jeison, Strings, IntStrings} from './Jeison.sol';
 
 import {ERC721} from 'isolmate/tokens/ERC721.sol';
 import {SafeTransferLib} from 'isolmate/utils/SafeTransferLib.sol';
@@ -26,6 +29,11 @@ import {Math} from 'openzeppelin/utils/math/Math.sol';
 contract ButtPlugWars is ERC721 {
     using SafeTransferLib for address payable;
     using Math for uint256;
+    using Chess for uint256;
+
+    using Jeison for Jeison.JsonObject;
+    using Strings for uint256;
+    using IntStrings for int256;
 
     /*///////////////////////////////////////////////////////////////
                             ADDRESS REGISTRY
@@ -187,6 +195,8 @@ contract ButtPlugWars is ERC721 {
     /// @dev Allows the signer to mint a Player NFT, bonding a 5/9 and paying ETH price
     function mintPlayerBadge(uint256 _tokenId, TEAM _team) external payable returns (uint256 _badgeId) {
         if ((state < STATE.TICKET_SALE) || (state >= STATE.GAME_OVER)) revert WrongTiming();
+        if (_team >= TEAM.STAFF) revert WrongTeam();
+
         _validateFiveOutOfNine(_tokenId);
 
         uint256 _value = msg.value;
@@ -545,22 +555,53 @@ contract ButtPlugWars is ERC721 {
         super.transferFrom(_from, _to, _badgeId);
     }
 
-    function tokenURI(uint256 _badgeId) public view virtual override returns (string memory) {
+    function tokenURI(uint256 _badgeId) public view virtual override returns (string memory _tokenURI) {
+        Jeison.JsonObject memory _metadata = Jeison.initialize();
+        Jeison.JsonObject memory _attributes = Jeison.initialize();
+        Jeison.JsonObject memory _traits = Jeison.initialize();
+
+        /*
+        {
+          "description": "Friendly OpenSea Creature that enjoys long swims in the ocean.",
+          "external_url": "https://openseacreatures.io/3",
+          "image": "https://storage.googleapis.com/opensea-prod.appspot.com/puffs/3.png",
+          "name": "Dave Starbelly",
+          "attributes": [ ... ]
+        }
+        */
+
         // Scoreboard metadata
         if (_badgeId == 0) {
-            IDescriptorPlug.ScoreboardData memory _scoreboardData = IDescriptorPlug.ScoreboardData({
-                state: uint8(state),
-                matchNumber: matchNumber,
-                matchMoves: matchMoves,
-                matchesWonZERO: matchesWon[TEAM.ZERO],
-                matchesWonONE: matchesWon[TEAM.ONE],
-                matchScoreZERO: matchScore[TEAM.ZERO],
-                matchScoreONE: matchScore[TEAM.ONE],
-                buttPlugA: buttPlug[TEAM.ZERO],
-                buttPlugB: buttPlug[TEAM.ONE]
-            });
+            _metadata.load('name', 'Scoreboard');
+            _metadata.load('description', 'ButtPlug Wars scoreboard token');
+            _metadata.load('image_data', _drawSVG());
 
-            return IDescriptorPlug(nftDescriptor).getScoreboardMetadata(_scoreboardData);
+            _traits.load('trait_type', 'weight');
+            _traits.load('value', totalShares);
+            _attributes.load('', _traits.get());
+            // _traits.initialize();
+
+            _traits.load('trait_type', 'game-score');
+            string memory scoreboard;
+            scoreboard = string(
+                abi.encodePacked(
+                    matchesWon[TEAM.ZERO].toString(),
+                    '(',
+                    matchScore[TEAM.ZERO].toString(),
+                    ') - ',
+                    matchesWon[TEAM.ONE].toString(),
+                    '(',
+                    matchScore[TEAM.ONE].toString(),
+                    ')'
+                )
+            );
+            _traits.load('value', scoreboard);
+            _attributes.load('', _traits.get());
+            // _traits.initialize();
+
+            // _metadata.load('attributes', _attributes.getAsArray());
+
+            return _metadata.get();
         }
 
         IDescriptorPlug.GameData memory _gameData =
@@ -586,7 +627,8 @@ contract ButtPlugWars is ERC721 {
         if (_badgeId > 1 << 60) {
             address _buttPlug = address(uint160(_badgeId >> 69));
             uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
-            (uint256 _simMove, uint256 _simGasUsed) = _simulateButtPlug(_buttPlug, _board);
+            (bool _isLegal, uint256 _simMove, uint256 _simGasUsed, string memory _description) =
+                _simulateButtPlug(_buttPlug, _board);
 
             IDescriptorPlug.ButtPlugData memory _buttPlugData = IDescriptorPlug.ButtPlugData({
                 board: _board,
@@ -601,18 +643,25 @@ contract ButtPlugWars is ERC721 {
         revert WrongNFT();
     }
 
+    function _drawSVG() internal view returns (string memory) {}
+
     function _simulateButtPlug(address _buttPlug, uint256 _board)
         internal
         view
-        returns (uint256 _simMove, uint256 _simGasUsed)
+        returns (bool _isLegal, uint256 _simMove, uint256 _simGasUsed, string memory _description)
     {
         uint256 _gasLeft = gasleft();
         try IButtPlug(_buttPlug).readMove(_board) returns (uint256 _move) {
             _simMove = _move;
             _simGasUsed = _gasLeft - gasleft();
         } catch {
+            _simMove = 0;
             _simGasUsed = _gasLeft - gasleft();
-            return (0, _simGasUsed);
+        }
+        _isLegal = _board.isLegalMove(_simMove);
+        if (_isLegal) {
+            uint256 _boardAfterMove = _board.applyMove(_simMove);
+            _description = FiveOutOfNineUtils.drawMove(_boardAfterMove, _simMove >> 6);
         }
     }
 

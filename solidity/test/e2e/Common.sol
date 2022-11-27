@@ -4,8 +4,8 @@ pragma solidity >=0.8.4 <0.9.0;
 import {DSTestFull} from 'test/utils/DSTestFull.sol';
 import {console} from 'forge-std/console.sol';
 
-import {IChess, IButtPlug} from 'interfaces/Game.sol';
-import {LSSVMPair, ILSSVMPairFactory} from 'interfaces/Sudoswap.sol';
+import {IChess, IButtPlug} from 'interfaces/IGame.sol';
+import {LSSVMPair, ILSSVMPairFactory} from 'interfaces/ISudoswap.sol';
 import {ButtPlugWars, IKeep3r} from 'contracts/ButtPlugWars.sol';
 import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
 import {ERC721} from 'isolmate/tokens/ERC721.sol';

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.4 <0.9.0;
 
-import {IChess, IButtPlug} from 'interfaces/Game.sol';
+import {IChess, IButtPlug} from 'interfaces/IGame.sol';
 import {CommonE2EBase, ButtPlugForTest, console} from './Common.sol';
 
 contract E2EButtPlug is CommonE2EBase {

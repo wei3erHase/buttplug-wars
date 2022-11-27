@@ -2,7 +2,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, ButtPlugForTest, IERC20, console} from './Common.sol';
-import {ILSSVMRouter} from 'interfaces/Sudoswap.sol';
+import {ILSSVMRouter} from 'interfaces/ISudoswap.sol';
 
 contract E2EButtPlugWars is CommonE2EBase {
     function test_E2E() public {
@@ -157,7 +157,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         }
 
         // {
-        //   console.log(buttPlugWars.tokenURI(0));
+        console.log(buttPlugWars.tokenURI(0));
         //   console.log(buttPlugWars.tokenURI(badge1));
         //   console.log(buttPlugWars.tokenURI(_buttPlugBadgeId));
         //   console.log(buttPlugWars.tokenURI(_buttPlugBadgeId_ONE));
