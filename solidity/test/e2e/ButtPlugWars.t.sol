@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.4 <0.9.0;
 
+import {GameSchema} from '../../contracts/GameSchema.sol';
 import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, ButtPlugForTest, IERC20, console} from './Common.sol';
 import {ILSSVMRouter} from 'interfaces/ISudoswap.sol';
 
@@ -26,24 +27,24 @@ contract E2EButtPlugWars is CommonE2EBase {
         fiveOutOfNine.setApprovalForAll(address(buttPlugWars), true);
 
         // uses pre-genesis 5/9s to mint badges
-        uint256 badge1 = buttPlugWars.mintPlayerBadge{value: 1 ether}(183, ButtPlugWars.TEAM(0));
-        uint256 badge2 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(184, ButtPlugWars.TEAM(0));
-        uint256 badge3 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(185, ButtPlugWars.TEAM(0));
-        uint256 badge4 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(186, ButtPlugWars.TEAM(0));
+        uint256 badge1 = buttPlugWars.mintPlayerBadge{value: 1 ether}(183, GameSchema.TEAM(0));
+        uint256 badge2 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(184, GameSchema.TEAM(0));
+        uint256 badge3 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(185, GameSchema.TEAM(0));
+        uint256 badge4 = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(186, GameSchema.TEAM(0));
 
-        vm.expectRevert(ButtPlugWars.WrongNFT.selector);
-        buttPlugWars.mintPlayerBadge{value: 0.25 ether}(genesis, ButtPlugWars.TEAM(0));
+        vm.expectRevert(GameSchema.WrongNFT.selector);
+        buttPlugWars.mintPlayerBadge{value: 0.25 ether}(genesis, GameSchema.TEAM(0));
 
         uint256[] memory _badgesBatch = new uint256[](2);
         _badgesBatch[0] = badge2;
         _badgesBatch[1] = badge3;
 
         // checks value limits
-        vm.expectRevert(ButtPlugWars.WrongValue.selector);
-        buttPlugWars.mintPlayerBadge{value: 0.05 ether - 1}(187, ButtPlugWars.TEAM(1));
-        vm.expectRevert(ButtPlugWars.WrongValue.selector);
-        buttPlugWars.mintPlayerBadge{value: 1 ether + 1}(187, ButtPlugWars.TEAM(1));
-        uint256 badge5 = buttPlugWars.mintPlayerBadge{value: 0.5 ether + 1}(187, ButtPlugWars.TEAM(0));
+        vm.expectRevert(GameSchema.WrongValue.selector);
+        buttPlugWars.mintPlayerBadge{value: 0.05 ether - 1}(187, GameSchema.TEAM(1));
+        vm.expectRevert(GameSchema.WrongValue.selector);
+        buttPlugWars.mintPlayerBadge{value: 1 ether + 1}(187, GameSchema.TEAM(1));
+        uint256 badge5 = buttPlugWars.mintPlayerBadge{value: 0.5 ether + 1}(187, GameSchema.TEAM(0));
 
         {
             // ETH is artificially added to increase liquidity
@@ -92,15 +93,15 @@ contract E2EButtPlugWars is CommonE2EBase {
         // purchases 5/9 from official pool
         _purchaseAtSudoswap(1);
 
-        // // move-minted before genesis can mint badge
-        uint256 preGenToken = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(genesis - 1, ButtPlugWars.TEAM(1));
+        // move-minted before genesis can mint badge
+        uint256 preGenToken = buttPlugWars.mintPlayerBadge{value: 0.25 ether}(genesis - 1, GameSchema.TEAM(1));
         buttPlugWars.voteButtPlug(address(testButtPlug), preGenToken);
 
         // move minted after genesis cannot mint badge
-        vm.expectRevert(ButtPlugWars.WrongNFT.selector);
-        buttPlugWars.mintPlayerBadge{value: 0.25 ether}(genesis, ButtPlugWars.TEAM(0));
+        vm.expectRevert(GameSchema.WrongNFT.selector);
+        buttPlugWars.mintPlayerBadge{value: 0.25 ether}(genesis, GameSchema.TEAM(0));
         // move minted during game can mint badge
-        buttPlugWars.mintPlayerBadge{value: 0.25 ether}(postGenesis, ButtPlugWars.TEAM(0));
+        buttPlugWars.mintPlayerBadge{value: 0.25 ether}(postGenesis, GameSchema.TEAM(0));
         // eth collected in sales is pushed as liquidity
         uint256 _previousLiquidity = keep3r.liquidityAmount(address(buttPlugWars), KP3R_LP);
         buttPlugWars.pushLiquidity();
@@ -142,7 +143,7 @@ contract E2EButtPlugWars is CommonE2EBase {
 
             // Can update spotPrice
             buttPlugWars.updateSpotPrice();
-            vm.expectRevert(ButtPlugWars.WrongTiming.selector);
+            vm.expectRevert(GameSchema.WrongTiming.selector);
             buttPlugWars.updateSpotPrice();
             vm.warp(block.timestamp + 59 days);
             buttPlugWars.updateSpotPrice();
@@ -157,9 +158,9 @@ contract E2EButtPlugWars is CommonE2EBase {
             assertLt(_remaining, 100, 'all sales were distributed');
         }
 
-        console.log(buttPlugWars.tokenURI(0));
-        console.log(buttPlugWars.tokenURI(badge1));
         console.log(buttPlugWars.tokenURI(_buttPlugBadgeId));
+        console.log(buttPlugWars.tokenURI(badge1));
+        console.log(buttPlugWars.tokenURI(0));
     }
 
     function _purchaseAtSudoswap(uint256 _amount) internal {

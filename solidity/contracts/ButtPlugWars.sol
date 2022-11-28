@@ -11,6 +11,8 @@
 
 pragma solidity >=0.8.4 <0.9.0;
 
+import {NFTDescriptor} from './NFTDescriptor.sol';
+import {GameSchema} from './GameSchema.sol';
 import {IButtPlug, IChess, IDescriptorPlug} from 'interfaces/IGame.sol';
 import {IKeep3r, IPairManager} from 'interfaces/IKeep3r.sol';
 import {LSSVMPair, LSSVMPairETH, ILSSVMPairFactory, ICurve, IERC721} from 'interfaces/ISudoswap.sol';
@@ -22,16 +24,17 @@ import {Jeison, Strings, IntStrings} from './Jeison.sol';
 
 import {ERC721} from 'isolmate/tokens/ERC721.sol';
 import {SafeTransferLib} from 'isolmate/utils/SafeTransferLib.sol';
-import {Math} from 'openzeppelin/utils/math/Math.sol';
+import {Math} from 'openzeppelin-contracts/utils/math/Math.sol';
 
 /// @notice Contract will not be audited, proceed at your own risk
 /// @dev THE_RABBIT will not be responsible for any loss of funds
-contract ButtPlugWars is ERC721 {
+contract ButtPlugWars is GameSchema, ERC721 {
     using SafeTransferLib for address payable;
     using Math for uint256;
     using Chess for uint256;
 
     using Jeison for Jeison.JsonObject;
+    using Strings for address;
     using Strings for uint256;
     using IntStrings for int256;
 
@@ -40,16 +43,16 @@ contract ButtPlugWars is ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     address constant THE_RABBIT = 0x5dD028D0832739008c5308490e6522ce04342E10;
-    address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
+    address immutable FIVE_OUT_OF_NINE; // = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
 
-    address constant WETH_9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address constant KP3R_V1 = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
-    address constant KP3R_LP = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
+    address immutable WETH_9; // = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address immutable KP3R_V1; // = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
+    address immutable KP3R_LP; // = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
 
     address constant SWAP_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-    address constant KEEP3R = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
-    address constant SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
-    address constant SUDOSWAP_XYK_CURVE = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
+    address immutable KEEP3R; // = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
+    address immutable SUDOSWAP_FACTORY; // = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
+    address immutable SUDOSWAP_XYK_CURVE; // = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
     address public immutable SUDOSWAP_POOL;
     address public nftDescriptor;
 
@@ -59,7 +62,6 @@ contract ButtPlugWars is ERC721 {
 
     /* IERC721 */
     address public immutable owner;
-    uint256 totalPlayers;
 
     /* Roadmap */
     enum STATE {
@@ -79,13 +81,6 @@ contract ButtPlugWars is ERC721 {
     uint256 canPushLiquidity;
     uint256 canUpdateSpotPriceNext;
 
-    /* Game mechanics */
-    enum TEAM {
-        ZERO,
-        ONE,
-        STAFF
-    }
-
     uint256 constant MAX_UINT = type(uint256).max;
     uint256 constant PERIOD = 5 days;
     uint256 constant COOLDOWN = 30 minutes;
@@ -95,50 +90,39 @@ contract ButtPlugWars is ERC721 {
     uint256 constant MAGIC_NUMBER = 0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289;
     uint256 constant BUTT_PLUG_GAS_LIMIT = 20_000_000;
 
-    mapping(TEAM => uint256) matchesWon;
-    mapping(TEAM => int256) matchScore;
-    uint256 matchMoves;
-    uint256 matchNumber;
-
-    /* Badge mechanics */
-    uint256 totalShares;
-    mapping(uint256 => uint256) badgeShares;
-    mapping(uint256 => uint256) bondedToken;
-
     /* NFT whitelisting mechanics */
     uint256 genesis;
     mapping(uint256 => bool) whitelistedToken;
-
-    /* Vote mechanics */
-    mapping(TEAM => address) buttPlug;
-    mapping(TEAM => mapping(address => uint256)) buttPlugVotes;
-    mapping(uint256 => int256) score;
-    mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
-    mapping(uint256 => address) badgeButtPlugVote;
-
-    /* Prize mechanics */
-    uint256 totalPrize;
-    uint256 totalPrizeShares;
-    mapping(address => uint256) playerPrizeShares;
-
-    uint256 claimableSales;
-    mapping(address => uint256) claimedSales;
-    mapping(address => uint256) playerHonorShares;
-    uint256 totalHonorShares;
-
-    error WrongValue(); // badge minting value should be between 0.05 and 1
-    error WrongTeam(); // only winners can claim the prize
-    error WrongNFT(); // an unknown NFT was sent to the contract
-    error WrongBadge(); // only the badge owner can access
-    error WrongKeeper(); // keeper doesn't fulfill the required params
-    error WrongTiming(); // method called at wrong roadmap state or cooldown
-    error WrongMethod(); // method should not be externally called
 
     /*///////////////////////////////////////////////////////////////
                                   SETUP
     //////////////////////////////////////////////////////////////*/
 
-    constructor() ERC721('ButtPlugBadge', unicode'♙') {
+    constructor(
+        address _fiveOutOfNine,
+        address _weth,
+        address _keep3r,
+        address _kLP,
+        address _sudoswapFactory,
+        address _xykCurve
+    ) ERC721('ButtPlugBadge', unicode'♙') {
+        FIVE_OUT_OF_NINE = _fiveOutOfNine;
+        WETH_9 = _weth;
+        KEEP3R = _keep3r;
+        KP3R_LP = _kLP;
+        KP3R_V1 = IKeep3r(_keep3r).keep3rV1();
+        SUDOSWAP_FACTORY = _sudoswapFactory;
+        SUDOSWAP_XYK_CURVE = _xykCurve;
+
+        nftDescriptor = address(new NFTDescriptor());
+
+        // WETH_9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        // KEEP3R = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
+        // KP3R_LP = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
+        // KP3R_V1 = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
+        // SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
+        // SUDOSWAP_XYK_CURVE = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
+
         // emit token aprovals
         IERC20(WETH_9).approve(SWAP_ROUTER, MAX_UINT);
         IERC20(KP3R_V1).approve(KP3R_LP, MAX_UINT);
@@ -312,10 +296,6 @@ contract ButtPlugWars is ERC721 {
         }
     }
 
-    function _getTeam(uint256 _badgeId) internal pure returns (TEAM _team) {
-        return TEAM(uint8(_badgeId >> 32));
-    }
-
     modifier onlyBadgeOwner(uint256 _badgeId) {
         if (ownerOf[_badgeId] != msg.sender) revert WrongBadge();
         _;
@@ -393,9 +373,7 @@ contract ButtPlugWars is ERC721 {
         if (state <= STATE.GAME_OVER || _timestamp < canUpdateSpotPriceNext) revert WrongTiming();
 
         canUpdateSpotPriceNext = _timestamp + PERIOD;
-        // TODO: consider .changeDelta ++
-        uint128 _spotPrice = LSSVMPair(SUDOSWAP_POOL).spotPrice();
-        LSSVMPair(SUDOSWAP_POOL).changeSpotPrice(_spotPrice * 5 / 9);
+        _increaseSudoswapDelta();
     }
 
     /// @dev Handles Keep3r mechanism and payment
@@ -413,17 +391,18 @@ contract ButtPlugWars is ERC721 {
 
     /// @dev Called by keepers to execute the next move
     function executeMove() external upkeep(msg.sender) {
-        if ((state != STATE.GAME_RUNNING) || (block.timestamp < canPlayNext)) revert WrongTiming();
+        uint256 _timestamp = block.timestamp;
+        if ((state != STATE.GAME_RUNNING) || (_timestamp < canPlayNext)) revert WrongTiming();
 
         // each match is limited to 59 moves
         if (++matchMoves > 59) _checkMateRoutine();
 
-        TEAM _team = TEAM((_roundT(block.timestamp, PERIOD) / PERIOD) % 2);
+        TEAM _team = TEAM((_roundT(_timestamp, PERIOD) / PERIOD) % 2);
         address _buttPlug = buttPlug[_team];
 
         if (_buttPlug == address(0)) {
             // if team does not have a buttplug, skip turn
-            canPlayNext = _roundT(block.timestamp + PERIOD, PERIOD);
+            canPlayNext = _roundT(_timestamp + PERIOD, PERIOD);
             return;
         }
 
@@ -440,15 +419,15 @@ contract ButtPlugWars is ERC721 {
             _isCheckmate = _newBoard == CHECKMATE;
             if (_isCheckmate) {
                 _score = 3;
-                canPlayNext = _roundT(block.timestamp + PERIOD, PERIOD);
+                canPlayNext = _roundT(_timestamp + PERIOD, PERIOD);
             } else {
                 _score = _calcMoveScore(_board, _newBoard);
-                canPlayNext = block.timestamp + COOLDOWN;
+                canPlayNext = _timestamp + COOLDOWN;
             }
         } catch {
             // if buttplug or move reverts
             _score = -2;
-            canPlayNext = _roundT(block.timestamp + PERIOD, PERIOD);
+            canPlayNext = _roundT(_timestamp + PERIOD, PERIOD);
         }
 
         matchScore[_team] += _score;
@@ -554,19 +533,6 @@ contract ButtPlugWars is ERC721 {
         if (buttPlugVotes[_team][_buttPlug] > buttPlugVotes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
     }
 
-    function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
-        TEAM _team = _getTeam(_badgeId);
-        if (_team < TEAM.STAFF) {
-            uint256 _currentButtPlugBadge = _calculateButtPlugBadge(badgeButtPlugVote[_badgeId], _team);
-            return score[_badgeId] + score[_currentButtPlugBadge] - lastUpdatedScore[_badgeId][_currentButtPlugBadge];
-        } else {
-            address _buttPlug = _calculateButtPlugAddress(_badgeId);
-            uint256 _buttPlugZERO = _calculateButtPlugBadge(_buttPlug, TEAM.ZERO);
-            uint256 _buttPlugONE = _calculateButtPlugBadge(_buttPlug, TEAM.ONE);
-            return score[_buttPlugZERO] + score[_buttPlugONE];
-        }
-    }
-
     /*///////////////////////////////////////////////////////////////
                                 ERC721
     //////////////////////////////////////////////////////////////*/
@@ -592,151 +558,28 @@ contract ButtPlugWars is ERC721 {
         LSSVMPair(SUDOSWAP_POOL).changeDelta(++_currentDelta);
     }
 
-    function _calculateButtPlugBadge(address _buttPlug, TEAM _team) public pure returns (uint256 _badgeId) {
-        return uint256(uint256(uint160(_buttPlug)) << 64) + (uint256(_team) << 32);
-    }
-
-    function _calculateButtPlugAddress(uint256 _badgeId) public pure returns (address _buttPlug) {
-        return address(uint160((_badgeId - (uint256(TEAM.STAFF) << 32)) >> 64));
-    }
-
     function tokenURI(uint256 _badgeId) public view virtual override returns (string memory _tokenURI) {
         if (ownerOf[_badgeId] == address(0)) revert WrongNFT();
-        // Scoreboard
-        if (_badgeId == 0) {
-            Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](2);
-            Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
+        (bool _success, bytes memory _data) =
+            address(this).staticcall(abi.encodeWithSignature('delegateTokenURI(uint256)', _badgeId));
 
-            // creates metadata array[{traits}]
-            string memory scoreboard;
-            scoreboard = string(
-                abi.encodePacked(
-                    matchesWon[TEAM.ZERO].toString(),
-                    '(',
-                    matchScore[TEAM.ZERO].toString(),
-                    ') - ',
-                    matchesWon[TEAM.ONE].toString(),
-                    '(',
-                    matchScore[TEAM.ONE].toString(),
-                    ')'
-                )
-            );
-            _datapoints[0] = Jeison.dataPoint('trait_type', 'game-score');
-            _datapoints[1] = Jeison.dataPoint('value', scoreboard);
-            _metadata[0] = Jeison.create(_datapoints);
-            _datapoints[0] = Jeison.dataPoint('trait_type', 'weight');
-            _datapoints[1] = Jeison.dataPoint('value', totalShares / 1e6);
-            _metadata[1] = Jeison.create(_datapoints);
-
-            // creates json
-            _datapoints = new Jeison.DataPoint[](4);
-            _datapoints[0] = Jeison.dataPoint('name', 'Scoreboard');
-            string memory _descriptionStr = string(abi.encodePacked('ButtPlug Wars Scoreboard \n', scoreboard, ' \n'));
-            _descriptionStr = string(
-                abi.encodePacked(_descriptionStr, FiveOutOfNineUtils.drawBoard(IChess(FIVE_OUT_OF_NINE).board()))
-            );
-            _datapoints[1] = Jeison.dataPoint('description', _descriptionStr);
-            _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
-            _datapoints[3] = Jeison.arrayfy('attributes', _metadata);
-
-            return Jeison.create(_datapoints).get();
+        assembly {
+            switch _success
+            // delegatecall returns 0 on error.
+            case 0 { revert(add(_data, 32), returndatasize()) }
+            default { return(add(_data, 32), returndatasize()) }
         }
-
-        TEAM _team = _getTeam(_badgeId);
-
-        // Player metadata
-        if (_team < TEAM.STAFF) {
-            // if buttplug remove weight (or add inflation)
-            Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](5);
-            Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
-
-            {
-                string memory teamString = _team == TEAM.ZERO ? 'ZERO' : 'ONE';
-                _datapoints[0] = Jeison.dataPoint('trait_type', 'team');
-                _datapoints[1] = Jeison.dataPoint('value', teamString);
-                _metadata[0] = Jeison.create(_datapoints);
-                _datapoints[0] = Jeison.dataPoint('trait_type', 'weight');
-                _datapoints[1] = Jeison.dataPoint('value', badgeShares[_badgeId] / 1e6);
-                _metadata[1] = Jeison.create(_datapoints);
-                _datapoints[0] = Jeison.dataPoint('trait_type', 'score');
-                _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
-                _metadata[2] = Jeison.create(_datapoints);
-                _datapoints[0] = Jeison.dataPoint('trait_type', 'vote');
-                _datapoints[1] = Jeison.dataPoint('value', badgeButtPlugVote[_badgeId]);
-                _metadata[3] = Jeison.create(_datapoints);
-                _datapoints[0] = Jeison.dataPoint('trait_type', 'bonded_token');
-                _datapoints[1] = Jeison.dataPoint('value', bondedToken[_badgeId].toString());
-                _metadata[4] = Jeison.create(_datapoints);
-            }
-            // creates json
-            _datapoints = new Jeison.DataPoint[](4);
-            _datapoints[0] = Jeison.dataPoint('name', 'Player');
-            _datapoints[1] = Jeison.dataPoint('description', 'ButtPlug Wars player badge');
-            _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
-            _datapoints[3] = Jeison.arrayfy('attributes', _metadata);
-
-            return Jeison.create(_datapoints).get();
-        }
-
-        // ButtPlug metadata
-        if (_team == TEAM.STAFF) {
-            Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](5);
-            Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
-
-            {
-                address _buttPlug = _calculateButtPlugAddress(_badgeId);
-
-                uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
-                (bool _isLegal, uint256 _simMove, uint256 _simGasUsed, string memory _description) =
-                    _simulateButtPlug(_buttPlug, _board);
-                _datapoints[0] = Jeison.dataPoint('trait_type', 'score');
-                _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
-                _metadata[0] = Jeison.create(_datapoints);
-                _datapoints[0] = Jeison.dataPoint('trait_type', 'simulated_move');
-                _datapoints[1] = Jeison.dataPoint('value', _simMove);
-                _metadata[1] = Jeison.create(_datapoints);
-                _datapoints[0] = Jeison.dataPoint('trait_type', 'simulated_gas');
-                _datapoints[1] = Jeison.dataPoint('value', _simGasUsed);
-                _metadata[2] = Jeison.create(_datapoints);
-                _datapoints[0] = Jeison.dataPoint('trait_type', 'simulated_description');
-                _datapoints[1] = Jeison.dataPoint('value', _description);
-                _metadata[3] = Jeison.create(_datapoints);
-                _datapoints[0] = Jeison.dataPoint('trait_type', 'is_legal_move');
-                _datapoints[1] = Jeison.dataPoint('value', _isLegal);
-                _metadata[4] = Jeison.create(_datapoints);
-            }
-            // creates json
-            _datapoints = new Jeison.DataPoint[](4);
-            _datapoints[0] = Jeison.dataPoint('name', 'ButtPlug');
-            _datapoints[1] = Jeison.dataPoint('description', 'ButtPlug contract badge');
-            _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
-            _datapoints[3] = Jeison.arrayfy('attributes', _metadata);
-
-            return Jeison.create(_datapoints).get();
-        }
-
-        revert WrongNFT();
     }
 
-    function _drawSVG() internal view returns (string memory) {}
+    function delegateTokenURI(uint256 _badgeId) external {
+        if (msg.sender != address(this)) revert WrongMethod();
 
-    function _simulateButtPlug(address _buttPlug, uint256 _board)
-        internal
-        view
-        returns (bool _isLegal, uint256 _simMove, uint256 _simGasUsed, string memory _description)
-    {
-        uint256 _gasLeft = gasleft();
-        try IButtPlug(_buttPlug).readMove(_board) returns (uint256 _move) {
-            _simMove = _move;
-            _simGasUsed = _gasLeft - gasleft();
-        } catch {
-            _simMove = 0;
-            _simGasUsed = _gasLeft - gasleft();
-        }
-        _isLegal = _board.isLegalMove(_simMove);
-        if (_isLegal) {
-            uint256 _boardAfterMove = _board.applyMove(_simMove);
-            _description = FiveOutOfNineUtils.describeMove(_board, _simMove);
+        (bool _success, bytes memory _data) = address(nftDescriptor).delegatecall(msg.data);
+        assembly {
+            switch _success
+            // delegatecall returns 0 on error.
+            case 0 { revert(add(_data, 32), returndatasize()) }
+            default { return(add(_data, 32), returndatasize()) }
         }
     }
 

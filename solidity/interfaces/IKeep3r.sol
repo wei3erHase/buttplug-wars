@@ -10,6 +10,8 @@ interface IPairManager is IERC20 {
 }
 
 interface IKeep3r {
+    function keep3rV1() external view returns (address);
+
     function addJob(address) external;
 
     function isKeeper(address) external returns (bool);

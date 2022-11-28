@@ -2,6 +2,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import {Strings} from './Strings.sol';
+import {Base64} from './Base64.sol';
 
 library IntStrings {
     function toString(int256 value) internal pure returns (string memory) {
@@ -123,6 +124,10 @@ library Jeison {
         }
 
         jsonStr = string(abi.encodePacked(jsonStr, '}'));
+    }
+
+    function getBase64(JsonObject memory self) internal view returns (string memory jsonStr) {
+        return string(abi.encodePacked('data:application/json;base64,', Base64.encode(abi.encodePacked(get(self)))));
     }
 
     function _separator(bool _isNumeric) private pure returns (string memory _separator) {

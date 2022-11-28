@@ -3,9 +3,8 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import {Chess} from 'fiveoutofnine/Chess.sol';
-import {Strings} from 'openzeppelin/utils/Strings.sol';
-
-import {Math} from 'openzeppelin/utils/math/Math.sol';
+import {Strings} from 'openzeppelin-contracts/utils/Strings.sol';
+import {Math} from 'openzeppelin-contracts/utils/math/Math.sol';
 
 library FiveOutOfNineUtils {
     using Math for uint256;

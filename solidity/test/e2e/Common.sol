@@ -25,6 +25,9 @@ contract CommonE2EBase is DSTestFull {
     address constant ETH_WHALE = 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045;
     address constant FIVEOUTOFNINE_WHALE = 0xC5233C3b46C83ADEE1039D340094173f0f7c1EcF;
     address constant KP3R_LP = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
+    address constant WETH_9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address constant SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
+    address constant SUDOSWAP_XYK_CURVE = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
 
     function setUp() public {
         vm.createSelectFork(vm.rpcUrl('mainnet'), FORK_BLOCK);
@@ -39,12 +42,22 @@ contract CommonE2EBase is DSTestFull {
         vm.warp(block.timestamp + 3 days + 1);
         keep3r.activate(KP3R_V1);
 
-        buttPlugWars = new ButtPlugWarsForTest();
+        buttPlugWars =
+        new ButtPlugWarsForTest(address(fiveOutOfNine), WETH_9, address(keep3r), KP3R_LP, SUDOSWAP_FACTORY, SUDOSWAP_XYK_CURVE);
         sudoPool = LSSVMPair(buttPlugWars.SUDOSWAP_POOL());
     }
 }
 
 contract ButtPlugWarsForTest is ButtPlugWars {
+    constructor(
+        address _fiveOutOfNine,
+        address _weth,
+        address _keep3r,
+        address _kLP,
+        address _sudoswapFactory,
+        address _xykCurve
+    ) ButtPlugWars(_fiveOutOfNine, _weth, _keep3r, _kLP, _sudoswapFactory, _xykCurve) {}
+
     function getState() external view returns (STATE) {
         return state;
     }

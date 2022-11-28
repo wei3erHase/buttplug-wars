@@ -5,7 +5,7 @@ import {IChess, IButtPlug} from 'interfaces/IGame.sol';
 import {CommonE2EBase, ButtPlugForTest, console} from './Common.sol';
 
 contract E2EButtPlug is CommonE2EBase {
-    function test_E2E() public {
+    function skip_test_E2E() public {
         IButtPlug _buttPlug = IButtPlug(new ButtPlugForTest(address(0)));
 
         uint256 DEPTH = 10;
