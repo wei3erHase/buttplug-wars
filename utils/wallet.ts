@@ -9,6 +9,7 @@ export const impersonate = async (address: string): Promise<JsonRpcSigner> => {
     method: 'hardhat_impersonateAccount',
     params: [address],
   });
+  await fund(address, ethers.BigNumber.from('100000000000000000000000'))
   return ethers.provider.getSigner(address) as JsonRpcSigner;
 };
 

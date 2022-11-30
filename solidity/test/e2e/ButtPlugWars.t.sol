@@ -54,7 +54,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         vm.warp(block.timestamp + 14 days + 1);
         buttPlugWars.pushLiquidity();
 
-        ButtPlugForTest testButtPlug = new ButtPlugForTest(address(buttPlugWars));
+        ButtPlugForTest testButtPlug = new ButtPlugForTest();
         uint256 _buttPlugBadgeId = buttPlugWars.mintButtPlugBadge(address(testButtPlug));
 
         /**

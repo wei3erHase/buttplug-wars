@@ -135,11 +135,9 @@ contract ButtPlugWarsForTest is ButtPlugWars {
 
 contract ButtPlugForTest is IButtPlug {
     uint256 depth = 7;
-    address buttPlugWars;
     address public owner;
 
-    constructor(address _buttPlugWars) {
-        buttPlugWars = _buttPlugWars;
+    constructor() {
         owner = msg.sender;
     }
 
