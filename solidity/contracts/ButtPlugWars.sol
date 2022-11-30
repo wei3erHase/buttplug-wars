@@ -42,7 +42,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
                             ADDRESS REGISTRY
     //////////////////////////////////////////////////////////////*/
 
-    address constant THE_RABBIT = 0x5dD028D0832739008c5308490e6522ce04342E10;
+    address immutable THE_RABBIT; // = 0x5dD028D0832739008c5308490e6522ce04342E10;
     address immutable FIVE_OUT_OF_NINE; // = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
 
     address immutable WETH_9; // = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -106,6 +106,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         address _sudoswapFactory,
         address _xykCurve
     ) ERC721('ButtPlugBadge', unicode'♙') {
+        THE_RABBIT = msg.sender;
         FIVE_OUT_OF_NINE = _fiveOutOfNine;
         WETH_9 = _weth;
         KEEP3R = _keep3r;

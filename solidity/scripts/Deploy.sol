@@ -4,6 +4,7 @@ pragma solidity >=0.8.4 <0.9.0;
 import {Script} from 'forge-std/Script.sol';
 import {fiveoutofnine} from 'fiveoutofnine/fiveoutofnine.sol';
 import {ButtPlugWars} from 'contracts/ButtPlugWars.sol';
+import {NFTDescriptor} from 'contracts/NFTDescriptor.sol';
 import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
 
 abstract contract Deploy is Script {}
@@ -33,8 +34,18 @@ contract DeployGoerli is Deploy {
 
     function run() external {
         vm.startBroadcast();
-        // address _fiveOutOfNine = address(new fiveoutofnine());
         new ButtPlugWars(FIVE_OUT_OF_NINE, WETH_9, KEEP3R, KP3R_LP, SUDOSWAP_FACTORY, SUDOSWAP_XYK_CURVE);
+        vm.stopBroadcast();
+    }
+}
+
+contract DeployGoerliDescriptor is Deploy {
+    address constant BUTT_PLUG_WARS = 0x3DBCDd2f0e4Bccc3E0C233E980BDE1F191324454;
+
+    function run() external {
+        vm.startBroadcast();
+        // address nftDescriptor = address(new NFTDescriptor());
+        ButtPlugWars(payable(BUTT_PLUG_WARS)).setNftDescriptor(address(0));
         vm.stopBroadcast();
     }
 }
