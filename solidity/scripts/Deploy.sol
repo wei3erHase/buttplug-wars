@@ -4,8 +4,10 @@ pragma solidity >=0.8.4 <0.9.0;
 import {Script} from 'forge-std/Script.sol';
 import {fiveoutofnine} from 'fiveoutofnine/fiveoutofnine.sol';
 import {ButtPlugWars} from 'contracts/ButtPlugWars.sol';
+import {ChessForTest} from 'contracts/for-test/ChessForTest.sol';
 import {NFTDescriptor} from 'contracts/NFTDescriptor.sol';
 import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
+import {console} from 'forge-std/console.sol';
 
 abstract contract Deploy is Script {}
 
@@ -28,24 +30,26 @@ contract DeployGoerli is Deploy {
     address constant FIVE_OUT_OF_NINE = 0x2ea2736Bfc0146ad20449eaa43245692E77fd2bc;
     address constant WETH_9 = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;
     address constant KEEP3R = 0x145d364e193204f8Ff0A87b718938406595678Dd;
-    address constant KP3R_LP = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;
+    address constant KP3R_LP = 0x78958e8e9C54d9aA56eDED102097E73ef9c26411;
     address constant SUDOSWAP_FACTORY = 0xF0202E9267930aE942F0667dC6d805057328F6dC;
     address constant SUDOSWAP_XYK_CURVE = 0x02363a2F1B2c2C5815cb6893Aa27861BE0c4F760;
 
     function run() external {
         vm.startBroadcast();
-        new ButtPlugWars(FIVE_OUT_OF_NINE, WETH_9, KEEP3R, KP3R_LP, SUDOSWAP_FACTORY, SUDOSWAP_XYK_CURVE);
+        address chessForTest = address(new ChessForTest());
+        new ButtPlugWars(chessForTest, WETH_9, KEEP3R, KP3R_LP, SUDOSWAP_FACTORY, SUDOSWAP_XYK_CURVE);
         vm.stopBroadcast();
     }
 }
 
 contract DeployGoerliDescriptor is Deploy {
-    address constant BUTT_PLUG_WARS = 0x3DBCDd2f0e4Bccc3E0C233E980BDE1F191324454;
+    address constant BUTT_PLUG_WARS = 0x48C8c199cCDB7c1B7d3B41Ee510eA2D4C65DcA2c;
 
     function run() external {
         vm.startBroadcast();
-        // address nftDescriptor = address(new NFTDescriptor());
-        ButtPlugWars(payable(BUTT_PLUG_WARS)).setNftDescriptor(address(0));
+        address nftDescriptor = address(new NFTDescriptor());
+        ButtPlugWars(payable(BUTT_PLUG_WARS)).setNftDescriptor(nftDescriptor);
+        console.logString(ButtPlugWars(payable(BUTT_PLUG_WARS)).tokenURI(0));
         vm.stopBroadcast();
     }
 }

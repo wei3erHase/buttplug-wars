@@ -29,34 +29,34 @@ library Jeison {
         uint256 i;
     }
 
-    function dataPoint(string memory varName, bool varValue) internal view returns (DataPoint memory _datapoint) {
+    function dataPoint(string memory varName, bool varValue) internal pure returns (DataPoint memory _datapoint) {
         string memory boolStr = varValue ? 'true' : 'false';
         _datapoint = DataPoint(varName, boolStr, true);
     }
 
     function dataPoint(string memory varName, string memory varValue)
         internal
-        view
+        pure
         returns (DataPoint memory _datapoint)
     {
         _datapoint = DataPoint(varName, varValue, false);
     }
 
-    function dataPoint(string memory varName, address varValue) internal view returns (DataPoint memory _datapoint) {
+    function dataPoint(string memory varName, address varValue) internal pure returns (DataPoint memory _datapoint) {
         _datapoint = DataPoint(varName, varValue.toHexString(), false);
     }
 
-    function dataPoint(string memory varName, uint256 varValue) internal view returns (DataPoint memory _datapoint) {
+    function dataPoint(string memory varName, uint256 varValue) internal pure returns (DataPoint memory _datapoint) {
         _datapoint = DataPoint(varName, varValue.toString(), true);
     }
 
-    function dataPoint(string memory varName, int256 varValue) internal view returns (DataPoint memory _datapoint) {
+    function dataPoint(string memory varName, int256 varValue) internal pure returns (DataPoint memory _datapoint) {
         _datapoint = DataPoint(varName, varValue.toString(), true);
     }
 
     function dataPoint(string memory varName, uint256[] memory uintValues)
         internal
-        view
+        pure
         returns (DataPoint memory _datapoint)
     {
         string memory batchStr = '[';
@@ -74,7 +74,7 @@ library Jeison {
 
     function dataPoint(string memory varName, int256[] memory intValues)
         internal
-        view
+        pure
         returns (DataPoint memory _datapoint)
     {
         string memory batchStr = '[';
@@ -92,7 +92,7 @@ library Jeison {
 
     function _load(JsonObject memory self, string memory varName, string memory varValue, bool varType)
         internal
-        view
+        pure
         returns (JsonObject memory)
     {
         uint256 _index = self.i++;
@@ -102,7 +102,7 @@ library Jeison {
         return self;
     }
 
-    function get(JsonObject memory self) internal view returns (string memory jsonStr) {
+    function get(JsonObject memory self) internal pure returns (string memory jsonStr) {
         jsonStr = '{';
         for (uint256 _i; _i < self.i; _i++) {
             string memory varStr;
@@ -126,22 +126,22 @@ library Jeison {
         jsonStr = string(abi.encodePacked(jsonStr, '}'));
     }
 
-    function getBase64(JsonObject memory self) internal view returns (string memory jsonStr) {
+    function getBase64(JsonObject memory self) internal pure returns (string memory) {
         return string(abi.encodePacked('data:application/json;base64,', Base64.encode(abi.encodePacked(get(self)))));
     }
 
-    function _separator(bool _isNumeric) private pure returns (string memory _separator) {
+    function _separator(bool _isNumeric) private pure returns (string memory) {
         if (!_isNumeric) return '"';
     }
 
-    function _initialize(uint256 _jsonLength) private view returns (JsonObject memory json) {
+    function _initialize(uint256 _jsonLength) private pure returns (JsonObject memory json) {
         json.varNames = new string[](_jsonLength);
         json.varValues = new string[](_jsonLength);
         json.isNumeric = new bool[](_jsonLength);
         json.i = 0;
     }
 
-    function create(DataPoint[] memory _datapoints) internal view returns (JsonObject memory json) {
+    function create(DataPoint[] memory _datapoints) internal pure returns (JsonObject memory json) {
         json = _initialize(_datapoints.length);
         for (uint256 _i; _i < _datapoints.length; _i++) {
             json = _load(json, _datapoints[_i].name, _datapoints[_i].value, _datapoints[_i].isNumeric);
@@ -149,9 +149,9 @@ library Jeison {
         return json;
     }
 
-    function arrayfy(string memory varName, JsonObject[] memory jsons)
+    function arraify(string memory varName, JsonObject[] memory jsons)
         internal
-        view
+        pure
         returns (DataPoint memory datapoint)
     {
         datapoint.name = varName;

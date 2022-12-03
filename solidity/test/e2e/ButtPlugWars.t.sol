@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.4 <0.9.0;
 
-import {GameSchema} from '../../contracts/GameSchema.sol';
-import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, ButtPlugForTest, IERC20, console} from './Common.sol';
+import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, IERC20, console} from './Common.sol';
+
+import {GameSchema} from 'contracts/GameSchema.sol';
+import {ButtPlugForTest} from 'contracts/for-test/ButtPlugForTest.sol';
 import {ILSSVMRouter} from 'interfaces/ISudoswap.sol';
 
 contract E2EButtPlugWars is CommonE2EBase {
@@ -177,8 +179,7 @@ contract E2EButtPlugWars is CommonE2EBase {
             // loads credits to execute
             vm.warp(block.timestamp + 5 days);
 
-            // buttPlugWars.logMatchScore();
-            if (buttPlugWars.getState() == ButtPlugWars.STATE.GAME_OVER) break;
+            if (buttPlugWars.state() == ButtPlugWars.STATE.GAME_OVER) break;
 
             if (chess.board() == 0x3256230011111100000000000000000099999900BCDECB000000001) buttPlugWars.logGameScore();
 

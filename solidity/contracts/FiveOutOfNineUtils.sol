@@ -17,7 +17,7 @@ library FiveOutOfNineUtils {
     //////////////////////////////////////////////////////////////*/
 
     function drawMove(uint256 _board, uint256 _fromIndex) internal pure returns (string memory) {
-        string memory boardString = '\n';
+        string memory boardString = '\\n';
 
         if (_board & 1 == 0) _board = _board.rotate();
         else _fromIndex = ((7 - (_fromIndex >> 3)) << 3) + (7 - (_fromIndex & 7));
@@ -29,18 +29,18 @@ library FiveOutOfNineUtils {
                     boardString,
                     indexToDraw & 7 == 6 ? string(abi.encodePacked(Strings.toString((indexToDraw >> 3)), ' ')) : '',
                     indexToDraw == _fromIndex ? '*' : getPieceChar((_board >> (indexToDraw << 2)) & 0xF),
-                    indexToDraw & 7 == 1 && indexToDraw != 9 ? '\n' : indexToDraw != 9 ? ' ' : ''
+                    indexToDraw & 7 == 1 && indexToDraw != 9 ? '\\n' : indexToDraw != 9 ? ' ' : ''
                 )
             );
         }
 
-        boardString = string(abi.encodePacked(boardString, '\n  a b c d e f\n'));
+        boardString = string(abi.encodePacked(boardString, '\\n  a b c d e f\\n'));
 
         return boardString;
     }
 
     function drawBoard(uint256 _board) internal pure returns (string memory) {
-        string memory boardString = '\n';
+        string memory boardString = '\\n';
 
         if (_board & 1 == 0) _board = _board.rotate();
 
@@ -51,12 +51,12 @@ library FiveOutOfNineUtils {
                     boardString,
                     indexToDraw & 7 == 6 ? string(abi.encodePacked(Strings.toString((indexToDraw >> 3)), ' ')) : '',
                     getPieceChar((_board >> (indexToDraw << 2)) & 0xF),
-                    indexToDraw & 7 == 1 && indexToDraw != 9 ? '\n' : indexToDraw != 9 ? ' ' : ''
+                    indexToDraw & 7 == 1 && indexToDraw != 9 ? '\\n' : indexToDraw != 9 ? ' ' : ''
                 )
             );
         }
 
-        boardString = string(abi.encodePacked(boardString, '\n  a b c d e f\n'));
+        boardString = string(abi.encodePacked(boardString, '\\n  a b c d e f\\n'));
 
         return boardString;
     }

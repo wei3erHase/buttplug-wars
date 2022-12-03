@@ -15,7 +15,8 @@ contract NFTDescriptor is GameSchema {
     using Strings for uint256;
     using IntStrings for int256;
 
-    address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
+    // TODO: return to mainnet
+    address constant FIVE_OUT_OF_NINE = 0x2ea2736Bfc0146ad20449eaa43245692E77fd2bc;
 
     function delegateTokenURI(uint256 _badgeId) public view virtual returns (string memory _tokenURI) {
         /* Scoreboard */
@@ -47,15 +48,11 @@ contract NFTDescriptor is GameSchema {
             // creates json
             _datapoints = new Jeison.DataPoint[](4);
             _datapoints[0] = Jeison.dataPoint('name', 'ButtPlugWars Scoreboard');
-            string memory _descriptionStr = string(abi.encodePacked('Scoreboard Badge \n', scoreboard, ' \n'));
-            _descriptionStr = string(
-                abi.encodePacked(_descriptionStr, FiveOutOfNineUtils.drawBoard(IChess(FIVE_OUT_OF_NINE).board()))
-            );
-            _datapoints[1] = Jeison.dataPoint('description', _descriptionStr);
+            _datapoints[1] = Jeison.dataPoint('description', 'Scoreboard NFT with information about the game state');
             _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
-            _datapoints[3] = Jeison.arrayfy('attributes', _metadata);
+            _datapoints[3] = Jeison.arraify('attributes', _metadata);
 
-            return Jeison.create(_datapoints).get();
+            return Jeison.create(_datapoints).getBase64();
         }
 
         TEAM _team = _getTeam(_badgeId);
@@ -91,7 +88,7 @@ contract NFTDescriptor is GameSchema {
                 string(abi.encodePacked('Player Badge with FiveOutOfNine#', bondedToken[_badgeId].toString()));
             _datapoints[1] = Jeison.dataPoint('description', _descriptionStr);
             _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
-            _datapoints[3] = Jeison.arrayfy('attributes', _metadata);
+            _datapoints[3] = Jeison.arraify('attributes', _metadata);
 
             return Jeison.create(_datapoints).get();
         }
@@ -128,7 +125,7 @@ contract NFTDescriptor is GameSchema {
             );
             _datapoints[1] = Jeison.dataPoint('description', _descriptionStr);
             _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
-            _datapoints[3] = Jeison.arrayfy('attributes', _metadata);
+            _datapoints[3] = Jeison.arraify('attributes', _metadata);
 
             return Jeison.create(_datapoints).get();
         }

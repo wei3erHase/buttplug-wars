@@ -74,7 +74,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         CANCELLED // a critical bug was found
     }
 
-    STATE state = STATE.ANNOUNCEMENT;
+    STATE public state = STATE.ANNOUNCEMENT;
 
     uint256 canStartSales;
     uint256 canPlayNext;
@@ -465,7 +465,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         }
     }
 
-    function _gameOver() internal view returns (bool _gameOver) {
+    function _gameOver() internal view returns (bool) {
         return matchesWon[TEAM.ZERO] == 5 || matchesWon[TEAM.ONE] == 5;
     }
 
@@ -480,15 +480,15 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     /// @notice Adds +2 when eating a black piece, and substracts 1 when a white piece is eaten
     function _calcMoveScore(uint256 _previousBoard, uint256 _newBoard) internal pure returns (int8 _score) {
-        (uint8 _whitePiecesBefore, uint8 _blackPiecesBefore) = _countPieces(_previousBoard);
-        (uint8 _whitePiecesAfter, uint8 _blackPiecesAfter) = _countPieces(_newBoard);
+        (int8 _whitePiecesBefore, int8 _blackPiecesBefore) = _countPieces(_previousBoard);
+        (int8 _whitePiecesAfter, int8 _blackPiecesAfter) = _countPieces(_newBoard);
 
-        _score += 2 * int8(_blackPiecesBefore - _blackPiecesAfter);
-        _score -= int8(_whitePiecesBefore - _whitePiecesAfter);
+        _score += 2 * (_blackPiecesBefore - _blackPiecesAfter);
+        _score -= _whitePiecesBefore - _whitePiecesAfter;
     }
 
     /// @dev Efficiently loops through the board uint256 to search for pieces and count each color
-    function _countPieces(uint256 _board) internal pure returns (uint8 _whitePieces, uint8 _blackPieces) {
+    function _countPieces(uint256 _board) internal pure returns (int8 _whitePieces, int8 _blackPieces) {
         uint256 _space;
         for (uint256 i = MAGIC_NUMBER; i != 0; i >>= 6) {
             _space = (_board >> ((i & 0x3F) << 2)) & 0xF;
@@ -550,7 +550,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         return 0x150b7a02;
     }
 
-    function _validateFiveOutOfNine(uint256 _id) internal {
+    function _validateFiveOutOfNine(uint256 _id) internal view {
         if (_id >= genesis && !whitelistedToken[_id]) revert WrongNFT();
     }
 
@@ -559,20 +559,19 @@ contract ButtPlugWars is GameSchema, ERC721 {
         LSSVMPair(SUDOSWAP_POOL).changeDelta(++_currentDelta);
     }
 
-    function tokenURI(uint256 _badgeId) public view virtual override returns (string memory _tokenURI) {
+    function tokenURI(uint256 _badgeId) public view virtual override returns (string memory) {
         if (ownerOf[_badgeId] == address(0)) revert WrongNFT();
         (bool _success, bytes memory _data) =
             address(this).staticcall(abi.encodeWithSignature('delegateTokenURI(uint256)', _badgeId));
 
-        assembly {
-            switch _success
-            // delegatecall returns 0 on error.
-            case 0 { revert(add(_data, 32), returndatasize()) }
-            default { return(add(_data, 32), returndatasize()) }
+        if (_success) {
+            assembly {
+                return(add(_data, 32), returndatasize())
+            }
         }
     }
 
-    function delegateTokenURI(uint256 _badgeId) external {
+    function delegateTokenURI(uint256) external {
         if (msg.sender != address(this)) revert WrongMethod();
 
         (bool _success, bytes memory _data) = address(nftDescriptor).delegatecall(msg.data);

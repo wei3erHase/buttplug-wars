@@ -2,6 +2,18 @@
 # yarn lockfile v1
 
 
+"@adraffy/eth-tools@^0.0.10":
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/@adraffy/eth-tools/-/eth-tools-0.0.10.tgz#e3ba95663e2858cf96de0c9ddd9de0b376ec982b"
+  integrity sha512-RduVgC9lxNuUp5lFvXoHmwIYA29AxcszPBSfhWKasfqSbI93m0nWLHLTdMXdZFsblQZFc7WyewHZbqkAZpKRNg==
+  dependencies:
+    "@adraffy/keccak" "^1.2.2"
+
+"@adraffy/keccak@^1.2.2":
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/@adraffy/keccak/-/keccak-1.3.0.tgz#0730d36559378e5b16255bfb75eadd14033a1837"
+  integrity sha512-M/N+FiawRPunKqfXI3c4Q3Td2jfp3jiWYMquG/FeBImiWqPES4s6hqRPOntRHX34ulINA18Y1ufrRne8AeBwxg==
+
 "@babel/code-frame@^7.0.0":
   version "7.18.6"
   resolved "https://registry.yarnpkg.com/@babel/code-frame/-/code-frame-7.18.6.tgz#3b25d38c89600baa2dcc219edfa88a74eb2c427a"

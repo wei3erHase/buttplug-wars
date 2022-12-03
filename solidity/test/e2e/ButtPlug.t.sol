@@ -2,7 +2,8 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import {IChess, IButtPlug} from 'interfaces/IGame.sol';
-import {CommonE2EBase, ButtPlugForTest, console} from './Common.sol';
+import {CommonE2EBase, console} from './Common.sol';
+import {ButtPlugForTest} from 'contracts/for-test/ButtPlugForTest.sol';
 
 contract E2EButtPlug is CommonE2EBase {
     function skip_test_E2E() public {
