@@ -11,6 +11,16 @@ abstract contract GameSchema {
     error WrongTiming(); // method called at wrong roadmap state or cooldown
     error WrongMethod(); // method should not be externally called
 
+    uint256 constant BASE = 10_000;
+    uint256 constant MAX_UINT = type(uint256).max;
+    uint256 constant PERIOD = 5 days;
+    uint256 constant COOLDOWN = 30 minutes;
+    uint256 constant LIQUIDITY_COOLDOWN = 3 days;
+    uint256 constant CHECKMATE = 0x3256230011111100000000000000000099999900BCDECB000000001;
+    /// @dev Magic number by @fiveOutOfNine
+    uint256 constant MAGIC_NUMBER = 0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289;
+    uint256 constant BUTT_PLUG_GAS_LIMIT = 20_000_000;
+
     enum STATE {
         ANNOUNCEMENT, // rabbit can cancel event
         TICKET_SALE, // can mint badges
@@ -54,8 +64,9 @@ abstract contract GameSchema {
     mapping(TEAM => address) buttPlug;
     mapping(TEAM => mapping(address => uint256)) buttPlugVotes;
     mapping(uint256 => int256) score;
-    mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
     mapping(uint256 => address) badgeButtPlugVote;
+    mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
+    mapping(uint256 => mapping(address => uint256)) participationBoost;
 
     /* Prize mechanics */
     uint256 totalPrize;
@@ -75,20 +86,24 @@ abstract contract GameSchema {
         return address(uint160((_badgeId - (uint256(TEAM.STAFF) << 32)) >> 64));
     }
 
+    function _getTeam(uint256 _badgeId) internal pure returns (TEAM _team) {
+        return TEAM(uint8(_badgeId >> 32));
+    }
+
     function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
         TEAM _team = _getTeam(_badgeId);
         if (_team < TEAM.STAFF) {
-            uint256 _currentButtPlugBadge = _calculateButtPlugBadge(badgeButtPlugVote[_badgeId], _team);
-            return score[_badgeId] + score[_currentButtPlugBadge] - lastUpdatedScore[_badgeId][_currentButtPlugBadge];
+            address _currentButtPlug = badgeButtPlugVote[_badgeId];
+            uint256 _currentButtPlugBadge = _calculateButtPlugBadge(_currentButtPlug, _team);
+            int256 _currentParticipation = int256(participationBoost[_badgeId][_currentButtPlug]);
+            return score[_badgeId]
+                + _currentParticipation * (score[_currentButtPlugBadge] - lastUpdatedScore[_badgeId][_currentButtPlugBadge])
+                    / int256(BASE);
         } else {
             address _buttPlug = _calculateButtPlugAddress(_badgeId);
             uint256 _buttPlugZERO = _calculateButtPlugBadge(_buttPlug, TEAM.ZERO);
             uint256 _buttPlugONE = _calculateButtPlugBadge(_buttPlug, TEAM.ONE);
             return score[_buttPlugZERO] + score[_buttPlugONE];
         }
-    }
-
-    function _getTeam(uint256 _badgeId) internal pure returns (TEAM _team) {
-        return TEAM(uint8(_badgeId >> 32));
     }
 }

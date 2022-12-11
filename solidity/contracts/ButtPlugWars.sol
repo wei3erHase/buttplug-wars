@@ -57,15 +57,6 @@ contract ButtPlugWars is GameSchema, ERC721 {
     /* IERC721 */
     address public immutable owner;
 
-    uint256 constant MAX_UINT = type(uint256).max;
-    uint256 constant PERIOD = 5 days;
-    uint256 constant COOLDOWN = 30 minutes;
-    uint256 constant LIQUIDITY_COOLDOWN = 3 days;
-    uint256 constant CHECKMATE = 0x3256230011111100000000000000000099999900BCDECB000000001;
-    /// @dev Magic number by @fiveOutOfNine
-    uint256 constant MAGIC_NUMBER = 0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289;
-    uint256 constant BUTT_PLUG_GAS_LIMIT = 20_000_000;
-
     /* NFT whitelisting mechanics */
     uint256 public immutable genesis;
     mapping(uint256 => bool) public whitelistedToken;
@@ -494,13 +485,16 @@ contract ButtPlugWars is GameSchema, ERC721 {
         if (_previousVote != address(0)) {
             uint256 _previousButtPlugBadge = _calculateButtPlugBadge(_previousVote, _team);
             buttPlugVotes[_team][_previousVote] -= _weight;
-            score[_badgeId] += score[_previousButtPlugBadge] - lastUpdatedScore[_badgeId][_previousButtPlugBadge];
+            uint256 _previousParticipation = participationBoost[_badgeId][_previousVote];
+            score[_badgeId] += int256(_previousParticipation)
+                * (score[_previousButtPlugBadge] - lastUpdatedScore[_badgeId][_previousButtPlugBadge]) / int256(BASE);
         }
 
         uint256 _currentButtPlugBadge = _calculateButtPlugBadge(_buttPlug, _team);
         lastUpdatedScore[_badgeId][_currentButtPlugBadge] = score[_currentButtPlugBadge];
         badgeButtPlugVote[_badgeId] = _buttPlug;
         buttPlugVotes[_team][_buttPlug] += _weight;
+        participationBoost[_badgeId][_buttPlug] = (BASE * _weight) / buttPlugVotes[_team][_buttPlug];
 
         if (buttPlugVotes[_team][_buttPlug] > buttPlugVotes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
     }
