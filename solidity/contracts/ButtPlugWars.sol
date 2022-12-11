@@ -31,12 +31,6 @@ import {Math} from 'openzeppelin-contracts/utils/math/Math.sol';
 contract ButtPlugWars is GameSchema, ERC721 {
     using SafeTransferLib for address payable;
     using Math for uint256;
-    using Chess for uint256;
-
-    using Jeison for Jeison.JsonObject;
-    using Strings for address;
-    using Strings for uint256;
-    using IntStrings for int256;
 
     /*///////////////////////////////////////////////////////////////
                             ADDRESS REGISTRY
@@ -63,24 +57,6 @@ contract ButtPlugWars is GameSchema, ERC721 {
     /* IERC721 */
     address public immutable owner;
 
-    /* Roadmap */
-    enum STATE {
-        ANNOUNCEMENT, // rabbit can cancel event
-        TICKET_SALE, // can mint badges
-        GAME_RUNNING, // game runs, can mint badges
-        GAME_OVER, // game stops, can unbondLiquidity
-        PREPARATIONS, // can claim prize, waits until kLPs are unbonded
-        PRIZE_CEREMONY, // can withdraw prize or honors
-        CANCELLED // a critical bug was found
-    }
-
-    STATE public state = STATE.ANNOUNCEMENT;
-
-    uint256 canStartSales;
-    uint256 canPlayNext;
-    uint256 canPushLiquidity;
-    uint256 canUpdateSpotPriceNext;
-
     uint256 constant MAX_UINT = type(uint256).max;
     uint256 constant PERIOD = 5 days;
     uint256 constant COOLDOWN = 30 minutes;
@@ -91,8 +67,8 @@ contract ButtPlugWars is GameSchema, ERC721 {
     uint256 constant BUTT_PLUG_GAS_LIMIT = 20_000_000;
 
     /* NFT whitelisting mechanics */
-    uint256 genesis;
-    mapping(uint256 => bool) whitelistedToken;
+    uint256 public immutable genesis;
+    mapping(uint256 => bool) public whitelistedToken;
 
     /*///////////////////////////////////////////////////////////////
                                   SETUP
@@ -564,10 +540,11 @@ contract ButtPlugWars is GameSchema, ERC721 {
         (bool _success, bytes memory _data) =
             address(this).staticcall(abi.encodeWithSignature('delegateTokenURI(uint256)', _badgeId));
 
-        if (_success) {
-            assembly {
-                return(add(_data, 32), returndatasize())
-            }
+        assembly {
+            switch _success
+            // delegatecall returns 0 on error.
+            case 0 { revert(add(_data, 32), returndatasize()) }
+            default { return(add(_data, 32), returndatasize()) }
         }
     }
 

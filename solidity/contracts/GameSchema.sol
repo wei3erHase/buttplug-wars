@@ -11,7 +11,23 @@ abstract contract GameSchema {
     error WrongTiming(); // method called at wrong roadmap state or cooldown
     error WrongMethod(); // method should not be externally called
 
-    /* Game mechanics */
+    enum STATE {
+        ANNOUNCEMENT, // rabbit can cancel event
+        TICKET_SALE, // can mint badges
+        GAME_RUNNING, // game runs, can mint badges
+        GAME_OVER, // game stops, can unbondLiquidity
+        PREPARATIONS, // can claim prize, waits until kLPs are unbonded
+        PRIZE_CEREMONY, // can withdraw prize or honors
+        CANCELLED // a critical bug was found
+    }
+
+    STATE public state = STATE.ANNOUNCEMENT;
+
+    uint256 canStartSales;
+    uint256 canPlayNext;
+    uint256 canPushLiquidity;
+    uint256 canUpdateSpotPriceNext;
+
     enum TEAM {
         ZERO,
         ONE,

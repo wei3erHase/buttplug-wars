@@ -17,7 +17,7 @@ contract CommonE2EBase is DSTestFull {
 
     address user = label('user');
     address owner = label('owner');
-    ButtPlugWarsForTest buttPlugWars;
+    ButtPlugWarsForTest game;
     ERC721 fiveOutOfNine = ERC721(0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0);
     IKeep3r keep3r = IKeep3r(0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC);
     LSSVMPair sudoPool;
@@ -43,8 +43,8 @@ contract CommonE2EBase is DSTestFull {
         vm.warp(block.timestamp + 3 days + 1);
         keep3r.activate(KP3R_V1);
 
-        buttPlugWars =
+        game =
         new ButtPlugWarsForTest(address(fiveOutOfNine), WETH_9, address(keep3r), KP3R_LP, SUDOSWAP_FACTORY, SUDOSWAP_XYK_CURVE);
-        sudoPool = LSSVMPair(buttPlugWars.SUDOSWAP_POOL());
+        sudoPool = LSSVMPair(game.SUDOSWAP_POOL());
     }
 }

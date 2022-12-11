@@ -12,8 +12,8 @@ contract E2EButtPlug is CommonE2EBase {
         uint256 DEPTH = 10;
         uint256 STEPS = 59;
 
-        (int8 _score, uint8 _isCheckmate, uint256 _gasUsed) = buttPlugWars.simulateButtPlug(_buttPlug, DEPTH, STEPS);
+        (int8 _score, uint8 _isCheckmate, uint256 _gasUsed) = game.simulateButtPlug(_buttPlug, DEPTH, STEPS);
 
-        buttPlugWars.logSimulation(_score, _isCheckmate, _gasUsed);
+        game.logSimulation(_score, _isCheckmate, _gasUsed);
     }
 }
