@@ -138,11 +138,6 @@ contract ButtPlugWars is GameSchema, ERC721 {
         state = STATE.CANCELLED;
     }
 
-    /// @dev Permissioned method, allows rabbit to change the nftDescriptor address
-    function setNftDescriptor(address _nftDescriptor) external onlyRabbit {
-        nftDescriptor = _nftDescriptor;
-    }
-
     modifier onlyRabbit() {
         if (msg.sender != THE_RABBIT) revert WrongMethod();
         _;
@@ -535,10 +530,14 @@ contract ButtPlugWars is GameSchema, ERC721 {
         LSSVMPair(SUDOSWAP_POOL).changeDelta(++_currentDelta);
     }
 
+    /*///////////////////////////////////////////////////////////////
+                          DELEGATE TOKEN URI
+    //////////////////////////////////////////////////////////////*/
+
     function tokenURI(uint256 _badgeId) public view virtual override returns (string memory) {
         if (ownerOf[_badgeId] == address(0)) revert WrongNFT();
         (bool _success, bytes memory _data) =
-            address(this).staticcall(abi.encodeWithSignature('delegateTokenURI(uint256)', _badgeId));
+            address(this).staticcall(abi.encodeWithSignature('_tokenURI(uint256)', _badgeId));
 
         assembly {
             switch _success
@@ -548,7 +547,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         }
     }
 
-    function delegateTokenURI(uint256) external {
+    function _tokenURI(uint256) external {
         if (msg.sender != address(this)) revert WrongMethod();
 
         (bool _success, bytes memory _data) = address(nftDescriptor).delegatecall(msg.data);
@@ -558,6 +557,11 @@ contract ButtPlugWars is GameSchema, ERC721 {
             case 0 { revert(add(_data, 32), returndatasize()) }
             default { return(add(_data, 32), returndatasize()) }
         }
+    }
+
+    /// @dev Permissioned method, allows rabbit to change the nftDescriptor address
+    function setNftDescriptor(address _nftDescriptor) external onlyRabbit {
+        nftDescriptor = _nftDescriptor;
     }
 
     /*///////////////////////////////////////////////////////////////
