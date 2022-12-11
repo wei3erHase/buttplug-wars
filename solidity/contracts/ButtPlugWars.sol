@@ -11,18 +11,15 @@
 
 pragma solidity >=0.8.4 <0.9.0;
 
-import {NFTDescriptor} from './NFTDescriptor.sol';
 import {GameSchema} from './GameSchema.sol';
+import {ERC721} from 'isolmate/tokens/ERC721.sol';
+
 import {IButtPlug, IChess, IDescriptorPlug} from 'interfaces/IGame.sol';
 import {IKeep3r, IPairManager} from 'interfaces/IKeep3r.sol';
 import {LSSVMPair, LSSVMPairETH, ILSSVMPairFactory, ICurve, IERC721} from 'interfaces/ISudoswap.sol';
 import {ISwapRouter} from 'interfaces/IUniswap.sol';
 import {IERC20, IWeth} from 'interfaces/IERC20.sol';
 
-import {FiveOutOfNineUtils, Chess} from './FiveOutOfNineUtils.sol';
-import {Jeison, Strings, IntStrings} from './Jeison.sol';
-
-import {ERC721} from 'isolmate/tokens/ERC721.sol';
 import {SafeTransferLib} from 'isolmate/utils/SafeTransferLib.sol';
 import {Math} from 'openzeppelin-contracts/utils/math/Math.sol';
 

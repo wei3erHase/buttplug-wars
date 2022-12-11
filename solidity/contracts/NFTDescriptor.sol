@@ -4,8 +4,8 @@ pragma solidity >=0.8.4 <0.9.0;
 
 import {GameSchema} from './GameSchema.sol';
 import {IButtPlug, IChess, IDescriptorPlug} from 'interfaces/IGame.sol';
-import {Jeison, Strings, IntStrings} from './Jeison.sol';
-import {FiveOutOfNineUtils, Chess} from './FiveOutOfNineUtils.sol';
+import {Jeison, Strings, IntStrings} from './libs/Jeison.sol';
+import {FiveOutOfNineUtils, Chess} from './libs/FiveOutOfNineUtils.sol';
 
 contract NFTDescriptor is GameSchema {
     using Chess for uint256;
