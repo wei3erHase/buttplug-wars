@@ -27,6 +27,7 @@ contract CommonE2EBase is DSTestFull {
     address constant FIVEOUTOFNINE_WHALE = 0xC5233C3b46C83ADEE1039D340094173f0f7c1EcF;
     address constant KP3R_LP = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
     address constant WETH_9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address constant UNISWAP_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address constant SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
     address constant SUDOSWAP_XYK_CURVE = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
 
@@ -43,8 +44,17 @@ contract CommonE2EBase is DSTestFull {
         vm.warp(block.timestamp + 3 days + 1);
         keep3r.activate(KP3R_V1);
 
-        game =
-        new ButtPlugWarsForTest(address(fiveOutOfNine), WETH_9, address(keep3r), KP3R_LP, SUDOSWAP_FACTORY, SUDOSWAP_XYK_CURVE);
+        game = new ButtPlugWarsForTest(ButtPlugWars.Registry({
+          masterOfCeremony: FIVEOUTOFNINE_WHALE,
+          fiveOutOfNine: address(fiveOutOfNine),
+          weth: WETH_9,
+          kp3rV1: KP3R_V1,
+          keep3rLP: KP3R_LP,
+          keep3r: address(keep3r),
+          uniswapRouter: UNISWAP_ROUTER,
+          sudoswapFactory: SUDOSWAP_FACTORY,
+          sudoswapCurve:SUDOSWAP_XYK_CURVE
+        }), 5 days, 0);
         sudoPool = LSSVMPair(game.SUDOSWAP_POOL());
     }
 }

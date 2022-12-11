@@ -24,10 +24,9 @@ contract ChessForTest is IChess, ERC721 {
         boards[Board.BLACK_CAPTURE] = 0x03256230011011100000000000000000099999900bcdecb000000001;
         boards[Board.BOTH_CAPTURES] = 0x03256230011011100000000000000000099909900bcdecb000000001;
         for (uint256 _i; _i < INITIAL_SUPPLY; _i++) {
-            _mint(msg.sender, _i);
+            _safeMint(msg.sender, _i);
         }
         totalSupply = INITIAL_SUPPLY;
-        balanceOf[msg.sender] = INITIAL_SUPPLY;
     }
 
     function tokenURI(uint256 id) public view virtual override returns (string memory) {}
@@ -36,7 +35,7 @@ contract ChessForTest is IChess, ERC721 {
         return boards[Board(gasleft() % 4)];
     }
 
-    function mintMove(uint256 _move, uint256 _depth) external payable {
+    function mintMove(uint256, uint256) external payable {
         _mint(msg.sender, totalSupply);
         if (address(msg.sender).code.length != 0) {
             bytes memory _calldata;

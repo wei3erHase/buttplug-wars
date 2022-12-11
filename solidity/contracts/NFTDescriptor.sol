@@ -19,7 +19,7 @@ contract NFTDescriptor is GameSchema {
     // TODO: return to mainnet
     address constant FIVE_OUT_OF_NINE = 0x2ea2736Bfc0146ad20449eaa43245692E77fd2bc;
 
-    function delegateTokenURI(uint256 _badgeId) public view virtual returns (string memory _tokenURI) {
+    function _tokenURI(uint256 _badgeId) public view virtual returns (string memory _tokenURI) {
         /* Scoreboard */
         if (_badgeId == 0) {
             Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](2);

@@ -160,9 +160,9 @@ contract E2EButtPlugWars is CommonE2EBase {
             assertLt(_remaining, 100, 'all sales were distributed');
         }
 
-        console.log(game.tokenURI(_buttPlugBadgeId));
-        console.log(game.tokenURI(badge1));
-        console.log(game.tokenURI(0));
+        // console.log(game.tokenURI(_buttPlugBadgeId));
+        // console.log(game.tokenURI(badge1));
+        // console.log(game.tokenURI(0));
     }
 
     function _purchaseAtSudoswap(uint256 _amount) internal {

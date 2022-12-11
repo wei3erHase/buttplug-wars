@@ -13,12 +13,10 @@ abstract contract GameSchema {
 
     uint256 constant BASE = 10_000;
     uint256 constant MAX_UINT = type(uint256).max;
-    uint256 constant PERIOD = 5 days;
-    uint256 constant COOLDOWN = 30 minutes;
-    uint256 constant LIQUIDITY_COOLDOWN = 3 days;
     uint256 constant CHECKMATE = 0x3256230011111100000000000000000099999900BCDECB000000001;
     /// @dev Magic number by @fiveOutOfNine
     uint256 constant MAGIC_NUMBER = 0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289;
+    // TODO: reduce gasLimit (with rounds)
     uint256 constant BUTT_PLUG_GAS_LIMIT = 20_000_000;
 
     enum STATE {

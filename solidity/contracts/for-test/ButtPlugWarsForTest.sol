@@ -7,14 +7,9 @@ import {IChess, IButtPlug} from 'interfaces/IGame.sol';
 import {ButtPlugWars} from 'contracts/ButtPlugWars.sol';
 
 contract ButtPlugWarsForTest is ButtPlugWars {
-    constructor(
-        address _fiveOutOfNine,
-        address _weth,
-        address _keep3r,
-        address _kLP,
-        address _sudoswapFactory,
-        address _xykCurve
-    ) ButtPlugWars(_fiveOutOfNine, _weth, _keep3r, _kLP, _sudoswapFactory, _xykCurve) {}
+    constructor(ButtPlugWars.Registry memory _registry, uint32 _period, uint32 _cooldown)
+        ButtPlugWars(_registry, _period, _cooldown)
+    {}
 
     function getTeamButtPlug(uint8 _team) public view returns (address _buttPlug) {
         return buttPlug[TEAM(_team)];

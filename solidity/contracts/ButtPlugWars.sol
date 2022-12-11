@@ -36,17 +36,15 @@ contract ButtPlugWars is GameSchema, ERC721 {
                             ADDRESS REGISTRY
     //////////////////////////////////////////////////////////////*/
 
-    address immutable THE_RABBIT; // = 0x5dD028D0832739008c5308490e6522ce04342E10;
-    address immutable FIVE_OUT_OF_NINE; // = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
-
-    address immutable WETH_9; // = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address immutable KP3R_V1; // = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
-    address immutable KP3R_LP; // = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
-
-    address constant SWAP_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-    address immutable KEEP3R; // = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
-    address immutable SUDOSWAP_FACTORY; // = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
-    address immutable SUDOSWAP_XYK_CURVE; // = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
+    address immutable THE_RABBIT;
+    address immutable FIVE_OUT_OF_NINE;
+    address immutable WETH_9;
+    address immutable KP3R_V1;
+    address immutable KP3R_LP;
+    address immutable SWAP_ROUTER;
+    address immutable KEEP3R;
+    address immutable SUDOSWAP_FACTORY;
+    address immutable SUDOSWAP_CURVE;
     address public immutable SUDOSWAP_POOL;
     address public nftDescriptor;
 
@@ -65,31 +63,34 @@ contract ButtPlugWars is GameSchema, ERC721 {
                                   SETUP
     //////////////////////////////////////////////////////////////*/
 
-    constructor(
-        address _fiveOutOfNine,
-        address _weth,
-        address _keep3r,
-        address _kLP,
-        address _sudoswapFactory,
-        address _xykCurve
-    ) ERC721('ButtPlugBadge', unicode'♙') {
-        THE_RABBIT = msg.sender;
-        FIVE_OUT_OF_NINE = _fiveOutOfNine;
-        WETH_9 = _weth;
-        KEEP3R = _keep3r;
-        KP3R_LP = _kLP;
-        KP3R_V1 = IKeep3r(_keep3r).keep3rV1();
-        SUDOSWAP_FACTORY = _sudoswapFactory;
-        SUDOSWAP_XYK_CURVE = _xykCurve;
+    uint32 immutable PERIOD;
+    uint32 immutable COOLDOWN;
 
-        nftDescriptor = address(new NFTDescriptor());
+    struct Registry {
+        address masterOfCeremony;
+        address fiveOutOfNine;
+        address weth;
+        address kp3rV1;
+        address keep3rLP;
+        address keep3r;
+        address uniswapRouter;
+        address sudoswapFactory;
+        address sudoswapCurve;
+    }
 
-        // WETH_9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        // KEEP3R = 0xeb02addCfD8B773A5FFA6B9d1FE99c566f8c44CC;
-        // KP3R_LP = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
-        // KP3R_V1 = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
-        // SUDOSWAP_FACTORY = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
-        // SUDOSWAP_XYK_CURVE = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
+    constructor(Registry memory _registry, uint32 _period, uint32 _cooldown) ERC721('ChessOlympiads', unicode'{♙}') {
+        THE_RABBIT = _registry.masterOfCeremony;
+        FIVE_OUT_OF_NINE = _registry.fiveOutOfNine;
+        WETH_9 = _registry.weth;
+        KP3R_V1 = _registry.kp3rV1;
+        KP3R_LP = _registry.keep3rLP;
+        SWAP_ROUTER = _registry.uniswapRouter;
+        KEEP3R = _registry.keep3r;
+        SUDOSWAP_FACTORY = _registry.sudoswapFactory;
+        SUDOSWAP_CURVE = _registry.sudoswapCurve;
+
+        PERIOD = _period;
+        COOLDOWN = _cooldown;
 
         // emit token aprovals
         IERC20(WETH_9).approve(SWAP_ROUTER, MAX_UINT);
@@ -104,7 +105,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         SUDOSWAP_POOL = address(
             ILSSVMPairFactory(SUDOSWAP_FACTORY).createPairETH({
                 _nft: IERC721(FIVE_OUT_OF_NINE),
-                _bondingCurve: ICurve(SUDOSWAP_XYK_CURVE),
+                _bondingCurve: ICurve(SUDOSWAP_CURVE),
                 _assetRecipient: payable(address(this)),
                 _poolType: LSSVMPair.PoolType.NFT,
                 _spotPrice: 59000000000000000, // 0.059 ETH
@@ -120,6 +121,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
         // mint scoreboard token to itself
         _mint(address(this), 0);
+        // records supply of fiveOutOfNine to whitelist pre-genesis tokens
         genesis = IERC20(FIVE_OUT_OF_NINE).totalSupply();
     }
 
@@ -150,7 +152,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         uint256 _shares = _value.sqrt();
 
         _badgeId = ++totalPlayers + (uint256(_team) << 32);
-        _mint(msg.sender, _badgeId);
+        _safeMint(msg.sender, _badgeId);
 
         bondedToken[_badgeId] = _tokenId;
         badgeShares[_badgeId] = _shares;
@@ -165,7 +167,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         address _owner = IButtPlug(_buttPlug).owner();
 
         _badgeId = _calculateButtPlugBadge(_buttPlug, TEAM.STAFF);
-        _mint(_owner, _badgeId);
+        _safeMint(_owner, _badgeId);
     }
 
     function getBadgeId(uint256 _playerNumber) external view returns (uint256 _badgeId) {
@@ -260,7 +262,9 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     modifier onlyBadgeOwner(uint256 _badgeId) {
-        if (ownerOf[_badgeId] != msg.sender) revert WrongBadge();
+        address _sender = msg.sender;
+        address _owner = ownerOf[_badgeId];
+        if (_owner != _sender || isApprovedForAll[_owner][_sender]) revert WrongBadge();
         _;
     }
 
@@ -286,7 +290,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         }
 
         if (block.timestamp < canPushLiquidity) revert WrongTiming();
-        canPushLiquidity = block.timestamp + LIQUIDITY_COOLDOWN;
+        canPushLiquidity = block.timestamp + PERIOD;
 
         uint256 _eth = address(this).balance - claimableSales;
         if (_eth < 0.05 ether) revert WrongTiming();
@@ -441,6 +445,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     /// @notice Adds +2 when eating a black piece, and substracts 1 when a white piece is eaten
+    /// @dev Supports having more pieces than before, situation that should not be possible in prod
     function _calcMoveScore(uint256 _previousBoard, uint256 _newBoard) internal pure returns (int8 _score) {
         (int8 _whitePiecesBefore, int8 _blackPiecesBefore) = _countPieces(_previousBoard);
         (int8 _whitePiecesAfter, int8 _blackPiecesAfter) = _countPieces(_newBoard);
