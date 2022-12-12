@@ -62,6 +62,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     uint32 immutable PERIOD;
     uint32 immutable COOLDOWN;
+    bool bunnySaysSo;
 
     struct Registry {
         address masterOfCeremony;
@@ -123,9 +124,9 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     /// @dev Permissioned method, allows rabbit to cancel the event
-    function cancelEvent() external onlyRabbit {
-        if (state != STATE.ANNOUNCEMENT) revert WrongTiming();
-        state = STATE.CANCELLED;
+    function saySo() external onlyRabbit {
+        if (state == STATE.ANNOUNCEMENT) state = STATE.CANCELLED;
+        else bunnySaysSo = true;
     }
 
     modifier onlyRabbit() {
@@ -194,7 +195,9 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     function _claimPrize(uint256 _badgeId) internal onlyBadgeOwner(_badgeId) {
         TEAM _team = _getTeam(_badgeId);
-        if (matchesWon[_team] < 5) revert WrongTeam();
+
+        // if bunny says so, next line wont revert
+        if (matchesWon[_team] < 5 && !bunnySaysSo) revert WrongTeam();
 
         uint256 _shares = badgeShares[_badgeId];
         _shares *= _shares; // prize is claimed by inputted ETH (weight^2)
@@ -429,7 +432,8 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     function _gameOver() internal view returns (bool) {
-        return matchesWon[TEAM.ZERO] == 5 || matchesWon[TEAM.ONE] == 5;
+        // if bunny says so next this was the last match
+        return matchesWon[TEAM.ZERO] == 5 || matchesWon[TEAM.ONE] == 5 || bunnySaysSo;
     }
 
     function _roundT(uint256 _timestamp, uint256 _period) internal pure returns (uint256 _roundTimestamp) {

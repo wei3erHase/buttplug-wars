@@ -3,27 +3,32 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import {GameSchema} from './GameSchema.sol';
+import {IKeep3r} from 'interfaces/IKeep3r.sol';
 import {IButtPlug, IChess, IDescriptorPlug} from 'interfaces/IGame.sol';
 import {Jeison, Strings, IntStrings} from './libs/Jeison.sol';
 import {FiveOutOfNineUtils, Chess} from './libs/FiveOutOfNineUtils.sol';
 
 contract NFTDescriptor is GameSchema {
     using Chess for uint256;
-
     using Jeison for Jeison.JsonObject;
+    using Jeison for string;
     using Strings for address;
     using Strings for uint256;
     using Strings for uint160;
+    using Strings for uint32;
     using IntStrings for int256;
 
     // TODO: return to mainnet
     address constant FIVE_OUT_OF_NINE = 0x2ea2736Bfc0146ad20449eaa43245692E77fd2bc;
+    address constant KEEP3R = 0x145d364e193204f8Ff0A87b718938406595678Dd;
+    address constant KP3R_LP = 0x78958e8e9C54d9aA56eDED102097E73ef9c26411;
 
     function _tokenURI(uint256 _badgeId) public view virtual returns (string memory _tokenURI) {
         /* Scoreboard */
         if (_badgeId == 0) {
-            Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](2);
+            Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](6);
             Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
+            Jeison.DataPoint[] memory _longDatapoints = new Jeison.DataPoint[](3);
 
             // creates metadata array[{traits}]
             string memory scoreboard;
@@ -42,53 +47,53 @@ contract NFTDescriptor is GameSchema {
             _datapoints[0] = Jeison.dataPoint('trait_type', 'game-score');
             _datapoints[1] = Jeison.dataPoint('value', scoreboard);
             _metadata[0] = Jeison.create(_datapoints);
-            _datapoints[0] = Jeison.dataPoint('trait_type', 'weight');
-            _datapoints[1] = Jeison.dataPoint('value', totalShares / 1e6);
+
+            _datapoints[0] = Jeison.dataPoint('trait_type', 'players');
+            _datapoints[1] = Jeison.dataPoint('value', totalPlayers);
             _metadata[1] = Jeison.create(_datapoints);
-            // if(state == STATE.ANNOUNCEMENT){
-            //   _datapoints[0] = Jeison.dataPoint('trait_type', 'status');
-            //   _datapoints[1] = Jeison.dataPoint('value', 'ANNOUNCEMENT');
-            //   _metadata[2] = Jeison.create(_datapoints);
-            //   Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](2);
-            //   _datapoints[0] = Jeison.dataPoint('trait_type', 'sales-start');
-            //   _datapoints[1] = Jeison.dataPoint('value', canStartSales);
-            //   _datapoints[2] = Jeison.dataPoint('display_type', 'date');
-            //   _metadata[3] = Jeison.create(_datapoints);
-            // }
-            // else if(state == STATE.TICKET_SALE){
-            //   _datapoints[0] = Jeison.dataPoint('trait_type', 'status');
-            //   _datapoints[1] = Jeison.dataPoint('value', 'TICKET_SALE');
-            //   _metadata[2] = Jeison.create(_datapoints);
-            //   Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](2);
-            //   _datapoints[0] = Jeison.dataPoint('trait_type', 'game-start');
-            //   _datapoints[1] = Jeison.dataPoint('value', canPushLiquidity);
-            //   _datapoints[2] = Jeison.dataPoint('display_type', 'date');
-            //   _metadata[3] = Jeison.create(_datapoints);
-            // }
-            // else if(state == STATE.GAME_RUNNING){
-            //   _datapoints[0] = Jeison.dataPoint('trait_type', 'status');
-            //   _datapoints[1] = Jeison.dataPoint('value', 'GAME_RUNNING');
-            //   _metadata[2] = Jeison.create(_datapoints);
-            //   Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](2);
-            //   _datapoints[0] = Jeison.dataPoint('trait_type', 'can-play-next');
-            //   _datapoints[1] = Jeison.dataPoint('value', canPlayNext);
-            //   _datapoints[2] = Jeison.dataPoint('display_type', 'date');
-            //   _metadata[3] = Jeison.create(_datapoints);
-            // }
-            // else if(state >= STATE.GAME_OVER){
-            //   _datapoints[0] = Jeison.dataPoint('trait_type', 'status');
-            //   _datapoints[1] = Jeison.dataPoint('value', 'GAME_OVER');
-            //   _metadata[2] = Jeison.create(_datapoints);
-            //   Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](2);
-            //   _datapoints[0] = Jeison.dataPoint('trait_type', 'can-play-next');
-            //   _datapoints[1] = Jeison.dataPoint('value', canPlayNext);
-            //   _datapoints[2] = Jeison.dataPoint('display_type', 'date');
-            //   _metadata[3] = Jeison.create(_datapoints);
-            // }
+
+            _datapoints[0] = Jeison.dataPoint('trait_type', 'total-weight');
+            _datapoints[1] = Jeison.dataPoint('value', totalShares / 1e6);
+            _metadata[2] = Jeison.create(_datapoints);
+
+            _datapoints[0] = Jeison.dataPoint('trait_type', 'total-prize');
+            _datapoints[1] = Jeison.dataPoint('value', totalPrize);
+            _metadata[3] = Jeison.create(_datapoints);
+
+            _datapoints[0] = Jeison.dataPoint('trait_type', 'total-sales');
+            _datapoints[1] = Jeison.dataPoint('value', claimableSales);
+            _metadata[4] = Jeison.create(_datapoints);
+
+            if (state == STATE.ANNOUNCEMENT) {
+                _longDatapoints[0] = Jeison.dataPoint('trait_type', 'sales-start');
+                _longDatapoints[1] = Jeison.dataPoint('value', canStartSales);
+                _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');
+                _metadata[5] = Jeison.create(_longDatapoints);
+            } else if (state == STATE.TICKET_SALE) {
+                _longDatapoints[0] = Jeison.dataPoint('trait_type', 'game-start');
+                _longDatapoints[1] = Jeison.dataPoint('value', canPushLiquidity);
+                _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');
+                _metadata[5] = Jeison.create(_longDatapoints);
+            } else if (state == STATE.GAME_RUNNING) {
+                _longDatapoints[0] = Jeison.dataPoint('trait_type', 'can-play-next');
+                _longDatapoints[1] = Jeison.dataPoint('value', canPlayNext);
+                _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');
+                _metadata[5] = Jeison.create(_longDatapoints);
+            } else if (state == STATE.GAME_OVER) {
+                _longDatapoints[0] = Jeison.dataPoint('trait_type', 'rewards-start');
+                _longDatapoints[1] = Jeison.dataPoint('value', IKeep3r(KEEP3R).canWithdrawAfter(address(this), KP3R_LP));
+                _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');
+                _metadata[5] = Jeison.create(_longDatapoints);
+            } else if (state == STATE.PRIZE_CEREMONY) {
+                _longDatapoints[0] = Jeison.dataPoint('trait_type', 'can-update-next');
+                _longDatapoints[1] = Jeison.dataPoint('value', canUpdateSpotPriceNext);
+                _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');
+                _metadata[5] = Jeison.create(_longDatapoints);
+            }
 
             // creates json
             _datapoints = new Jeison.DataPoint[](4);
-            _datapoints[0] = Jeison.dataPoint('name', 'ButtPlugWars Scoreboard');
+            _datapoints[0] = Jeison.dataPoint('name', 'ChessOlympiads Scoreboard');
             _datapoints[1] = Jeison.dataPoint('description', 'Scoreboard NFT with information about the game state');
             _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
             _datapoints[3] = Jeison.arraify('attributes', _metadata);
@@ -100,7 +105,6 @@ contract NFTDescriptor is GameSchema {
 
         /* Player metadata */
         if (_team < TEAM.STAFF) {
-            // if buttplug remove weight (or add inflation)
             Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](5);
             Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
 
@@ -118,16 +122,20 @@ contract NFTDescriptor is GameSchema {
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'vote');
                 _datapoints[1] = Jeison.dataPoint('value', (uint160(badgeButtPlugVote[_badgeId]) >> 128).toHexString());
                 _metadata[3] = Jeison.create(_datapoints);
-                _datapoints[0] = Jeison.dataPoint('trait_type', 'bonded_token');
-                _datapoints[1] = Jeison.dataPoint('value', bondedToken[_badgeId].toString());
+                _datapoints = new Jeison.DataPoint[](3);
+                _datapoints[0] = Jeison.dataPoint('display_type', 'boost_percentage');
+                _datapoints[1] = Jeison.dataPoint('trait_type', 'vote_participation');
+                _datapoints[2] =
+                    Jeison.dataPoint('value', participationBoost[_badgeId][badgeButtPlugVote[_badgeId]] / 100);
                 _metadata[4] = Jeison.create(_datapoints);
             }
             // creates json
             _datapoints = new Jeison.DataPoint[](4);
-            _datapoints[0] = Jeison.dataPoint('name', 'Player');
-            string memory _descriptionStr =
-                string(abi.encodePacked('Player Badge with FiveOutOfNine#', bondedToken[_badgeId].toString()));
-            _datapoints[1] = Jeison.dataPoint('description', _descriptionStr);
+            string memory _packedStr = string(abi.encodePacked('Player #', uint32(_badgeId).toString()));
+            _datapoints[0] = Jeison.dataPoint('name', _packedStr);
+            _packedStr =
+                string(abi.encodePacked('Player Badge with bonded FiveOutOfNine#', bondedToken[_badgeId].toString()));
+            _datapoints[1] = Jeison.dataPoint('description', _packedStr);
             _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
             _datapoints[3] = Jeison.arraify('attributes', _metadata);
 

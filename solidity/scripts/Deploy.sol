@@ -59,7 +59,7 @@ contract DeployGoerli is Deploy {
 }
 
 contract DeployGoerliDescriptor is Deploy {
-    address constant BUTT_PLUG_WARS = 0x48C8c199cCDB7c1B7d3B41Ee510eA2D4C65DcA2c;
+    address constant BUTT_PLUG_WARS = 0xfaDCFE59af139d5959Bb140E8A127deE32d28E5e;
 
     function run() external {
         vm.startBroadcast();
