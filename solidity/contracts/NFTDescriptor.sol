@@ -19,9 +19,9 @@ contract NFTDescriptor is GameSchema {
     using IntStrings for int256;
 
     // TODO: return to mainnet
-    address constant FIVE_OUT_OF_NINE = 0x2ea2736Bfc0146ad20449eaa43245692E77fd2bc;
-    address constant KEEP3R = 0x145d364e193204f8Ff0A87b718938406595678Dd;
-    address constant KP3R_LP = 0x78958e8e9C54d9aA56eDED102097E73ef9c26411;
+    address constant FIVE_OUT_OF_NINE = 0x226a166e5E44c654b3a76ef406be7E00755b9f45;
+    address constant KEEP3R = 0x229d018065019c3164B899F4B9c2d4ffEae9B92b;
+    address constant KP3R_LP = 0xb4A7137B024d4C0531b0164fCb6E8fc20e6777Ae;
 
     function _tokenURI(uint256 _badgeId) public view virtual returns (string memory _tokenURI) {
         /* Scoreboard */
@@ -49,19 +49,19 @@ contract NFTDescriptor is GameSchema {
             _metadata[0] = Jeison.create(_datapoints);
 
             _datapoints[0] = Jeison.dataPoint('trait_type', 'players');
-            _datapoints[1] = Jeison.dataPoint('value', totalPlayers);
+            _datapoints[1] = Jeison.dataPoint('value', totalPlayers.toString());
             _metadata[1] = Jeison.create(_datapoints);
 
             _datapoints[0] = Jeison.dataPoint('trait_type', 'total-weight');
-            _datapoints[1] = Jeison.dataPoint('value', totalShares / 1e6);
+            _datapoints[1] = Jeison.dataPoint('value', (totalShares / 1e6).toString());
             _metadata[2] = Jeison.create(_datapoints);
 
-            _datapoints[0] = Jeison.dataPoint('trait_type', 'total-prize');
-            _datapoints[1] = Jeison.dataPoint('value', totalPrize);
+            _datapoints[0] = Jeison.dataPoint('trait_type', 'prize');
+            _datapoints[1] = Jeison.dataPoint('value', (totalPrize / 1e15).toString());
             _metadata[3] = Jeison.create(_datapoints);
 
-            _datapoints[0] = Jeison.dataPoint('trait_type', 'total-sales');
-            _datapoints[1] = Jeison.dataPoint('value', claimableSales);
+            _datapoints[0] = Jeison.dataPoint('trait_type', 'sales');
+            _datapoints[1] = Jeison.dataPoint('value', (claimableSales / 1e15).toString());
             _metadata[4] = Jeison.create(_datapoints);
 
             if (state == STATE.ANNOUNCEMENT) {
@@ -79,7 +79,7 @@ contract NFTDescriptor is GameSchema {
                 _longDatapoints[1] = Jeison.dataPoint('value', canPlayNext);
                 _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');
                 _metadata[5] = Jeison.create(_longDatapoints);
-            } else if (state == STATE.GAME_OVER) {
+            } else if (state == STATE.GAME_OVER || state == STATE.PREPARATIONS) {
                 _longDatapoints[0] = Jeison.dataPoint('trait_type', 'rewards-start');
                 _longDatapoints[1] = Jeison.dataPoint('value', IKeep3r(KEEP3R).canWithdrawAfter(address(this), KP3R_LP));
                 _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');

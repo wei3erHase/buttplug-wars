@@ -47,8 +47,8 @@ contract DeployGoerli is Deploy {
           fiveOutOfNine: address(chessForTest),
           weth: 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6,
           kp3rV1: 0x16F63C5036d3F48A239358656a8f123eCE85789C,
-          keep3rLP: 0x78958e8e9C54d9aA56eDED102097E73ef9c26411,
-          keep3r: 0x145d364e193204f8Ff0A87b718938406595678Dd,
+          keep3rLP: 0xb4A7137B024d4C0531b0164fCb6E8fc20e6777Ae,
+          keep3r: 0x229d018065019c3164B899F4B9c2d4ffEae9B92b,
           uniswapRouter: 0xE592427A0AEce92De3Edee1F18E0157C05861564,
           sudoswapFactory: 0xF0202E9267930aE942F0667dC6d805057328F6dC,
           sudoswapCurve: 0x02363a2F1B2c2C5815cb6893Aa27861BE0c4F760
@@ -59,13 +59,13 @@ contract DeployGoerli is Deploy {
 }
 
 contract DeployGoerliDescriptor is Deploy {
-    address constant BUTT_PLUG_WARS = 0xfaDCFE59af139d5959Bb140E8A127deE32d28E5e;
+    address payable constant BUTT_PLUG_WARS = payable(0x9b15FCa4d8F48cD5ef50ba337340B4eE21D8B2A1);
 
     function run() external {
         vm.startBroadcast();
         address nftDescriptor = address(new NFTDescriptor());
-        ButtPlugWars(payable(BUTT_PLUG_WARS)).setNftDescriptor(nftDescriptor);
-        console.logString(ButtPlugWars(payable(BUTT_PLUG_WARS)).tokenURI(0));
+        ButtPlugWars(BUTT_PLUG_WARS).setNftDescriptor(nftDescriptor);
+        console.logString(ButtPlugWars(BUTT_PLUG_WARS).tokenURI(0));
         vm.stopBroadcast();
     }
 }

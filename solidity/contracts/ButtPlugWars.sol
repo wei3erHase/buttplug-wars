@@ -320,7 +320,8 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     /// @dev Open method, allows signer (after game ended) to start unbond period
     function unbondLiquidity() external {
-        if (state != STATE.GAME_OVER) revert WrongTiming();
+        // if bunny says so next line won't revert
+        if (state != STATE.GAME_OVER || !bunnySaysSo) revert WrongTiming();
         totalPrize = IKeep3r(KEEP3R).liquidityAmount(address(this), KP3R_LP);
         IKeep3r(KEEP3R).unbondLiquidityFromJob(address(this), KP3R_LP, totalPrize);
         state = STATE.PREPARATIONS;
@@ -432,8 +433,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     function _gameOver() internal view returns (bool) {
-        // if bunny says so next this was the last match
-        return matchesWon[TEAM.ZERO] == 5 || matchesWon[TEAM.ONE] == 5 || bunnySaysSo;
+        return matchesWon[TEAM.ZERO] == 5 || matchesWon[TEAM.ONE] == 5;
     }
 
     function _roundT(uint256 _timestamp, uint256 _period) internal pure returns (uint256 _roundTimestamp) {
