@@ -39,7 +39,8 @@ abstract contract GameSchema {
     enum TEAM {
         ZERO,
         ONE,
-        STAFF
+        STAFF,
+        MEDAL
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -50,31 +51,26 @@ abstract contract GameSchema {
 
     mapping(TEAM => uint256) matchesWon;
     mapping(TEAM => int256) matchScore;
-    uint256 matchMoves;
     uint256 matchNumber;
+    uint256 matchMoves;
 
     /* Badge mechanics */
-    uint256 totalShares;
-    mapping(uint256 => uint256) badgeShares;
-    mapping(uint256 => uint256) bondedToken;
+    // uint256 totalShares;
+    mapping(uint256 => uint256) badgeWeight;
 
     /* Vote mechanics */
     mapping(TEAM => address) buttPlug;
-    mapping(TEAM => mapping(address => uint256)) buttPlugVotes;
-    mapping(uint256 => int256) score;
-    mapping(uint256 => address) badgeButtPlugVote;
-    mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
-    mapping(uint256 => mapping(address => uint256)) participationBoost;
+    mapping(uint256 => address) badgeVote;
+    mapping(TEAM => mapping(address => uint256)) voteWeight;
+    mapping(uint256 => mapping(address => uint256)) voteParticipation;
 
     /* Prize mechanics */
     uint256 totalPrize;
-    uint256 totalPrizeShares;
-    mapping(address => uint256) playerPrizeShares;
+    uint256 totalSales;
+    mapping(uint256 => uint256) claimedSales;
 
-    uint256 claimableSales;
-    mapping(address => uint256) claimedSales;
-    mapping(address => uint256) playerHonorShares;
-    uint256 totalHonorShares;
+    mapping(uint256 => int256) score;
+    mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
 
     function _calculateButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
         return uint256(uint256(uint160(_buttPlug)) << 64) + (uint256(_team) << 32);
@@ -91,9 +87,9 @@ abstract contract GameSchema {
     function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
         TEAM _team = _getTeam(_badgeId);
         if (_team < TEAM.STAFF) {
-            address _currentButtPlug = badgeButtPlugVote[_badgeId];
+            address _currentButtPlug = badgeVote[_badgeId];
             uint256 _currentButtPlugBadge = _calculateButtPlugBadge(_currentButtPlug, _team);
-            int256 _currentParticipation = int256(participationBoost[_badgeId][_currentButtPlug]);
+            int256 _currentParticipation = int256(voteParticipation[_badgeId][_currentButtPlug]);
             return score[_badgeId]
                 + _currentParticipation * (score[_currentButtPlugBadge] - lastUpdatedScore[_badgeId][_currentButtPlugBadge])
                     / int256(BASE);

@@ -125,21 +125,23 @@ contract E2EButtPlugWars is CommonE2EBase {
             address badgeOwner = game.ownerOf(badge1);
 
             // Prize claim
-            game.claimPrize(badge1);
+            uint256[] memory _badgeList = new uint256[](2);
+            _badgeList[0] = badge1;
+            _badgeList[1] = preGenToken;
+            uint256 _medal = game.mintMedal(_badgeList);
+
             // Honor claim
-            game.claimHonor(preGenToken);
             game.withdrawLiquidity();
 
             // Prize distribution
-
-            game.withdrawPrize();
+            game.withdrawRewards(_medal);
 
             uint256 liquidityWithdrawn = IERC20(KP3R_LP).balanceOf(badgeOwner);
 
             assertLt(liquidityAmount - liquidityWithdrawn, 100, 'all liquidity was distributed');
 
             // Honor distribution
-            game.withdrawHonor();
+            game.withdrawRewards(_medal);
             uint256 _remaining = address(game).balance;
             assertLt(_remaining, 100, 'all sales were distributed');
 
@@ -154,8 +156,7 @@ contract E2EButtPlugWars is CommonE2EBase {
             _purchaseAtSudoswap(1);
             _remaining = address(game).balance;
             assertGt(_remaining, 100, 'more sales to be distributed');
-            game.withdrawHonor();
-            game.withdrawHonor();
+            game.withdrawRewards(_medal);
             _remaining = address(game).balance;
             assertLt(_remaining, 100, 'all sales were distributed');
         }

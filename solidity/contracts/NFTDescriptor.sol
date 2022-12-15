@@ -4,7 +4,7 @@ pragma solidity >=0.8.4 <0.9.0;
 
 import {GameSchema} from './GameSchema.sol';
 import {IKeep3r} from 'interfaces/IKeep3r.sol';
-import {IButtPlug, IChess, IDescriptorPlug} from 'interfaces/IGame.sol';
+import {IButtPlug, IChess} from 'interfaces/IGame.sol';
 import {Jeison, Strings, IntStrings} from './libs/Jeison.sol';
 import {FiveOutOfNineUtils, Chess} from './libs/FiveOutOfNineUtils.sol';
 
@@ -16,6 +16,7 @@ contract NFTDescriptor is GameSchema {
     using Strings for uint256;
     using Strings for uint160;
     using Strings for uint32;
+    using Strings for uint16;
     using IntStrings for int256;
 
     // TODO: return to mainnet
@@ -52,16 +53,16 @@ contract NFTDescriptor is GameSchema {
             _datapoints[1] = Jeison.dataPoint('value', totalPlayers.toString());
             _metadata[1] = Jeison.create(_datapoints);
 
-            _datapoints[0] = Jeison.dataPoint('trait_type', 'total-weight');
-            _datapoints[1] = Jeison.dataPoint('value', (totalShares / 1e6).toString());
-            _metadata[2] = Jeison.create(_datapoints);
+            // _datapoints[0] = Jeison.dataPoint('trait_type', 'total-weight');
+            // _datapoints[1] = Jeison.dataPoint('value', (totalShares / 1e6).toString());
+            // _metadata[2] = Jeison.create(_datapoints);
 
             _datapoints[0] = Jeison.dataPoint('trait_type', 'prize');
             _datapoints[1] = Jeison.dataPoint('value', (totalPrize / 1e15).toString());
             _metadata[3] = Jeison.create(_datapoints);
 
             _datapoints[0] = Jeison.dataPoint('trait_type', 'sales');
-            _datapoints[1] = Jeison.dataPoint('value', (claimableSales / 1e15).toString());
+            _datapoints[1] = Jeison.dataPoint('value', (totalSales / 1e15).toString());
             _metadata[4] = Jeison.create(_datapoints);
 
             if (state == STATE.ANNOUNCEMENT) {
@@ -114,19 +115,18 @@ contract NFTDescriptor is GameSchema {
                 _datapoints[1] = Jeison.dataPoint('value', teamString);
                 _metadata[0] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'weight');
-                _datapoints[1] = Jeison.dataPoint('value', badgeShares[_badgeId] / 1e6);
+                _datapoints[1] = Jeison.dataPoint('value', badgeWeight[_badgeId] / 1e6);
                 _metadata[1] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'score');
                 _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
                 _metadata[2] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'vote');
-                _datapoints[1] = Jeison.dataPoint('value', (uint160(badgeButtPlugVote[_badgeId]) >> 128).toHexString());
+                _datapoints[1] = Jeison.dataPoint('value', (uint160(badgeVote[_badgeId]) >> 128).toHexString());
                 _metadata[3] = Jeison.create(_datapoints);
                 _datapoints = new Jeison.DataPoint[](3);
                 _datapoints[0] = Jeison.dataPoint('display_type', 'boost_percentage');
                 _datapoints[1] = Jeison.dataPoint('trait_type', 'vote_participation');
-                _datapoints[2] =
-                    Jeison.dataPoint('value', participationBoost[_badgeId][badgeButtPlugVote[_badgeId]] / 100);
+                _datapoints[2] = Jeison.dataPoint('value', voteParticipation[_badgeId][badgeVote[_badgeId]] / 100);
                 _metadata[4] = Jeison.create(_datapoints);
             }
             // creates json
@@ -134,7 +134,7 @@ contract NFTDescriptor is GameSchema {
             string memory _packedStr = string(abi.encodePacked('Player #', uint32(_badgeId).toString()));
             _datapoints[0] = Jeison.dataPoint('name', _packedStr);
             _packedStr =
-                string(abi.encodePacked('Player Badge with bonded FiveOutOfNine#', bondedToken[_badgeId].toString()));
+                string(abi.encodePacked('Player Badge with bonded FiveOutOfNine#', (uint16(_badgeId >> 16)).toString()));
             _datapoints[1] = Jeison.dataPoint('description', _packedStr);
             _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
             _datapoints[3] = Jeison.arraify('attributes', _metadata);
