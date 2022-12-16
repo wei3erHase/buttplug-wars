@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.4 <0.9.0;
 
-import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, IERC20, console} from './Common.sol';
+import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, IERC20, ERC721, console} from './Common.sol';
 
 import {GameSchema} from 'contracts/GameSchema.sol';
 import {ButtPlugForTest} from 'contracts/for-test/ButtPlugForTest.sol';
@@ -161,6 +161,9 @@ contract E2EButtPlugWars is CommonE2EBase {
             assertLt(_remaining, 100, 'all sales were distributed');
         }
 
+        assertEq(ERC721(address(chess)).ownerOf(187), address(game));
+        game.withdrawStakedNft(badge5);
+        assertEq(ERC721(address(chess)).ownerOf(187), FIVEOUTOFNINE_WHALE);
         // console.log(game.tokenURI(_buttPlugBadgeId));
         // console.log(game.tokenURI(badge1));
         // console.log(game.tokenURI(0));

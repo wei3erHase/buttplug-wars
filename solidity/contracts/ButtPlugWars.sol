@@ -227,7 +227,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     /// @dev Allow players who claimed prize to withdraw their rewards
-    function withdrawRewards(uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
+    function withdrawRewards(uint256 _badgeId) external onlyBadgeAllowed(_badgeId) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
         if (_getTeam(_badgeId) != TEAM.MEDAL) revert WrongTeam();
 
@@ -247,6 +247,11 @@ contract ButtPlugWars is GameSchema, ERC721 {
         payable(msg.sender).safeTransferETH(_claimable);
     }
 
+    function withdrawStakedNft(uint256 _badgeId) external onlyBadgeAllowed(_badgeId) {
+        if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
+        _returnNftIfStaked(_badgeId);
+    }
+
     function _returnNftIfStaked(uint256 _badgeId) internal {
         if (_badgeId < 1 << 60) {
             uint256 _tokenId = uint16(_badgeId >> 16);
@@ -254,7 +259,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         }
     }
 
-    modifier onlyBadgeOwner(uint256 _badgeId) {
+    modifier onlyBadgeAllowed(uint256 _badgeId) {
         address _sender = msg.sender;
         address _owner = ownerOf[_badgeId];
         if (_owner != _sender && !isApprovedForAll[_owner][_sender] && _sender != getApproved[_badgeId]) {
@@ -474,7 +479,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         }
     }
 
-    function _voteButtPlug(address _buttPlug, uint256 _badgeId) internal onlyBadgeOwner(_badgeId) {
+    function _voteButtPlug(address _buttPlug, uint256 _badgeId) internal onlyBadgeAllowed(_badgeId) {
         TEAM _team = _getTeam(_badgeId);
         if (_team >= TEAM.STAFF) revert WrongTeam();
 
