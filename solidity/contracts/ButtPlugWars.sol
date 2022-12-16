@@ -36,6 +36,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
      * test distribution with voteParticipation
      * remove surplus state variables
      * resolve mulDiv for signed int
+     * fix getScore internal calculation
      */
 
     /*///////////////////////////////////////////////////////////////
@@ -148,9 +149,9 @@ contract ButtPlugWars is GameSchema, ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Allows the signer to mint a Player NFT, bonding a 5/9 and paying ETH price
-    function mintPlayerBadge(uint256 _tokenId, TEAM _team) external payable returns (uint256 _badgeId) {
+    // TODO: rm Team parameter
+    function mintPlayerBadge(uint256 _tokenId, TEAM) external payable returns (uint256 _badgeId) {
         if (state < STATE.TICKET_SALE || state >= STATE.GAME_OVER) revert WrongTiming();
-        if (_team >= TEAM.STAFF) revert WrongTeam();
 
         _validateFiveOutOfNine(_tokenId);
 
@@ -158,16 +159,23 @@ contract ButtPlugWars is GameSchema, ERC721 {
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
         uint256 _weight = _value.sqrt();
 
+        // players can only mint badges from the not-playing team
+        TEAM _team = TEAM((_roundT(block.timestamp, PERIOD) / PERIOD) % 2);
+        _team = _team == TEAM.ZERO ? TEAM.ONE : TEAM.ZERO;
+
         _badgeId = ++totalPlayers + (_tokenId << 16) + (uint256(_team) << 32);
         _safeMint(msg.sender, _badgeId);
         badgeWeight[_badgeId] = _weight;
 
+        // msg.sender must approve the FiveOutOfNine transfer
         ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(msg.sender, address(this), _tokenId);
     }
 
     /// @dev Allows the signer to register a ButtPlug NFT
     function mintButtPlugBadge(address _buttPlug) external returns (uint256 _badgeId) {
         if ((state < STATE.TICKET_SALE) || (state >= STATE.GAME_OVER)) revert WrongTiming();
+
+        // buttPlug contract must have an owner view method
         address _owner = IButtPlug(_buttPlug).owner();
 
         _badgeId = _calculateButtPlugBadge(_buttPlug, TEAM.STAFF);
@@ -177,11 +185,11 @@ contract ButtPlugWars is GameSchema, ERC721 {
     /// @dev Allows player to merge his badges' weight and score into a Medal NFT
     function mintMedal(uint256[] memory _badgeIds) external returns (uint256 _badgeId) {
         if (state != STATE.PREPARATIONS) revert WrongTiming();
+        uint256 _totalWeight;
+        uint256 _totalScore;
 
         uint256 _weight;
         uint256 _score;
-        uint256 _totalWeight;
-        uint256 _totalScore;
         for (uint256 _i; _i < _badgeIds.length; _i++) {
             (_weight, _score) = _processBadge(_badgeIds[_i]);
             _totalWeight += _weight;
@@ -189,12 +197,11 @@ contract ButtPlugWars is GameSchema, ERC721 {
         }
 
         // adds weight and score to scoreboard token
-        _totalWeight = _totalWeight.sqrt();
         badgeWeight[0] += _totalWeight;
         score[0] += int256(_totalScore);
 
-        // TODO: add ID to weight and shares
-        _badgeId = uint256(keccak256(abi.encodePacked(_badgeIds)));
+        // TODO: create an identifiable ID for the medal
+        _badgeId = uint256(uint256(uint160(msg.sender)) << 64) + (uint256(TEAM.MEDAL) << 32);
         badgeWeight[_badgeId] = _totalWeight;
         score[_badgeId] = int256(_totalScore);
 
@@ -202,22 +209,18 @@ contract ButtPlugWars is GameSchema, ERC721 {
         _safeMint(msg.sender, _badgeId);
     }
 
-    /// @notice Method requires a transferFrom (does the owner / allowed check)
     function _processBadge(uint256 _badgeId) internal returns (uint256 _weight, uint256 _score) {
         TEAM _team = _getTeam(_badgeId);
         if (_team > TEAM.STAFF) revert WrongTeam();
 
         // if bunny says so, all badges are winners
-        if (matchesWon[_team] >= 5 || bunnySaysSo) {
-            _weight = badgeWeight[_badgeId];
-            _weight *= _weight; // prize is claimed by inputted ETH (weight^2)
-        }
+        if (matchesWon[_team] >= 5 || bunnySaysSo) _weight = badgeWeight[_badgeId];
 
         // only positive score is accounted
         int256 _badgeScore = _getScore(_badgeId);
-        _score = _badgeScore > 0 ? uint256(_badgeScore) : 1;
+        _score = _badgeScore >= 0 ? uint256(_badgeScore) : 1;
 
-        // only badge owner allowed
+        // msg.sender should be the owner
         transferFrom(msg.sender, address(this), _badgeId);
         _returnNftIfStaked(_badgeId);
     }
@@ -225,19 +228,21 @@ contract ButtPlugWars is GameSchema, ERC721 {
     /// @dev Allow players who claimed prize to withdraw their rewards
     function withdrawRewards(uint256 _badgeId) external onlyBadgeOwner(_badgeId) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
-        if (_getTeam(_badgeId) != TEAM.MEDAL) revert WrongBadge();
+        if (_getTeam(_badgeId) != TEAM.MEDAL) revert WrongTeam();
 
+        // safe because medals should have only positive score values
+        uint256 _claimableSales = totalSales.mulDiv(uint256(score[_badgeId]), uint256(score[0]));
+        uint256 _claimable = _claimableSales - claimedSales[_badgeId];
+
+        // prize should be withdrawn only once per medal
         if (claimedSales[_badgeId] == 0) {
-            uint256 _withdrawnPrize = totalPrize.mulDiv(badgeWeight[_badgeId], badgeWeight[0]);
-            IPairManager(KP3R_LP).transfer(msg.sender, _withdrawnPrize);
+            IPairManager(KP3R_LP).balanceOf(address(this));
+            // payable(0).safeTransferETH(totalPrize.mulDiv(badgeWeight[_badgeId], badgeWeight[0]));
+            IPairManager(KP3R_LP).transfer(msg.sender, totalPrize.mulDiv(badgeWeight[_badgeId], badgeWeight[0]));
             claimedSales[_badgeId]++;
         }
 
-        // medals should have ++ score values
-        uint256 _claimableSales = totalSales.mulDiv(uint256(score[_badgeId]), uint256(score[0]));
-        uint256 _claimable = _claimableSales - claimedSales[_badgeId];
         claimedSales[_badgeId] += _claimable;
-
         payable(msg.sender).safeTransferETH(_claimable);
     }
 
@@ -307,8 +312,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     /// @dev Open method, allows signer (after game ended) to start unbond period
     function unbondLiquidity() external {
-        // if bunny says so next line won't revert
-        if (state != STATE.GAME_OVER || !bunnySaysSo) revert WrongTiming();
+        if (state != STATE.GAME_OVER) revert WrongTiming();
         totalPrize = IKeep3r(KEEP3R).liquidityAmount(address(this), KP3R_LP);
         IKeep3r(KEEP3R).unbondLiquidityFromJob(address(this), KP3R_LP, totalPrize);
         state = STATE.PREPARATIONS;
@@ -350,9 +354,6 @@ contract ButtPlugWars is GameSchema, ERC721 {
         uint256 _periodStart = _roundT(_timestamp, PERIOD);
         if ((state != STATE.GAME_RUNNING) || (_timestamp < canPlayNext)) revert WrongTiming();
 
-        // each match is limited to 69 moves
-        if (++matchMoves > 69) _checkMateRoutine();
-
         TEAM _team = TEAM((_periodStart / PERIOD) % 2);
         address _buttPlug = buttPlug[_team];
 
@@ -362,7 +363,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
             return;
         }
 
-        uint256 _voteWeight = voteWeight[_team][_buttPlug];
+        uint256 _votes = votes[_team][_buttPlug];
         uint256 _buttPlugBadgeId = _calculateButtPlugBadge(_buttPlug, _team);
 
         int8 _score;
@@ -387,9 +388,10 @@ contract ButtPlugWars is GameSchema, ERC721 {
         }
 
         matchScore[_team] += _score;
-        score[_buttPlugBadgeId] += _score * int256(_voteWeight);
+        score[_buttPlugBadgeId] += _score * int256(_votes);
 
-        if (_isCheckmate) _checkMateRoutine();
+        // each match is limited to 69 moves
+        if (_isCheckmate || ++matchMoves > 69) _checkMateRoutine();
     }
 
     /// @notice Externally called to try catch
@@ -421,7 +423,8 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     function _gameOver() internal view returns (bool) {
-        return matchesWon[TEAM.ZERO] == 5 || matchesWon[TEAM.ONE] == 5;
+        // if bunny says so, current match was the last one
+        return matchesWon[TEAM.ZERO] == 5 || matchesWon[TEAM.ONE] == 5 || bunnySaysSo;
     }
 
     function _roundT(uint256 _timestamp, uint256 _period) internal pure returns (uint256 _roundTimestamp) {
@@ -434,7 +437,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     /// @notice Adds +2 when eating a black piece, and substracts 1 when a white piece is eaten
-    /// @dev Supports having more pieces than before, situation that should not be possible in prod
+    /// @dev Supports having more pieces than before, situation that should not be possible in production
     function _calcMoveScore(uint256 _previousBoard, uint256 _newBoard) internal pure returns (int8 _score) {
         (int8 _whitePiecesBefore, int8 _blackPiecesBefore) = _countPieces(_previousBoard);
         (int8 _whitePiecesAfter, int8 _blackPiecesAfter) = _countPieces(_newBoard);
@@ -472,35 +475,33 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     function _voteButtPlug(address _buttPlug, uint256 _badgeId) internal onlyBadgeOwner(_badgeId) {
         TEAM _team = _getTeam(_badgeId);
-        if (_team >= TEAM.STAFF) revert WrongBadge();
+        if (_team >= TEAM.STAFF) revert WrongTeam();
 
         uint256 _weight = badgeWeight[_badgeId];
-        address _previousVote = badgeVote[_badgeId];
+        address _previousVote = vote[_badgeId];
+
         uint256 _buttPlugBadgeId;
         uint256 _voteParticipation;
-
         if (_previousVote != address(0)) {
             _buttPlugBadgeId = _calculateButtPlugBadge(_previousVote, _team);
-            voteWeight[_team][_previousVote] -= _weight;
+            votes[_team][_previousVote] -= _weight;
             _voteParticipation = voteParticipation[_badgeId][_previousVote];
-            score[_badgeId] += int256(
-                Math.mulDiv(
-                    // TODO: may be negative !!!
-                    uint256(score[_buttPlugBadgeId] - lastUpdatedScore[_badgeId][_buttPlugBadgeId]),
-                    _voteParticipation,
-                    BASE
-                )
-            );
+            int256 _lastVoteScore = score[_buttPlugBadgeId] - lastUpdatedScore[_badgeId][_buttPlugBadgeId];
+            if (_lastVoteScore >= 0) {
+                score[_badgeId] += int256(uint256(_lastVoteScore).mulDiv(_voteParticipation, BASE));
+            } else {
+                score[_badgeId] -= int256(uint256(-_lastVoteScore).mulDiv(_voteParticipation, BASE));
+            }
         }
 
         _buttPlugBadgeId = _calculateButtPlugBadge(_buttPlug, _team);
 
-        badgeVote[_badgeId] = _buttPlug;
-        voteWeight[_team][_buttPlug] += _weight;
+        vote[_badgeId] = _buttPlug;
+        votes[_team][_buttPlug] += _weight;
         lastUpdatedScore[_badgeId][_buttPlugBadgeId] = score[_buttPlugBadgeId];
-        voteParticipation[_badgeId][_buttPlug] = Math.mulDiv(_weight, BASE, voteWeight[_team][_buttPlug]);
+        voteParticipation[_badgeId][_buttPlug] = _weight.mulDiv(BASE, votes[_team][_buttPlug]);
 
-        if (voteWeight[_team][_buttPlug] > voteWeight[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
+        if (votes[_team][_buttPlug] > votes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
     }
 
     /*///////////////////////////////////////////////////////////////

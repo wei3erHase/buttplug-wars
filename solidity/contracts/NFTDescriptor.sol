@@ -121,12 +121,12 @@ contract NFTDescriptor is GameSchema {
                 _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
                 _metadata[2] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'vote');
-                _datapoints[1] = Jeison.dataPoint('value', (uint160(badgeVote[_badgeId]) >> 128).toHexString());
+                _datapoints[1] = Jeison.dataPoint('value', (uint160(vote[_badgeId]) >> 128).toHexString());
                 _metadata[3] = Jeison.create(_datapoints);
                 _datapoints = new Jeison.DataPoint[](3);
                 _datapoints[0] = Jeison.dataPoint('display_type', 'boost_percentage');
                 _datapoints[1] = Jeison.dataPoint('trait_type', 'vote_participation');
-                _datapoints[2] = Jeison.dataPoint('value', voteParticipation[_badgeId][badgeVote[_badgeId]] / 100);
+                _datapoints[2] = Jeison.dataPoint('value', voteParticipation[_badgeId][vote[_badgeId]] / 100);
                 _metadata[4] = Jeison.create(_datapoints);
             }
             // creates json
