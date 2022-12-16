@@ -29,13 +29,13 @@ contract E2EButtPlugWars is CommonE2EBase {
         fiveOutOfNine.setApprovalForAll(address(game), true);
 
         // uses pre-genesis 5/9s to mint badges
-        uint256 badge1 = game.mintPlayerBadge{value: 1 ether}(183, GameSchema.TEAM(0));
-        uint256 badge2 = game.mintPlayerBadge{value: 0.25 ether}(184, GameSchema.TEAM(0));
-        uint256 badge3 = game.mintPlayerBadge{value: 0.25 ether}(185, GameSchema.TEAM(0));
-        uint256 badge4 = game.mintPlayerBadge{value: 0.25 ether}(186, GameSchema.TEAM(0));
+        uint256 badge1 = game.mintPlayerBadge{value: 1 ether}(183);
+        uint256 badge2 = game.mintPlayerBadge{value: 0.25 ether}(184);
+        uint256 badge3 = game.mintPlayerBadge{value: 0.25 ether}(185);
+        uint256 badge4 = game.mintPlayerBadge{value: 0.25 ether}(186);
 
         vm.expectRevert(GameSchema.WrongNFT.selector);
-        game.mintPlayerBadge{value: 0.25 ether}(genesis, GameSchema.TEAM(0));
+        game.mintPlayerBadge{value: 0.25 ether}(genesis);
 
         uint256[] memory _badgesBatch = new uint256[](2);
         _badgesBatch[0] = badge2;
@@ -43,10 +43,10 @@ contract E2EButtPlugWars is CommonE2EBase {
 
         // checks value limits
         vm.expectRevert(GameSchema.WrongValue.selector);
-        game.mintPlayerBadge{value: 0.05 ether - 1}(187, GameSchema.TEAM(1));
+        game.mintPlayerBadge{value: 0.05 ether - 1}(187);
         vm.expectRevert(GameSchema.WrongValue.selector);
-        game.mintPlayerBadge{value: 1 ether + 1}(187, GameSchema.TEAM(1));
-        uint256 badge5 = game.mintPlayerBadge{value: 0.5 ether + 1}(187, GameSchema.TEAM(0));
+        game.mintPlayerBadge{value: 1 ether + 1}(187);
+        uint256 badge5 = game.mintPlayerBadge{value: 0.5 ether + 1}(187);
 
         {
             // ETH is artificially added to increase liquidity
@@ -96,16 +96,16 @@ contract E2EButtPlugWars is CommonE2EBase {
         _purchaseAtSudoswap(1);
 
         // move-minted before genesis can mint badge
-        uint256 preGenToken = game.mintPlayerBadge{value: 0.25 ether}(genesis - 1, GameSchema.TEAM(1));
+        uint256 preGenToken = game.mintPlayerBadge{value: 0.25 ether}(genesis - 1);
         game.voteButtPlug(address(testButtPlug), preGenToken);
 
         // move minted after genesis cannot mint badge
         vm.expectRevert(GameSchema.WrongNFT.selector);
-        game.mintPlayerBadge{value: 0.25 ether}(genesis, GameSchema.TEAM(0));
+        game.mintPlayerBadge{value: 0.25 ether}(genesis);
 
         // move minted during game can mint badge
         vm.warp(block.timestamp + 5 days); // other team badge
-        game.mintPlayerBadge{value: 0.25 ether}(postGenesis, GameSchema.TEAM(0));
+        game.mintPlayerBadge{value: 0.25 ether}(postGenesis);
         // eth collected in sales is pushed as liquidity
         uint256 _previousLiquidity = keep3r.liquidityAmount(address(game), KP3R_LP);
         game.pushLiquidity();

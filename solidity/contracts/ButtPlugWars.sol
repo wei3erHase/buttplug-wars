@@ -149,8 +149,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Allows the signer to mint a Player NFT, bonding a 5/9 and paying ETH price
-    // TODO: rm Team parameter
-    function mintPlayerBadge(uint256 _tokenId, TEAM) external payable returns (uint256 _badgeId) {
+    function mintPlayerBadge(uint256 _tokenId) external payable returns (uint256 _badgeId) {
         if (state < STATE.TICKET_SALE || state >= STATE.GAME_OVER) revert WrongTiming();
 
         _validateFiveOutOfNine(_tokenId);
@@ -162,6 +161,8 @@ contract ButtPlugWars is GameSchema, ERC721 {
         // players can only mint badges from the not-playing team
         TEAM _team = TEAM((_roundT(block.timestamp, PERIOD) / PERIOD) % 2);
         _team = _team == TEAM.ZERO ? TEAM.ONE : TEAM.ZERO;
+        // a player cannot be minted for a soon-to-win team
+        if (matchesWon[_team] == 4) revert WrongTeam();
 
         _badgeId = ++totalPlayers + (_tokenId << 16) + (uint256(_team) << 32);
         _safeMint(msg.sender, _badgeId);
