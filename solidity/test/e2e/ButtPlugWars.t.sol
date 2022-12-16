@@ -22,10 +22,6 @@ contract E2EButtPlugWars is CommonE2EBase {
         chess.mintMove((12 << 6) | 28, 3); // g + 3
         chess.mintMove((28 << 6) | 42, 3); // g + 4
 
-        {
-            assertEq(chess.board(), 0x3256230011111100000000000000000099999900BCDECB000000001);
-        }
-
         fiveOutOfNine.setApprovalForAll(address(game), true);
 
         // uses pre-genesis 5/9s to mint badges
@@ -33,6 +29,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         uint256 badge2 = game.mintPlayerBadge{value: 0.25 ether}(184);
         uint256 badge3 = game.mintPlayerBadge{value: 0.25 ether}(185);
         uint256 badge4 = game.mintPlayerBadge{value: 0.25 ether}(186);
+        uint256 _medal;
 
         vm.expectRevert(GameSchema.WrongNFT.selector);
         game.mintPlayerBadge{value: 0.25 ether}(genesis);
@@ -46,15 +43,14 @@ contract E2EButtPlugWars is CommonE2EBase {
         game.mintPlayerBadge{value: 0.05 ether - 1}(187);
         vm.expectRevert(GameSchema.WrongValue.selector);
         game.mintPlayerBadge{value: 1 ether + 1}(187);
-        uint256 badge5 = game.mintPlayerBadge{value: 0.5 ether + 1}(187);
+        uint256 badge5 = game.mintPlayerBadge{value: 0.5 ether}(187);
 
         {
             // ETH is artificially added to increase liquidity
             (bool _success, bytes memory _return) = payable(address(game)).call{value: 10 ether}('');
+            vm.warp(block.timestamp + 14 days + 1);
+            game.pushLiquidity();
         }
-
-        vm.warp(block.timestamp + 14 days + 1);
-        game.pushLiquidity();
 
         ButtPlugForTest testButtPlug = new ButtPlugForTest();
         uint256 _buttPlugBadgeId = game.mintButtPlugBadge(address(testButtPlug));
@@ -79,18 +75,19 @@ contract E2EButtPlugWars is CommonE2EBase {
 
         // (b)
         game.voteButtPlug(address(69), badge4); // 0.25 eth
-        // assertEq(ButtPlugWarsForTest(game).getTeamButtPlug(1), address(69), '(b)');
+        assertEq(ButtPlugWarsForTest(game).getTeamButtPlug(1), address(69), '(b)');
 
         // (c)
         game.voteButtPlug(address(testButtPlug), badge5); // 0.25 eth
-        // assertEq(ButtPlugWarsForTest(game).getTeamButtPlug(1), address(testButtPlug), '(c)');
+        assertEq(ButtPlugWarsForTest(game).getTeamButtPlug(1), address(testButtPlug), '(c)');
 
+        // no tokens have been added to the pool yet
         vm.expectRevert(bytes('Bonding curve error'));
         _purchaseAtSudoswap(1);
 
         vm.warp(block.timestamp + 5 days + 1);
         uint256 postGenesis = IERC20(address(chess)).totalSupply();
-        game.executeMove(); // g + 4
+        game.executeMove();
 
         // purchases 5/9 from official pool
         _purchaseAtSudoswap(1);
@@ -106,17 +103,17 @@ contract E2EButtPlugWars is CommonE2EBase {
         // move minted during game can mint badge
         vm.warp(block.timestamp + 5 days); // other team badge
         game.mintPlayerBadge{value: 0.25 ether}(postGenesis);
+
         // eth collected in sales is pushed as liquidity
         uint256 _previousLiquidity = keep3r.liquidityAmount(address(game), KP3R_LP);
         game.pushLiquidity();
         assertGt(keep3r.liquidityAmount(address(game), KP3R_LP), _previousLiquidity);
 
-        // until move ~16 the buttPlug has a positive score
+        /// @dev until move ~16 the buttPlug has a positive score
         _forceBruteChess(16);
         _purchaseAtSudoswap(16);
-        game.voteButtPlug(address(420), preGenToken);
-        assertEq(ButtPlugWarsForTest(game).getTeamButtPlug(0), address(420), '420');
 
+        /// @dev forces game to finish because of match move limit
         _forceBruteChess(2056);
 
         {
@@ -126,13 +123,13 @@ contract E2EButtPlugWars is CommonE2EBase {
             vm.warp(block.timestamp + 14 days + 1);
             address badgeOwner = game.ownerOf(badge1);
 
-            // Prize claim
+            // Preparations
             uint256[] memory _badgeList = new uint256[](2);
             _badgeList[0] = badge1;
             _badgeList[1] = preGenToken;
-            uint256 _medal = game.mintMedal(_badgeList);
+            _medal = game.mintMedal(_badgeList);
 
-            // Honor claim
+            // Prize ceremony
             game.withdrawLiquidity();
 
             // Prize distribution
@@ -149,7 +146,7 @@ contract E2EButtPlugWars is CommonE2EBase {
             game.updateSpotPrice();
             vm.expectRevert(GameSchema.WrongTiming.selector);
             game.updateSpotPrice();
-            vm.warp(block.timestamp + 59 days);
+            vm.warp(block.timestamp + 5 days);
             game.updateSpotPrice();
 
             // Honor re-distribution
@@ -164,9 +161,11 @@ contract E2EButtPlugWars is CommonE2EBase {
         assertEq(ERC721(address(chess)).ownerOf(187), address(game));
         game.withdrawStakedNft(badge5);
         assertEq(ERC721(address(chess)).ownerOf(187), FIVEOUTOFNINE_WHALE);
+
         // console.log(game.tokenURI(_buttPlugBadgeId));
         // console.log(game.tokenURI(badge1));
         // console.log(game.tokenURI(0));
+        // console.log(game.tokenURI(_medal));
     }
 
     function _purchaseAtSudoswap(uint256 _amount) internal {

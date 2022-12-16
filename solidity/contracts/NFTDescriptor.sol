@@ -179,6 +179,8 @@ contract NFTDescriptor is GameSchema {
             return Jeison.create(_datapoints).getBase64();
         }
 
+        if (_team == TEAM.MEDAL) {}
+
         revert WrongNFT();
     }
 
