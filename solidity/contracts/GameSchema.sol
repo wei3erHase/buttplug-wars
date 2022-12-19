@@ -83,17 +83,23 @@ abstract contract GameSchema {
     function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
         TEAM _team = _getTeam(_badgeId);
         if (_team < TEAM.STAFF) {
-            address _currentButtPlug = vote[_badgeId];
-            uint256 _currentButtPlugBadge = _calculateButtPlugBadge(_currentButtPlug, _team);
-            int256 _currentParticipation = int256(voteParticipation[_badgeId][_currentButtPlug]);
-            return score[_badgeId]
-                + _currentParticipation * (score[_currentButtPlugBadge] - lastUpdatedScore[_badgeId][_currentButtPlugBadge])
-                    / int256(BASE);
-        } else {
+            address _votedButtPlug = vote[_badgeId];
+            uint256 _voteParticipation = voteParticipation[_badgeId][_votedButtPlug];
+            uint256 _votedButtPlugBadge = _calculateButtPlugBadge(_votedButtPlug, _team);
+
+            int256 _lastVoteScore = score[_votedButtPlugBadge] - lastUpdatedScore[_badgeId][_votedButtPlugBadge];
+            if (_lastVoteScore >= 0) {
+                return score[_badgeId] + int256((uint256(_lastVoteScore) * _voteParticipation) / BASE);
+            } else {
+                return score[_badgeId] - int256((uint256(-_lastVoteScore) * _voteParticipation) / BASE);
+            }
+        } else if (_team == TEAM.STAFF) {
             address _buttPlug = _calculateButtPlugAddress(_badgeId);
             uint256 _buttPlugZERO = _calculateButtPlugBadge(_buttPlug, TEAM.ZERO);
             uint256 _buttPlugONE = _calculateButtPlugBadge(_buttPlug, TEAM.ONE);
             return score[_buttPlugZERO] + score[_buttPlugONE];
+        } else {
+            return score[_badgeId];
         }
     }
 }

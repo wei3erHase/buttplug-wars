@@ -31,12 +31,9 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     /**
      * TODO:
-     * move every var to GameSchema (fix tests)
-     * avoid re-submitting medals for kLPs
      * test distribution with voteParticipation
      * remove surplus state variables
      * resolve mulDiv for signed int
-     * fix getScore internal calculation
      */
 
     /*///////////////////////////////////////////////////////////////
@@ -206,7 +203,6 @@ contract ButtPlugWars is GameSchema, ERC721 {
         badgeWeight[_badgeId] = _totalWeight;
         score[_badgeId] = int256(_totalScore);
 
-        // TODO: Medal NFT description
         _safeMint(msg.sender, _badgeId);
     }
 
@@ -237,8 +233,6 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
         // prize should be withdrawn only once per medal
         if (claimedSales[_badgeId] == 0) {
-            IPairManager(KP3R_LP).balanceOf(address(this));
-            // payable(0).safeTransferETH(totalPrize.mulDiv(badgeWeight[_badgeId], badgeWeight[0]));
             IPairManager(KP3R_LP).transfer(msg.sender, totalPrize.mulDiv(badgeWeight[_badgeId], badgeWeight[0]));
             claimedSales[_badgeId]++;
         }
@@ -377,7 +371,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
         uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
         // gameplay is wrapped in a try/catch block to punish reverts
-        try ButtPlugWars(this).playMove{gas: BUTT_PLUG_GAS_LIMIT}(_board, _buttPlug) {
+        try ButtPlugWars(this).playMove(_board, _buttPlug) {
             uint256 _newBoard = IChess(FIVE_OUT_OF_NINE).board();
             _isCheckmate = _newBoard == CHECKMATE;
             if (_isCheckmate) {
@@ -401,11 +395,10 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     /// @notice Externally called to try catch
-    /// @dev Called with a gasLimit of BUTT_PLUG_GAS_LIMIT
     function playMove(uint256 _board, address _buttPlug) external {
         if (msg.sender != address(this)) revert WrongMethod();
 
-        uint256 _move = IButtPlug(_buttPlug).readMove(_board);
+        uint256 _move = IButtPlug(_buttPlug).readMove{gas: BUTT_PLUG_GAS_LIMIT}(_board);
         uint256 _depth = _calcDepth(_board, msg.sender);
         IChess(FIVE_OUT_OF_NINE).mintMove(_move, _depth);
     }
@@ -484,28 +477,19 @@ contract ButtPlugWars is GameSchema, ERC721 {
         if (_team >= TEAM.STAFF) revert WrongTeam();
 
         uint256 _weight = badgeWeight[_badgeId];
-        address _previousVote = vote[_badgeId];
 
-        uint256 _buttPlugBadgeId;
-        uint256 _voteParticipation;
-        if (_previousVote != address(0)) {
-            _buttPlugBadgeId = _calculateButtPlugBadge(_previousVote, _team);
-            votes[_team][_previousVote] -= _weight;
-            _voteParticipation = voteParticipation[_badgeId][_previousVote];
-            int256 _lastVoteScore = score[_buttPlugBadgeId] - lastUpdatedScore[_badgeId][_buttPlugBadgeId];
-            if (_lastVoteScore >= 0) {
-                score[_badgeId] += int256(uint256(_lastVoteScore).mulDiv(_voteParticipation, BASE));
-            } else {
-                score[_badgeId] -= int256(uint256(-_lastVoteScore).mulDiv(_voteParticipation, BASE));
-            }
+        address _previousButtPlug = vote[_badgeId];
+        if (_previousButtPlug != address(0)) {
+            votes[_team][_previousButtPlug] -= _weight;
+            score[_badgeId] = _getScore(_badgeId);
         }
-
-        _buttPlugBadgeId = _calculateButtPlugBadge(_buttPlug, _team);
 
         vote[_badgeId] = _buttPlug;
         votes[_team][_buttPlug] += _weight;
-        lastUpdatedScore[_badgeId][_buttPlugBadgeId] = score[_buttPlugBadgeId];
         voteParticipation[_badgeId][_buttPlug] = _weight.mulDiv(BASE, votes[_team][_buttPlug]);
+
+        uint256 _buttPlugBadgeId = _calculateButtPlugBadge(_buttPlug, _team);
+        lastUpdatedScore[_badgeId][_buttPlugBadgeId] = score[_buttPlugBadgeId];
 
         if (votes[_team][_buttPlug] > votes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
     }
