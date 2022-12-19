@@ -7,6 +7,7 @@ node_modules
 # Foundry files
 cache
 out-via-ir
+broadcast
 
 # Config files
 .env
@@ -23,3 +24,4 @@ broadcast/*/*/*
 
 **/.ipynb_checkpoints
 eth-sdk/abis
+notebooks
