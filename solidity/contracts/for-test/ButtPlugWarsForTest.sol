@@ -35,24 +35,6 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         return (_score, 0, _initialGas - gasleft());
     }
 
-    function logSimulation(int8 _score, uint8 _isCheckmate, uint256 _gasUsed) public view {
-        console.logString('score:');
-        console.logInt(_score);
-        console.logString('isCheckmate?');
-        console.logUint(_isCheckmate);
-        console.logString('gasUsed:');
-        console.logUint(_gasUsed);
-        console.logString('eth blocks used:');
-        console.logUint(_gasUsed / 30e6);
-    }
-
-    function logGameScore() public view {
-        console.logString('team ZERO won');
-        console.logUint(matchesWon[TEAM.ZERO]);
-        console.logString('team ONE won');
-        console.logUint(matchesWon[TEAM.ONE]);
-    }
-
     function _calcDepth(uint256, address) internal view virtual override returns (uint256) {
         return 3;
     }

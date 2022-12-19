@@ -15,6 +15,7 @@ contract ChessForTest is IChess, ERC721 {
 
     mapping(Board => uint256) boards;
     uint256 public totalSupply;
+    bool public isCheckmate;
 
     uint256 constant INITIAL_SUPPLY = 10;
 
@@ -31,7 +32,12 @@ contract ChessForTest is IChess, ERC721 {
 
     function tokenURI(uint256 id) public view virtual override returns (string memory) {}
 
+    function setCheckmate(bool _bool) external {
+        isCheckmate = _bool;
+    }
+
     function board() external view returns (uint256 _board) {
+        if (isCheckmate) return boards[Board.NEW_BOARD];
         return boards[Board(gasleft() % 4)];
     }
 

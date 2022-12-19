@@ -59,7 +59,7 @@ contract DeployGoerli is Deploy {
 }
 
 contract DeployGoerliDescriptor is Deploy {
-    address payable constant BUTT_PLUG_WARS = payable(0x9b15FCa4d8F48cD5ef50ba337340B4eE21D8B2A1);
+    address payable constant BUTT_PLUG_WARS = payable(0x676a8e2B53A20D2904Bf03e9F79CeDa537895b20);
 
     function run() external {
         vm.startBroadcast();

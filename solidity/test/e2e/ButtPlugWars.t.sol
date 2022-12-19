@@ -181,11 +181,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         for (uint256 _i; _i < _times; ++_i) {
             // loads credits to execute
             vm.warp(block.timestamp + 5 days);
-
             if (game.state() == GameSchema.STATE.GAME_OVER) break;
-
-            if (chess.board() == 0x3256230011111100000000000000000099999900BCDECB000000001) game.logGameScore();
-
             game.executeMove();
         }
     }
