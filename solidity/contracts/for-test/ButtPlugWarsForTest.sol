@@ -15,6 +15,14 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         return buttPlug[TEAM(_team)];
     }
 
+    function getScore(uint256 _badgeId) public view returns (int256 _score) {
+        return _getScore(_badgeId);
+    }
+
+    function getWeight(uint256 _badgeId) public view returns (uint256 _weight) {
+        return badgeWeight[_badgeId];
+    }
+
     function simulateButtPlug(IButtPlug _buttPlug, uint256 _depth, uint256 _steps)
         public
         returns (int8 _score, uint8 _isCheckmate, uint256 _gasUsed)
