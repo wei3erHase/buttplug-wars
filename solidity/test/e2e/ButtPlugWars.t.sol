@@ -8,7 +8,7 @@ import {ButtPlugForTest} from 'contracts/for-test/ButtPlugForTest.sol';
 import {ILSSVMRouter} from 'interfaces/ISudoswap.sol';
 
 contract E2EButtPlugWars is CommonE2EBase {
-    function test_E2E() public {
+    function testRoadmap_E2E() public {
         vm.warp(block.timestamp + 10 days);
 
         uint256 genesis = IERC20(address(chess)).totalSupply();
@@ -31,6 +31,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         uint256 badge4 = game.mintPlayerBadge{value: 0.25 ether}(186);
         uint256 _medal;
 
+        // postGenesis tokens are not whitelisted
         vm.expectRevert(GameSchema.WrongNFT.selector);
         game.mintPlayerBadge{value: 0.25 ether}(genesis);
 
@@ -161,11 +162,6 @@ contract E2EButtPlugWars is CommonE2EBase {
         assertEq(ERC721(address(chess)).ownerOf(187), address(game));
         game.withdrawStakedNft(badge5);
         assertEq(ERC721(address(chess)).ownerOf(187), FIVEOUTOFNINE_WHALE);
-
-        // console.log(game.tokenURI(_buttPlugBadgeId));
-        // console.log(game.tokenURI(badge1));
-        // console.log(game.tokenURI(0));
-        // console.log(game.tokenURI(_medal));
     }
 
     function _purchaseAtSudoswap(uint256 _amount) internal {

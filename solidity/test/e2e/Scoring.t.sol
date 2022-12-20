@@ -6,8 +6,8 @@ import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, IERC20, ERC721, consol
 import {ChessForTest} from 'contracts/for-test/ChessForTest.sol';
 import {ButtPlugForTest} from 'contracts/for-test/ButtPlugForTest.sol';
 
-contract E2EButtPlugWars is CommonE2EBase {
-    function test_E2E() public {
+contract E2EScoring is CommonE2EBase {
+    function testScoring_E2E() public {
         {
             chess = new ChessForTest();
 
