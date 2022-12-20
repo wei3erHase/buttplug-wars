@@ -105,7 +105,7 @@ contract NFTDescriptor is GameSchema {
         TEAM _team = _getTeam(_badgeId);
 
         /* Player metadata */
-        if (_team < TEAM.STAFF) {
+        if (_team < TEAM.BUTTPLUG) {
             Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](5);
             Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
 
@@ -143,7 +143,7 @@ contract NFTDescriptor is GameSchema {
         }
 
         /* ButtPlug metadata */
-        if (_team == TEAM.STAFF) {
+        if (_team == TEAM.BUTTPLUG) {
             Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](4);
             Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
 

@@ -29,13 +29,6 @@ contract ButtPlugWars is GameSchema, ERC721 {
     using SafeTransferLib for address payable;
     using Math for uint256;
 
-    /**
-     * TODO:
-     * test distribution with voteParticipation
-     * remove surplus state variables
-     * resolve mulDiv for signed int
-     */
-
     /*///////////////////////////////////////////////////////////////
                             ADDRESS REGISTRY
     //////////////////////////////////////////////////////////////*/
@@ -176,7 +169,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         // buttPlug contract must have an owner view method
         address _owner = IButtPlug(_buttPlug).owner();
 
-        _badgeId = _calculateButtPlugBadge(_buttPlug, TEAM.STAFF);
+        _badgeId = _calculateButtPlugBadge(_buttPlug, TEAM.BUTTPLUG);
         _safeMint(_owner, _badgeId);
     }
 
@@ -198,7 +191,6 @@ contract ButtPlugWars is GameSchema, ERC721 {
         badgeWeight[0] += _totalWeight;
         score[0] += int256(_totalScore);
 
-        // TODO: create an identifiable ID for the medal
         _badgeId = uint256(uint256(uint160(msg.sender)) << 64) + (uint256(TEAM.MEDAL) << 32);
         badgeWeight[_badgeId] = _totalWeight;
         score[_badgeId] = int256(_totalScore);
@@ -208,7 +200,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     function _processBadge(uint256 _badgeId) internal returns (uint256 _weight, uint256 _score) {
         TEAM _team = _getTeam(_badgeId);
-        if (_team > TEAM.STAFF) revert WrongTeam();
+        if (_team > TEAM.BUTTPLUG) revert WrongTeam();
 
         // if bunny says so, all badges are winners
         if (matchesWon[_team] >= 5 || bunnySaysSo) _weight = badgeWeight[_badgeId];
@@ -474,7 +466,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     function _voteButtPlug(address _buttPlug, uint256 _badgeId) internal onlyBadgeAllowed(_badgeId) {
         TEAM _team = _getTeam(_badgeId);
-        if (_team >= TEAM.STAFF) revert WrongTeam();
+        if (_team >= TEAM.BUTTPLUG) revert WrongTeam();
 
         uint256 _weight = badgeWeight[_badgeId];
 

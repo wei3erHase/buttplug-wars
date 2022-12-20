@@ -37,7 +37,7 @@ abstract contract GameSchema {
     enum TEAM {
         ZERO,
         ONE,
-        STAFF,
+        BUTTPLUG,
         MEDAL
     }
 
@@ -73,7 +73,7 @@ abstract contract GameSchema {
     }
 
     function _calculateButtPlugAddress(uint256 _badgeId) internal pure returns (address _buttPlug) {
-        return address(uint160((_badgeId - (uint256(TEAM.STAFF) << 32)) >> 64));
+        return address(uint160((_badgeId - (uint256(TEAM.BUTTPLUG) << 32)) >> 64));
     }
 
     function _getTeam(uint256 _badgeId) internal pure returns (TEAM _team) {
@@ -82,7 +82,7 @@ abstract contract GameSchema {
 
     function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
         TEAM _team = _getTeam(_badgeId);
-        if (_team < TEAM.STAFF) {
+        if (_team < TEAM.BUTTPLUG) {
             address _votedButtPlug = vote[_badgeId];
             uint256 _voteParticipation = voteParticipation[_badgeId][_votedButtPlug];
             uint256 _votedButtPlugBadge = _calculateButtPlugBadge(_votedButtPlug, _team);
@@ -93,7 +93,7 @@ abstract contract GameSchema {
             } else {
                 return score[_badgeId] - int256((uint256(-_lastVoteScore) * _voteParticipation) / BASE);
             }
-        } else if (_team == TEAM.STAFF) {
+        } else if (_team == TEAM.BUTTPLUG) {
             address _buttPlug = _calculateButtPlugAddress(_badgeId);
             uint256 _buttPlugZERO = _calculateButtPlugBadge(_buttPlug, TEAM.ZERO);
             uint256 _buttPlugONE = _calculateButtPlugBadge(_buttPlug, TEAM.ONE);
