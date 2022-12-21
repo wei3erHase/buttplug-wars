@@ -12,7 +12,6 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import {GameSchema} from './GameSchema.sol';
-import {ERC721} from 'isolmate/tokens/ERC721.sol';
 
 import {IButtPlug, IChess} from 'interfaces/IGame.sol';
 import {IKeep3r, IPairManager} from 'interfaces/IKeep3r.sol';
@@ -20,14 +19,15 @@ import {LSSVMPair, LSSVMPairETH, ILSSVMPairFactory, ICurve, IERC721} from 'inter
 import {ISwapRouter} from 'interfaces/IUniswap.sol';
 import {IERC20, IWeth} from 'interfaces/IERC20.sol';
 
-import {SafeTransferLib} from 'isolmate/utils/SafeTransferLib.sol';
-import {Math} from 'openzeppelin-contracts/utils/math/Math.sol';
+import {ERC721} from 'solmate/tokens/ERC721.sol';
+import {SafeTransferLib} from 'solmate/utils/SafeTransferLib.sol';
+import {FixedPointMathLib} from 'solmate/utils/FixedPointMathLib.sol';
 
 /// @notice Contract will not be audited, proceed at your own risk
 /// @dev THE_RABBIT will not be responsible for any loss of funds
 contract ButtPlugWars is GameSchema, ERC721 {
     using SafeTransferLib for address payable;
-    using Math for uint256;
+    using FixedPointMathLib for uint256;
 
     /*///////////////////////////////////////////////////////////////
                             ADDRESS REGISTRY
@@ -220,12 +220,12 @@ contract ButtPlugWars is GameSchema, ERC721 {
         if (_getTeam(_badgeId) != TEAM.MEDAL) revert WrongTeam();
 
         // safe because medals should have only positive score values
-        uint256 _claimableSales = totalSales.mulDiv(uint256(score[_badgeId]), uint256(score[0]));
+        uint256 _claimableSales = totalSales.mulDivDown(uint256(score[_badgeId]), uint256(score[0]));
         uint256 _claimable = _claimableSales - claimedSales[_badgeId];
 
         // prize should be withdrawn only once per medal
         if (claimedSales[_badgeId] == 0) {
-            IPairManager(KP3R_LP).transfer(msg.sender, totalPrize.mulDiv(badgeWeight[_badgeId], badgeWeight[0]));
+            IPairManager(KP3R_LP).transfer(msg.sender, totalPrize.mulDivDown(badgeWeight[_badgeId], badgeWeight[0]));
             claimedSales[_badgeId]++;
         }
 
@@ -247,7 +247,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     modifier onlyBadgeAllowed(uint256 _badgeId) {
         address _sender = msg.sender;
-        address _owner = ownerOf[_badgeId];
+        address _owner = _ownerOf[_badgeId];
         if (_owner != _sender && !isApprovedForAll[_owner][_sender] && _sender != getApproved[_badgeId]) {
             revert WrongBadge();
         }
@@ -478,7 +478,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
         vote[_badgeId] = _buttPlug;
         votes[_team][_buttPlug] += _weight;
-        voteParticipation[_badgeId][_buttPlug] = _weight.mulDiv(BASE, votes[_team][_buttPlug]);
+        voteParticipation[_badgeId][_buttPlug] = _weight.mulDivDown(BASE, votes[_team][_buttPlug]);
 
         uint256 _buttPlugBadgeId = _calculateButtPlugBadge(_buttPlug, _team);
         lastUpdatedScore[_badgeId][_buttPlugBadgeId] = score[_buttPlugBadgeId];
@@ -516,7 +516,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     function tokenURI(uint256 _badgeId) public view virtual override returns (string memory) {
-        if (ownerOf[_badgeId] == address(0)) revert WrongNFT();
+        if (_ownerOf[_badgeId] == address(0)) revert WrongNFT();
         (bool _success, bytes memory _data) =
             address(this).staticcall(abi.encodeWithSignature('_tokenURI(uint256)', _badgeId));
 
