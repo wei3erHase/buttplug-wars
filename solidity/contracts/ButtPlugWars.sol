@@ -33,7 +33,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
                             ADDRESS REGISTRY
     //////////////////////////////////////////////////////////////*/
 
-    address immutable THE_RABBIT;
+    address THE_RABBIT;
     address immutable FIVE_OUT_OF_NINE;
     address immutable WETH_9;
     address immutable KP3R_V1;
@@ -127,6 +127,11 @@ contract ButtPlugWars is GameSchema, ERC721 {
     function saySo() external onlyRabbit {
         if (state == STATE.ANNOUNCEMENT) state = STATE.CANCELLED;
         else bunnySaysSo = true;
+    }
+
+    /// @dev Permissioned method, allows rabbit to revoke his permissions
+    function suicide() external onlyRabbit {
+        delete THE_RABBIT;
     }
 
     modifier onlyRabbit() {
