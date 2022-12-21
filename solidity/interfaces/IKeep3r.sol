@@ -7,8 +7,14 @@ interface IPairManager is IERC20 {
     function mint(uint256, uint256, uint256, uint256, address) external returns (uint128);
 }
 
+interface IKeep3rHelper {
+    function quote(uint256) external view returns (uint256);
+}
+
 interface IKeep3r {
     function keep3rV1() external view returns (address);
+
+    function keep3rHelper() external view returns (address);
 
     function addJob(address) external;
 

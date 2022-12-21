@@ -14,7 +14,7 @@ pragma solidity >=0.8.4 <0.9.0;
 import {GameSchema} from './GameSchema.sol';
 
 import {IButtPlug, IChess} from 'interfaces/IGame.sol';
-import {IKeep3r, IPairManager} from 'interfaces/IKeep3r.sol';
+import {IKeep3r, IKeep3rHelper, IPairManager} from 'interfaces/IKeep3r.sol';
 import {LSSVMPair, LSSVMPairETH, ILSSVMPairFactory, ICurve, IERC721} from 'interfaces/ISudoswap.sol';
 import {ISwapRouter} from 'interfaces/IUniswap.sol';
 import {IERC20, IWeth} from 'interfaces/IERC20.sol';
@@ -280,6 +280,9 @@ contract ButtPlugWars is GameSchema, ERC721 {
         if (_eth < 0.05 ether) revert WrongTiming();
         IWeth(WETH_9).deposit{value: _eth}();
 
+        address _keep3rHelper = IKeep3r(KEEP3R).keep3rHelper();
+        uint256 _quote = IKeep3rHelper(_keep3rHelper).quote(_eth / 2);
+
         ISwapRouter.ExactInputSingleParams memory _params = ISwapRouter.ExactInputSingleParams({
             tokenIn: WETH_9,
             tokenOut: KP3R_V1,
@@ -287,7 +290,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
             recipient: address(this),
             deadline: block.timestamp,
             amountIn: _eth / 2,
-            amountOutMinimum: 0,
+            amountOutMinimum: _quote.mulDivDown(95, 100),
             sqrtPriceLimitX96: 0
         });
         ISwapRouter(SWAP_ROUTER).exactInputSingle(_params);
