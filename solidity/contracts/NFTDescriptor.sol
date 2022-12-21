@@ -27,7 +27,7 @@ contract NFTDescriptor is GameSchema {
     function _tokenURI(uint256 _badgeId) public view virtual returns (string memory _tokenURI) {
         /* Scoreboard */
         if (_badgeId == 0) {
-            Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](6);
+            Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](5);
             Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
             Jeison.DataPoint[] memory _longDatapoints = new Jeison.DataPoint[](3);
 
@@ -53,43 +53,43 @@ contract NFTDescriptor is GameSchema {
             _datapoints[1] = Jeison.dataPoint('value', totalPlayers.toString());
             _metadata[1] = Jeison.create(_datapoints);
 
-            // _datapoints[0] = Jeison.dataPoint('trait_type', 'total-weight');
-            // _datapoints[1] = Jeison.dataPoint('value', (totalShares / 1e6).toString());
-            // _metadata[2] = Jeison.create(_datapoints);
-
             _datapoints[0] = Jeison.dataPoint('trait_type', 'prize');
             _datapoints[1] = Jeison.dataPoint('value', (totalPrize / 1e15).toString());
-            _metadata[3] = Jeison.create(_datapoints);
+            _metadata[2] = Jeison.create(_datapoints);
 
             _datapoints[0] = Jeison.dataPoint('trait_type', 'sales');
             _datapoints[1] = Jeison.dataPoint('value', (totalSales / 1e15).toString());
-            _metadata[4] = Jeison.create(_datapoints);
+            _metadata[3] = Jeison.create(_datapoints);
 
             if (state == STATE.ANNOUNCEMENT) {
                 _longDatapoints[0] = Jeison.dataPoint('trait_type', 'sales-start');
                 _longDatapoints[1] = Jeison.dataPoint('value', canStartSales);
                 _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');
-                _metadata[5] = Jeison.create(_longDatapoints);
+                _metadata[4] = Jeison.create(_longDatapoints);
             } else if (state == STATE.TICKET_SALE) {
                 _longDatapoints[0] = Jeison.dataPoint('trait_type', 'game-start');
                 _longDatapoints[1] = Jeison.dataPoint('value', canPushLiquidity);
                 _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');
-                _metadata[5] = Jeison.create(_longDatapoints);
+                _metadata[4] = Jeison.create(_longDatapoints);
             } else if (state == STATE.GAME_RUNNING) {
                 _longDatapoints[0] = Jeison.dataPoint('trait_type', 'can-play-next');
                 _longDatapoints[1] = Jeison.dataPoint('value', canPlayNext);
                 _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');
-                _metadata[5] = Jeison.create(_longDatapoints);
-            } else if (state == STATE.GAME_OVER || state == STATE.PREPARATIONS) {
+                _metadata[4] = Jeison.create(_longDatapoints);
+            } else if (state == STATE.GAME_OVER) {
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'can-unbond-liquidity');
+                _datapoints[1] = Jeison.dataPoint('value', true);
+                _metadata[4] = Jeison.create(_datapoints);
+            } else if (state == STATE.PREPARATIONS) {
                 _longDatapoints[0] = Jeison.dataPoint('trait_type', 'rewards-start');
                 _longDatapoints[1] = Jeison.dataPoint('value', IKeep3r(KEEP3R).canWithdrawAfter(address(this), KP3R_LP));
                 _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');
-                _metadata[5] = Jeison.create(_longDatapoints);
+                _metadata[4] = Jeison.create(_longDatapoints);
             } else if (state == STATE.PRIZE_CEREMONY) {
                 _longDatapoints[0] = Jeison.dataPoint('trait_type', 'can-update-next');
                 _longDatapoints[1] = Jeison.dataPoint('value', canUpdateSpotPriceNext);
                 _longDatapoints[2] = Jeison.dataPoint('display_type', 'date');
-                _metadata[5] = Jeison.create(_longDatapoints);
+                _metadata[4] = Jeison.create(_longDatapoints);
             }
 
             // creates json
@@ -131,11 +131,11 @@ contract NFTDescriptor is GameSchema {
             }
             // creates json
             _datapoints = new Jeison.DataPoint[](4);
-            string memory _packedStr = string(abi.encodePacked('Player #', uint32(_badgeId).toString()));
-            _datapoints[0] = Jeison.dataPoint('name', _packedStr);
-            _packedStr =
+            string memory _descriptionStr = string(abi.encodePacked('Player #', uint16(_badgeId).toString()));
+            _datapoints[0] = Jeison.dataPoint('name', _descriptionStr);
+            _descriptionStr =
                 string(abi.encodePacked('Player Badge with bonded FiveOutOfNine#', (uint16(_badgeId >> 16)).toString()));
-            _datapoints[1] = Jeison.dataPoint('description', _packedStr);
+            _datapoints[1] = Jeison.dataPoint('description', _descriptionStr);
             _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
             _datapoints[3] = Jeison.arraify('attributes', _metadata);
 
@@ -149,7 +149,6 @@ contract NFTDescriptor is GameSchema {
 
             {
                 address _buttPlug = _calculateButtPlugAddress(_badgeId);
-
                 uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
                 (bool _isLegal, uint256 _simMove, uint256 _simGasUsed, string memory _description) =
                     _simulateButtPlug(_buttPlug, _board);
@@ -168,10 +167,12 @@ contract NFTDescriptor is GameSchema {
             }
             // creates json
             _datapoints = new Jeison.DataPoint[](4);
-            _datapoints[0] = Jeison.dataPoint('name', 'ButtPlug');
-            string memory _descriptionStr = string(
-                abi.encodePacked('ButtPlug Badge for contract at ', _calculateButtPlugAddress(_badgeId).toHexString())
-            );
+            address _buttPlug = _calculateButtPlugAddress(_badgeId);
+            string memory _descriptionStr =
+                string(abi.encodePacked('ButtPlug ', (uint160(_buttPlug) >> 128).toHexString()));
+            _datapoints[0] = Jeison.dataPoint('name', _descriptionStr);
+            _descriptionStr = string(abi.encodePacked('ButtPlug Badge for contract at ', _buttPlug.toHexString()));
+
             _datapoints[1] = Jeison.dataPoint('description', _descriptionStr);
             _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
             _datapoints[3] = Jeison.arraify('attributes', _metadata);
@@ -179,7 +180,33 @@ contract NFTDescriptor is GameSchema {
             return Jeison.create(_datapoints).getBase64();
         }
 
-        if (_team == TEAM.MEDAL) {}
+        /* Medal metadata */
+        if (_team == TEAM.MEDAL) {
+            Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](2);
+            Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
+
+            {
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'score');
+                _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
+                _metadata[0] = Jeison.create(_datapoints);
+                _datapoints[0] = Jeison.dataPoint('trait_type', 'weight');
+                _datapoints[1] = Jeison.dataPoint('value', badgeWeight[_badgeId] / 1e6);
+                _metadata[1] = Jeison.create(_datapoints);
+            }
+
+            // creates json
+            _datapoints = new Jeison.DataPoint[](4);
+            address _minter = address(uint160(_badgeId >> 64));
+            string memory _descriptionStr = string(abi.encodePacked('Medal ', (uint160(_minter) >> 128).toHexString()));
+            _datapoints[0] = Jeison.dataPoint('name', _descriptionStr);
+            _descriptionStr = string(abi.encodePacked('Medal for player ', _minter.toHexString()));
+
+            _datapoints[1] = Jeison.dataPoint('description', _descriptionStr);
+            _datapoints[2] = Jeison.dataPoint('image_data', _drawSVG());
+            _datapoints[3] = Jeison.arraify('attributes', _metadata);
+
+            return Jeison.create(_datapoints).getBase64();
+        }
 
         revert WrongNFT();
     }
