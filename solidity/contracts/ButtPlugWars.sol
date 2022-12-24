@@ -486,7 +486,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
         vote[_badgeId] = _buttPlug;
         votes[_team][_buttPlug] += _weight;
-        voteParticipation[_badgeId][_buttPlug] = _weight.mulDivDown(BASE, votes[_team][_buttPlug]);
+        voteParticipation[_badgeId][_buttPlug] = _weight.sqrt().mulDivDown(BASE, votes[_team][_buttPlug].sqrt());
 
         uint256 _buttPlugBadgeId = _calculateButtPlugBadge(_buttPlug, _team);
         lastUpdatedScore[_badgeId][_buttPlugBadgeId] = score[_buttPlugBadgeId];

@@ -56,16 +56,16 @@ contract E2EScoring is CommonE2EBase {
         * Alice: 1eth => 1000 mWeis
         * Bob: 0.64eth => 800 mWeis
         * Carl: 0.16 eth => 400 mWeis
-        * The participation is determined by the percentage of the voting weight at the time of voting
+        * The participation is determined by sqrt(weight)/sqrt(totalVotingWeight) at the time of voting
         * When Alice votes, there is no previous voting weight, so she gets 100% participation
-        * When Bob votes, his participation is calculated by wBob / wButtplug (Bob + Alice)
+        * When Bob votes, his participation is calculated by sqrt(wBob) / sqrt(wButtplug [Bob + Alice])
         */
 
-        // Alice participation = 1000 / 1000 = 100%
+        // Alice participation = sqrt(1000) / sqrt(1000) = 100%
         game.voteButtPlug(address(buttPlugA), alice);
-        // Bob participation = 800 / 1800 = 44.44%
+        // Bob participation = sqrt(800) / sqrt(1800) = 66.66%
         game.voteButtPlug(address(buttPlugA), bob);
-        // Carl participation = 400 / 2200 = 18.18%
+        // Carl participation = sqrt(400) / sqrt(2200) = 42.64%
         game.voteButtPlug(address(buttPlugA), carl);
 
         // Badges can only be minted from the not-playing team
@@ -82,13 +82,14 @@ contract E2EScoring is CommonE2EBase {
 
         assertEq(buttPlugScore, int256(2200e6) * 2); // First move is +2
         assertEq(buttPlugScore, aliceScore); // Alice has 100% participation
-        assertEq(buttPlugScore, bobScore * 10_000 / 4444); // Bob has 44.44%
-        assertEq(buttPlugScore, carlScore * 10_000 / 1818); // Carl has 18.18%
+        assertEq(buttPlugScore, bobScore * 10_000 / 6666); // Bob has 66.66%
+        assertEq(buttPlugScore, carlScore * 10_000 / 4264); // Carl has 42.64%
 
         // Deploy new buttplug
         ButtPlugForTest buttPlugB = new ButtPlugForTest();
         uint256 _buttPlugBBadge = game.mintButtPlugBadge(address(buttPlugB));
 
+        // Carl participation = sqrt(400) / sqrt(400) = 100%
         game.voteButtPlug(address(buttPlugB), carl); // Carl has 100% participation
 
         vm.warp(block.timestamp + 10 days);
@@ -102,7 +103,8 @@ contract E2EScoring is CommonE2EBase {
         assertEq(game.getScore(_buttPlugBBadge), 0); // Buttplug B didn't score any points
         assertEq(carlScore, game.getScore(carl)); // Carl didn't score any points
 
-        game.voteButtPlug(address(buttPlugB), bob); // Bob has 66.66% participation
+        // Bob participation = sqrt(800) / sqrt(1200) = 81.64%
+        game.voteButtPlug(address(buttPlugB), bob); // Bob has 81.64% participation
 
         bobScore = game.getScore(bob);
         vm.warp(block.timestamp + 10 days);
@@ -110,7 +112,7 @@ contract E2EScoring is CommonE2EBase {
 
         buttPlugScore = game.getScore(_buttPlugBBadge);
         assertEq(aliceScore, game.getScore(alice)); // Alice didn't score any points
-        assertEq(buttPlugScore, (game.getScore(bob) - bobScore) * 10_000 / 6666);
+        assertEq(buttPlugScore, (game.getScore(bob) - bobScore) * 10_000 / 8164);
 
         /* SCORING CHECKS */
         {
@@ -126,25 +128,25 @@ contract E2EScoring is CommonE2EBase {
 
             /**
              * Bob score
-             * Move 1: Bob had 44.44% of buttPlug A = 2200 * 2 * 44.44% = 1955
-             * Move 2: Bob had 44.44% of buttPlug A = 1800 * -1 * 44.44% = 799
-             * Move 3: Bob had 66.66% of buttPlug B (b+c) = 1200 * 3 * 66.66% = 2399
-             * Total: 3555
+             * Move 1: Bob had 66.66% of buttPlug A = 2200 * 2 * 66.66% = 2933
+             * Move 2: Bob had 66.66% of buttPlug A = 1800 * -1 * 66.66% = -1199
+             * Move 3: Bob had 81.64% of buttPlug B (b+c) = 1200 * 3 * 81.64% = 2939
+             * Total: 4673
              */
             bobScore = game.getScore(bob);
-            assertLt(bobScore, 3556e6);
-            assertGt(bobScore, 3555e6);
+            assertLt(bobScore, 4674e6);
+            assertGt(bobScore, 4672e6);
 
             /**
              * Carl score
-             * Move 1: Carl had 18.18% of buttPlug A = 2200 * 2 * 18.18% = 799
+             * Move 1: Carl had 42.64% of buttPlug A = 2200 * 2 * 42.64% = 1876
              * Move 2: 0
              * Move 3: Carl had 100% of buttPlug B (b+c) = 1200 * 3 = 3600
-             * Total: 4399
+             * Total: 5476
              */
             carlScore = game.getScore(carl);
-            assertLt(carlScore, 4400e6);
-            assertGt(carlScore, 4399e6);
+            assertLt(carlScore, 5477e6);
+            assertGt(carlScore, 5475e6);
         }
 
         game.unbondLiquidity(); // starts medal minting
@@ -160,6 +162,7 @@ contract E2EScoring is CommonE2EBase {
         }
 
         assertEq(game.getScore(medal), aliceScore + bobScore + carlScore);
+
         {
             uint256 medalWeight;
             medalWeight += game.getWeight(alice);
