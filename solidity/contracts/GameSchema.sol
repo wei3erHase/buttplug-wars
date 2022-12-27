@@ -55,10 +55,9 @@ abstract contract GameSchema {
     mapping(uint256 => uint256) badgeWeight;
 
     /* Vote mechanics */
-    mapping(uint256 => address) vote;
+    mapping(uint256 => uint256) vote;
     mapping(TEAM => address) buttPlug;
     mapping(TEAM => mapping(address => uint256)) votes;
-    mapping(uint256 => mapping(address => uint256)) voteParticipation;
 
     /* Prize mechanics */
     uint256 totalPrize;
@@ -83,8 +82,10 @@ abstract contract GameSchema {
     function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
         TEAM _team = _getTeam(_badgeId);
         if (_team < TEAM.BUTTPLUG) {
-            address _votedButtPlug = vote[_badgeId];
-            uint256 _voteParticipation = voteParticipation[_badgeId][_votedButtPlug];
+            // player badge
+            uint256 _previousVote = vote[_badgeId];
+            address _votedButtPlug = address(uint160(_previousVote >> 32));
+            uint256 _voteParticipation = uint32(_previousVote);
             uint256 _votedButtPlugBadge = _calculateButtPlugBadge(_votedButtPlug, _team);
 
             int256 _lastVoteScore = score[_votedButtPlugBadge] - lastUpdatedScore[_badgeId][_votedButtPlugBadge];
@@ -94,11 +95,13 @@ abstract contract GameSchema {
                 return score[_badgeId] - int256((uint256(-_lastVoteScore) * _voteParticipation) / BASE);
             }
         } else if (_team == TEAM.BUTTPLUG) {
+            // buttplug badge
             address _buttPlug = _calculateButtPlugAddress(_badgeId);
             uint256 _buttPlugZERO = _calculateButtPlugBadge(_buttPlug, TEAM.ZERO);
             uint256 _buttPlugONE = _calculateButtPlugBadge(_buttPlug, TEAM.ONE);
             return score[_buttPlugZERO] + score[_buttPlugONE];
         } else {
+            // medal badge
             return score[_badgeId];
         }
     }
