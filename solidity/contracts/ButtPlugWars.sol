@@ -479,7 +479,6 @@ contract ButtPlugWars is GameSchema, ERC721 {
         uint256 _weight = badgeWeight[_badgeId];
 
         uint256 _previousVote = vote[_badgeId];
-        // TODO: rm if(_previousVote) and add 0xffff weight to votes[ZERO][0] votes[ONE][0]
         if (_previousVote != 0) {
             votes[_team][address(uint160(_previousVote >> 32))] -= _weight;
             score[_badgeId] = _getScore(_badgeId);
