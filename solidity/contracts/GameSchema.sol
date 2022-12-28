@@ -16,6 +16,7 @@ abstract contract GameSchema {
     uint256 constant CHECKMATE = 0x3256230011111100000000000000000099999900BCDECB000000001;
     uint256 constant MAGIC_NUMBER = 0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289;
     uint256 constant BUTT_PLUG_GAS_LIMIT = 10_000_000;
+    uint256 constant BUTT_PLUG_GAS_DELTA = 1_000_000;
 
     enum STATE {
         ANNOUNCEMENT, // rabbit can cancel event
@@ -109,5 +110,9 @@ abstract contract GameSchema {
             // medal badge
             return score[_badgeId];
         }
+    }
+
+    function _getGas() internal view returns (uint256 _gas) {
+        return BUTT_PLUG_GAS_LIMIT - matchNumber * BUTT_PLUG_GAS_DELTA;
     }
 }

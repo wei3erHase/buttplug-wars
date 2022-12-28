@@ -399,7 +399,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     function playMove(uint256 _board, address _buttPlug) external {
         if (msg.sender != address(this)) revert WrongMethod();
 
-        uint256 _move = IButtPlug(_buttPlug).readMove{gas: BUTT_PLUG_GAS_LIMIT}(_board);
+        uint256 _move = IButtPlug(_buttPlug).readMove{gas: _getGas()}(_board);
         uint256 _depth = _calcDepth(_board, msg.sender);
         IChess(FIVE_OUT_OF_NINE).mintMove(_move, _depth);
     }
