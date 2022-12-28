@@ -477,8 +477,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         TEAM _team = _getTeam(_badgeId);
         if (_team >= TEAM.BUTTPLUG) revert WrongTeam();
 
-        uint256 _weight = _badgeId >> 64;
-
+        uint256 _weight = _getWeight(_badgeId);
         uint256 _previousVote = vote[_badgeId];
         if (_previousVote != 0) {
             votes[_team][address(uint160(_previousVote >> 32))] -= _weight;

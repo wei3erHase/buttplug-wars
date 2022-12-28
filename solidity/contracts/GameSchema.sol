@@ -69,7 +69,7 @@ abstract contract GameSchema {
     mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
 
     function _calculateButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
-        return uint256(uint256(uint160(_buttPlug)) << 64) + (uint256(_team) << 32);
+        return (uint256(uint160(_buttPlug)) << 64) + (uint256(_team) << 32);
     }
 
     function _calculateButtPlugAddress(uint256 _badgeId) internal pure returns (address _buttPlug) {
@@ -78,6 +78,10 @@ abstract contract GameSchema {
 
     function _getTeam(uint256 _badgeId) internal pure returns (TEAM _team) {
         return TEAM(uint8(_badgeId >> 32));
+    }
+
+    function _getWeight(uint256 _badgeId) internal pure returns (uint256) {
+        return _badgeId >> 64;
     }
 
     function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
