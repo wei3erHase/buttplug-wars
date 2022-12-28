@@ -117,7 +117,7 @@ contract NFTDescriptor is GameSchema {
                 _datapoints[1] = Jeison.dataPoint('value', teamString);
                 _metadata[0] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'weight');
-                _datapoints[1] = Jeison.dataPoint('value', badgeWeight[_badgeId] / 1e6);
+                _datapoints[1] = Jeison.dataPoint('value', (_badgeId >> 64) / 1e6);
                 _metadata[1] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'score');
                 _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
@@ -192,7 +192,7 @@ contract NFTDescriptor is GameSchema {
                 _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
                 _metadata[0] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'weight');
-                _datapoints[1] = Jeison.dataPoint('value', badgeWeight[_badgeId] / 1e6);
+                _datapoints[1] = Jeison.dataPoint('value', (_badgeId >> 64) / 1e6);
                 _metadata[1] = Jeison.create(_datapoints);
             }
 

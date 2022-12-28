@@ -52,7 +52,6 @@ abstract contract GameSchema {
 
     /* Badge mechanics */
     uint256 totalPlayers;
-    mapping(uint256 => uint256) badgeWeight;
 
     /* Vote mechanics */
     mapping(uint256 => uint256) vote;
@@ -62,6 +61,8 @@ abstract contract GameSchema {
     /* Prize mechanics */
     uint256 totalPrize;
     uint256 totalSales;
+    uint256 totalScore;
+    uint256 totalWeight;
 
     mapping(uint256 => int256) score;
     mapping(uint256 => uint256) claimedSales;
