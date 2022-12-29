@@ -13,27 +13,27 @@ abstract contract GameSchema {
 
     uint256 constant BASE = 10_000;
     uint256 constant MAX_UINT = type(uint256).max;
-    uint256 constant CHECKMATE = 0x3256230011111100000000000000000099999900BCDECB000000001;
-    uint256 constant MAGIC_NUMBER = 0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289;
-    uint256 constant BUTT_PLUG_GAS_LIMIT = 10_000_000;
-    uint256 constant BUTT_PLUG_GAS_DELTA = 1_000_000;
+    uint256 constant CHECKMATE = 0x3256230011111100000000000000000099999900BCDECB000000001; // new board
+    uint256 constant MAGIC_NUMBER = 0xDB5D33CB1BADB2BAA99A59238A179D71B69959551349138D30B289; // by @fiveOutOfNine
+    uint256 constant BUTT_PLUG_GAS_LIMIT = 10_000_000; // amount of gas used to read buttPlug moves
+    uint256 constant BUTT_PLUG_GAS_DELTA = 1_000_000; // gas reduction per match to read buttPlug moves
 
     enum STATE {
         ANNOUNCEMENT, // rabbit can cancel event
         TICKET_SALE, // can mint badges
         GAME_RUNNING, // game runs, can mint badges
         GAME_OVER, // game stops, can unbondLiquidity
-        PREPARATIONS, // can claim prize, waits until kLPs are unbonded
-        PRIZE_CEREMONY, // can withdraw prize or honors
+        PREPARATIONS, // can mint medals, waits until kLPs are unbonded
+        PRIZE_CEREMONY, // can withdraw prizes
         CANCELLED // a critical bug was found
     }
 
     STATE public state = STATE.ANNOUNCEMENT;
 
-    uint256 canStartSales;
-    uint256 canPlayNext;
-    uint256 canPushLiquidity;
-    uint256 canUpdateSpotPriceNext;
+    uint256 canStartSales; // can startEvent()
+    uint256 canPlayNext; // can executeMove()
+    uint256 canPushLiquidity; // can pushLiquidity()
+    uint256 canUpdateSpotPriceNext; // can updateSpotPrice()
 
     enum TEAM {
         ZERO,
@@ -46,28 +46,28 @@ abstract contract GameSchema {
                             GAME VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    mapping(TEAM => uint256) matchesWon;
-    mapping(TEAM => int256) matchScore;
-    uint256 matchNumber;
-    uint256 matchMoves;
+    mapping(TEAM => uint256) matchesWon; // amount of matches won by each team
+    mapping(TEAM => int256) matchScore; // current match score for each team
+    uint256 matchNumber; // amount of matches started
+    uint256 matchMoves; // amount of moves made on current match
 
     /* Badge mechanics */
-    uint256 totalPlayers;
+    uint256 totalPlayers; // amount of player badges minted
 
     /* Vote mechanics */
-    mapping(uint256 => uint256) vote;
-    mapping(TEAM => address) buttPlug;
-    mapping(TEAM => mapping(address => uint256)) votes;
+    mapping(uint256 => uint256) vote; // player -> vote data
+    mapping(TEAM => address) buttPlug; // team -> most-voted buttPlug
+    mapping(TEAM => mapping(address => uint256)) votes; // team -> buttPlug -> votes
 
     /* Prize mechanics */
-    uint256 totalPrize;
-    uint256 totalSales;
-    uint256 totalWeight;
-    uint256 totalScore;
+    uint256 totalPrize; // total amount of kLPs minted as liquidity
+    uint256 totalSales; // total amount of ETH from sudoswap sales
+    uint256 totalWeight; // total weigth of minted medals
+    uint256 totalScore; // total score of minted medals
+    mapping(uint256 => uint256) claimedSales; // medal -> amount of ETH already claimed
 
-    mapping(uint256 => int256) score;
-    mapping(uint256 => uint256) claimedSales;
-    mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
+    mapping(uint256 => int256) score; // badge -> score record (see _calcScore)
+    mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore; // badge -> buttPlug -> lastUpdated score
 
     function _getButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
         return (uint256(uint160(_buttPlug)) << 64) + (uint256(_team) << 32);
