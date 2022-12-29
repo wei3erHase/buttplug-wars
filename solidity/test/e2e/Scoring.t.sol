@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.4 <0.9.0;
 
-import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, IERC20, ERC721, console} from './Common.sol';
+import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, ERC721, console} from './Common.sol';
 
 import {ChessForTest} from 'contracts/for-test/ChessForTest.sol';
 import {ButtPlugForTest} from 'contracts/for-test/ButtPlugForTest.sol';

@@ -6,7 +6,6 @@ import {fiveoutofnine} from 'fiveoutofnine/fiveoutofnine.sol';
 import {ButtPlugWars} from 'contracts/ButtPlugWars.sol';
 import {ChessForTest} from 'contracts/for-test/ChessForTest.sol';
 import {NFTDescriptor} from 'contracts/NFTDescriptor.sol';
-import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
 import {console} from 'forge-std/console.sol';
 
 abstract contract Deploy is Script {

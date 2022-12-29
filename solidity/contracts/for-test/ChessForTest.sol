@@ -3,7 +3,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import {IChess} from 'interfaces/IGame.sol';
-import {ERC721, ERC721TokenReceiver} from 'isolmate/tokens/ERC721.sol';
+import {ERC721, ERC721TokenReceiver} from 'solmate/tokens/ERC721.sol';
 
 contract ChessForTest is IChess, ERC721 {
     enum Board {

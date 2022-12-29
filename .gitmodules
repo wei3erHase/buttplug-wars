@@ -10,10 +10,6 @@
 	path = lib/prb-test
 	url = https://github.com/paulrberg/prb-test
 	branch = 0.1.1
-[submodule "lib/isolmate"]
-	path = lib/isolmate
-	url = https://github.com/defi-wonderland/isolmate
-	branch = main
 [submodule "lib/fiveoutofnine"]
 	path = lib/fiveoutofnine
 	url = https://github.com/wei3erhase/fiveoutofnine

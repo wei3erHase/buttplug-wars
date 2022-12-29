@@ -17,8 +17,9 @@ import {IButtPlug, IChess} from 'interfaces/IGame.sol';
 import {IKeep3r, IKeep3rHelper, IPairManager} from 'interfaces/IKeep3r.sol';
 import {LSSVMPair, LSSVMPairETH, ILSSVMPairFactory, ICurve, IERC721} from 'interfaces/ISudoswap.sol';
 import {ISwapRouter} from 'interfaces/IUniswap.sol';
-import {IERC20, IWeth} from 'interfaces/IERC20.sol';
 
+import {WETH} from 'solmate/tokens/WETH.sol';
+import {ERC20} from 'solmate/tokens/ERC20.sol';
 import {ERC721} from 'solmate/tokens/ERC721.sol';
 import {SafeTransferLib} from 'solmate/utils/SafeTransferLib.sol';
 import {FixedPointMathLib} from 'solmate/utils/FixedPointMathLib.sol';
@@ -35,7 +36,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     address THE_RABBIT;
     address immutable FIVE_OUT_OF_NINE;
-    address immutable WETH_9;
+    address payable immutable WETH_9;
     address immutable KP3R_V1;
     address immutable KP3R_LP;
     address immutable SWAP_ROUTER;
@@ -79,7 +80,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     constructor(Registry memory _registry, uint32 _period, uint32 _cooldown) ERC721('ChessOlympiads', unicode'{♙}') {
         THE_RABBIT = _registry.masterOfCeremony;
         FIVE_OUT_OF_NINE = _registry.fiveOutOfNine;
-        WETH_9 = _registry.weth;
+        WETH_9 = payable(_registry.weth);
         KP3R_V1 = _registry.kp3rV1;
         KP3R_LP = _registry.keep3rLP;
         SWAP_ROUTER = _registry.uniswapRouter;
@@ -91,10 +92,10 @@ contract ButtPlugWars is GameSchema, ERC721 {
         COOLDOWN = _cooldown;
 
         // emit token aprovals
-        IERC20(WETH_9).approve(SWAP_ROUTER, MAX_UINT);
-        IERC20(KP3R_V1).approve(KP3R_LP, MAX_UINT);
-        IERC20(WETH_9).approve(KP3R_LP, MAX_UINT);
-        IPairManager(KP3R_LP).approve(KEEP3R, MAX_UINT);
+        ERC20(WETH_9).approve(SWAP_ROUTER, MAX_UINT);
+        ERC20(KP3R_V1).approve(KP3R_LP, MAX_UINT);
+        ERC20(WETH_9).approve(KP3R_LP, MAX_UINT);
+        ERC20(KP3R_LP).approve(KEEP3R, MAX_UINT);
 
         // create Keep3r job
         IKeep3r(KEEP3R).addJob(address(this));
@@ -120,7 +121,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         // mint scoreboard token to itself
         _mint(address(this), 0);
         // records supply of fiveOutOfNine to whitelist pre-genesis tokens
-        genesis = IERC20(FIVE_OUT_OF_NINE).totalSupply();
+        genesis = ERC20(FIVE_OUT_OF_NINE).totalSupply();
     }
 
     /// @dev Permissioned method, allows rabbit to cancel or early-finish the event
@@ -239,7 +240,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
         // liquidity prize should be withdrawn only once per medal
         if (claimedSales[_badgeId] == 0) {
-            IPairManager(KP3R_LP).transfer(msg.sender, totalPrize.mulDivDown(_badgeId >> 64, totalWeight));
+            ERC20(KP3R_LP).transfer(msg.sender, totalPrize.mulDivDown(_badgeId >> 64, totalWeight));
             claimedSales[_badgeId]++;
         }
 
@@ -296,7 +297,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
         uint256 _eth = address(this).balance - totalSales;
         if (_eth < 0.05 ether) revert WrongTiming();
-        IWeth(WETH_9).deposit{value: _eth}();
+        WETH(WETH_9).deposit{value: _eth}();
 
         address _keep3rHelper = IKeep3r(KEEP3R).keep3rHelper();
         uint256 _quote = IKeep3rHelper(_keep3rHelper).quote(_eth / 2);
@@ -313,8 +314,8 @@ contract ButtPlugWars is GameSchema, ERC721 {
         });
         ISwapRouter(SWAP_ROUTER).exactInputSingle(_params);
 
-        uint256 wethBalance = IERC20(WETH_9).balanceOf(address(this));
-        uint256 kp3rBalance = IERC20(KP3R_V1).balanceOf(address(this));
+        uint256 wethBalance = ERC20(WETH_9).balanceOf(address(this));
+        uint256 kp3rBalance = ERC20(KP3R_V1).balanceOf(address(this));
 
         uint256 kLPBalance = IPairManager(KP3R_LP).mint(kp3rBalance, wethBalance, 0, 0, address(this));
         IKeep3r(KEEP3R).addLiquidityToJob(address(this), KP3R_LP, kLPBalance);
@@ -350,7 +351,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     /// @dev Handles Keep3r mechanism and payment
     modifier upkeep(address _keeper) {
-        if (!IKeep3r(KEEP3R).isKeeper(_keeper) || IERC20(FIVE_OUT_OF_NINE).balanceOf(_keeper) < matchNumber) {
+        if (!IKeep3r(KEEP3R).isKeeper(_keeper) || ERC20(FIVE_OUT_OF_NINE).balanceOf(_keeper) < matchNumber) {
             revert WrongKeeper();
         }
         _;

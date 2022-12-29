@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4 <0.9.0;
 
-import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
+// import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
 
-interface IPairManager is IERC20 {
+interface IPairManager {
     function mint(uint256, uint256, uint256, uint256, address) external returns (uint128);
 }
 

@@ -7,8 +7,7 @@ import {console} from 'forge-std/console.sol';
 import {IChess, IButtPlug} from 'interfaces/IGame.sol';
 import {LSSVMPair, ILSSVMPairFactory} from 'interfaces/ISudoswap.sol';
 import {ButtPlugWars, IKeep3r} from 'contracts/ButtPlugWars.sol';
-import {IERC20} from 'isolmate/interfaces/tokens/IERC20.sol';
-import {ERC721} from 'isolmate/tokens/ERC721.sol';
+import {ERC721} from 'solmate/tokens/ERC721.sol';
 
 import {ButtPlugWarsForTest} from 'contracts/for-test/ButtPlugWarsForTest.sol';
 

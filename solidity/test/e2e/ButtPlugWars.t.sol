@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.4 <0.9.0;
 
-import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, IERC20, ERC721, console} from './Common.sol';
+import {CommonE2EBase, ButtPlugWars, ButtPlugWarsForTest, ERC721, console} from './Common.sol';
+import {ERC20} from 'solmate/tokens/ERC20.sol';
 
 import {GameSchema} from 'contracts/GameSchema.sol';
 import {ButtPlugForTest} from 'contracts/for-test/ButtPlugForTest.sol';
@@ -11,7 +12,7 @@ contract E2EButtPlugWars is CommonE2EBase {
     function testRoadmap_E2E() public {
         vm.warp(block.timestamp + 10 days);
 
-        uint256 genesis = IERC20(address(chess)).totalSupply();
+        uint256 genesis = ERC20(address(chess)).totalSupply();
         game.startEvent();
 
         // some NFTs are minted post game start
@@ -87,7 +88,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         _purchaseAtSudoswap(1);
 
         vm.warp(block.timestamp + 5 days + 1);
-        uint256 postGenesis = IERC20(address(chess)).totalSupply();
+        uint256 postGenesis = ERC20(address(chess)).totalSupply();
         game.executeMove();
 
         // purchases 5/9 from official pool
@@ -134,10 +135,10 @@ contract E2EButtPlugWars is CommonE2EBase {
             game.withdrawLiquidity();
 
             // Prize distribution
-            IERC20(KP3R_LP).balanceOf(address(game));
+            ERC20(KP3R_LP).balanceOf(address(game));
             game.withdrawRewards(_medal);
 
-            uint256 liquidityWithdrawn = IERC20(KP3R_LP).balanceOf(badgeOwner);
+            uint256 liquidityWithdrawn = ERC20(KP3R_LP).balanceOf(badgeOwner);
             assertLt(liquidityAmount - liquidityWithdrawn, 100, 'all liquidity was distributed');
 
             uint256 _remaining = address(game).balance;
