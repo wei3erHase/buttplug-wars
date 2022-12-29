@@ -163,7 +163,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         // a player cannot be minted for a soon-to-win team
         if (matchesWon[_team] == 4) revert WrongTeam();
 
-        _badgeId = ++totalPlayers + (_tokenId << 16) + (uint256(_team) << 32) + (_weight << 64);
+        _badgeId = _createPlayerBadge(_tokenId, _team, _weight);
         _safeMint(msg.sender, _badgeId);
 
         // msg.sender must approve the FiveOutOfNine transfer
