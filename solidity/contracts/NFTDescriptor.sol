@@ -102,7 +102,7 @@ contract NFTDescriptor is GameSchema {
             return Jeison.create(_datapoints).getBase64();
         }
 
-        TEAM _team = _getTeam(_badgeId);
+        TEAM _team = _getBadgeTeam(_badgeId);
 
         /* Player metadata */
         if (_team < TEAM.BUTTPLUG) {

@@ -20,7 +20,7 @@ contract ButtPlugWarsForTest is ButtPlugWars {
     }
 
     function getWeight(uint256 _badgeId) public pure returns (uint256 _weight) {
-        return _getWeight(_badgeId);
+        return _getBadgeWeight(_badgeId);
     }
 
     function simulateButtPlug(IButtPlug _buttPlug, uint256 _depth, uint256 _steps)

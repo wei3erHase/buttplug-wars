@@ -212,7 +212,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     function _processBadge(uint256 _badgeId) internal returns (uint256 _weight, uint256 _score) {
-        TEAM _team = _getTeam(_badgeId);
+        TEAM _team = _getBadgeTeam(_badgeId);
         if (_team > TEAM.BUTTPLUG) revert WrongTeam();
 
         // if bunny says so, all badges are winners
@@ -231,7 +231,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     /// @param _badgeId Token ID of the medal badge to claim rewards from
     function withdrawRewards(uint256 _badgeId) external onlyBadgeAllowed(_badgeId) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
-        if (_getTeam(_badgeId) != TEAM.MEDAL) revert WrongTeam();
+        if (_getBadgeTeam(_badgeId) != TEAM.MEDAL) revert WrongTeam();
 
         // safe because medals should have only positive score values
         uint256 _claimableSales = totalSales.mulDivDown(uint256(score[_badgeId]), totalScore);
@@ -256,7 +256,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     function _returnNftIfStaked(uint256 _badgeId) internal {
-        if (_getTeam(_badgeId) <= TEAM.BUTTPLUG) {
+        if (_getBadgeTeam(_badgeId) <= TEAM.BUTTPLUG) {
             uint256 _tokenId = uint16(_badgeId >> 16);
             ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), msg.sender, _tokenId);
         }
@@ -495,10 +495,10 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     function _voteButtPlug(address _buttPlug, uint256 _badgeId) internal onlyBadgeAllowed(_badgeId) {
-        TEAM _team = _getTeam(_badgeId);
+        TEAM _team = _getBadgeTeam(_badgeId);
         if (_team >= TEAM.BUTTPLUG) revert WrongTeam();
 
-        uint256 _weight = _getWeight(_badgeId);
+        uint256 _weight = _getBadgeWeight(_badgeId);
         uint256 _previousVote = vote[_badgeId];
         if (_previousVote != 0) {
             votes[_team][address(uint160(_previousVote >> 32))] -= _weight;

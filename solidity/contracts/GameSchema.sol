@@ -77,16 +77,16 @@ abstract contract GameSchema {
         return address(uint160((_badgeId - (uint256(TEAM.BUTTPLUG) << 32)) >> 64));
     }
 
-    function _getTeam(uint256 _badgeId) internal pure returns (TEAM _team) {
+    function _getBadgeTeam(uint256 _badgeId) internal pure returns (TEAM _team) {
         return TEAM(uint8(_badgeId >> 32));
     }
 
-    function _getWeight(uint256 _badgeId) internal pure returns (uint256) {
+    function _getBadgeWeight(uint256 _badgeId) internal pure returns (uint256) {
         return _badgeId >> 64;
     }
 
     function _calcScore(uint256 _badgeId) internal view returns (int256 _score) {
-        TEAM _team = _getTeam(_badgeId);
+        TEAM _team = _getBadgeTeam(_badgeId);
         if (_team < TEAM.BUTTPLUG) {
             // player badge
             uint256 _previousVote = vote[_badgeId];
