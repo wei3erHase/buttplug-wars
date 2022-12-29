@@ -1,1 +1,2 @@
-E2EButtPlugWars:test_E2E() (gas: 401102252)
+E2EButtPlugWars:testRoadmap_E2E() (gas: 781263904)
+E2EScoring:testScoring_E2E() (gas: 21856029)
