@@ -157,9 +157,8 @@ contract ButtPlugWars is GameSchema, ERC721 {
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
         uint256 _weight = _value.sqrt(); // weight is defined by sqrt(msg.value)
 
-        // players can only mint badges from the not-playing team
-        TEAM _team = TEAM((_roundT(block.timestamp, PERIOD) / PERIOD) % 2);
-        _team = _team == TEAM.ZERO ? TEAM.ONE : TEAM.ZERO;
+        // players can only mint badges from the non-playing team
+        TEAM _team = TEAM(((_roundT(block.timestamp, PERIOD) / PERIOD) + 1) % 2);
         // a player cannot be minted for a soon-to-win team
         if (matchesWon[_team] == 4) revert WrongTeam();
 
