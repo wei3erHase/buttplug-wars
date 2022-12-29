@@ -217,7 +217,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         if (_team > TEAM.BUTTPLUG) revert WrongTeam();
 
         // if bunny says so, all badges are winners
-        if (matchesWon[_team] >= 5 || bunnySaysSo) _weight = uint256(_badgeId >> 64);
+        if (matchesWon[_team] >= 5 || bunnySaysSo) _weight = _getBadgeWeight(_badgeId);
 
         // only positive score is accounted
         int256 _badgeScore = _calcScore(_badgeId);
@@ -240,7 +240,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
         // liquidity prize should be withdrawn only once per medal
         if (claimedSales[_badgeId] == 0) {
-            ERC20(KP3R_LP).transfer(msg.sender, totalPrize.mulDivDown(_badgeId >> 64, totalWeight));
+            ERC20(KP3R_LP).transfer(msg.sender, totalPrize.mulDivDown(_getBadgeWeight(_badgeId), totalWeight));
             claimedSales[_badgeId]++;
         }
 
@@ -258,7 +258,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     function _returnNftIfStaked(uint256 _badgeId) internal {
         if (_getBadgeTeam(_badgeId) <= TEAM.BUTTPLUG) {
-            uint256 _tokenId = uint16(_badgeId >> 16);
+            uint256 _tokenId = _getPlayerToken(_badgeId);
             ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), msg.sender, _tokenId);
         }
     }
@@ -502,13 +502,13 @@ contract ButtPlugWars is GameSchema, ERC721 {
         uint256 _weight = _getBadgeWeight(_badgeId);
         uint256 _previousVote = vote[_badgeId];
         if (_previousVote != 0) {
-            votes[_team][address(uint160(_previousVote >> 32))] -= _weight;
+            votes[_team][_getVoteAddress(_previousVote)] -= _weight;
             score[_badgeId] = _calcScore(_badgeId);
         }
 
         votes[_team][_buttPlug] += _weight;
         uint256 _voteParticipation = _weight.sqrt().mulDivDown(BASE, votes[_team][_buttPlug].sqrt());
-        vote[_badgeId] = (uint256(uint160(_buttPlug)) << 32) + _voteParticipation;
+        vote[_badgeId] = _getVoteData(_buttPlug, _voteParticipation);
 
         uint256 _buttPlugBadgeId = _getButtPlugBadge(_buttPlug, _team);
         lastUpdatedScore[_badgeId][_buttPlugBadgeId] = score[_buttPlugBadgeId];

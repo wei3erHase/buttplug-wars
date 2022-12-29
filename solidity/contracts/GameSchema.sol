@@ -73,6 +73,14 @@ abstract contract GameSchema {
         return ++totalPlayers + (_tokenId << 16) + (uint256(_team) << 32) + (_weight << 64);
     }
 
+    function _getPlayerToken(uint256 _badgeId) internal pure returns (uint256) {
+        return uint256(uint16(_badgeId >> 16));
+    }
+
+    function _getBadgeWeight(uint256 _badgeId) internal pure returns (uint256) {
+        return _badgeId >> 64;
+    }
+
     function _getMedalBadge(uint256 _totalWeight, bytes memory _keccak) internal pure returns (uint256 _badgeId) {
         return (_totalWeight << 64) + (uint256(TEAM.MEDAL) << 32) + uint32(uint256(keccak256(_keccak)));
     }
@@ -89,8 +97,16 @@ abstract contract GameSchema {
         return TEAM(uint8(_badgeId >> 32));
     }
 
-    function _getBadgeWeight(uint256 _badgeId) internal pure returns (uint256) {
-        return _badgeId >> 64;
+    function _getVoteAddress(uint256 _vote) internal pure returns (address) {
+        return address(uint160(_vote >> 32));
+    }
+
+    function _getVoteParticipation(uint256 _vote) internal pure returns (uint256) {
+        return uint256(uint32(_vote));
+    }
+
+    function _getVoteData(address _buttPlug, uint256 _voteParticipation) internal pure returns (uint256) {
+        return (uint256(uint160(_buttPlug)) << 32) + _voteParticipation;
     }
 
     function _calcScore(uint256 _badgeId) internal view returns (int256 _score) {
@@ -98,8 +114,8 @@ abstract contract GameSchema {
         if (_team < TEAM.BUTTPLUG) {
             // player badge
             uint256 _previousVote = vote[_badgeId];
-            address _votedButtPlug = address(uint160(_previousVote >> 32));
-            uint256 _voteParticipation = uint32(_previousVote);
+            address _votedButtPlug = _getVoteAddress(_previousVote);
+            uint256 _voteParticipation = _getVoteParticipation(_previousVote);
             uint256 _votedButtPlugBadge = _getButtPlugBadge(_votedButtPlug, _team);
 
             int256 _lastVoteScore = score[_votedButtPlugBadge] - lastUpdatedScore[_badgeId][_votedButtPlugBadge];
