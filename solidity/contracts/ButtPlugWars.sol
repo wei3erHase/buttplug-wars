@@ -123,17 +123,18 @@ contract ButtPlugWars is GameSchema, ERC721 {
         genesis = IERC20(FIVE_OUT_OF_NINE).totalSupply();
     }
 
-    /// @dev Permissioned method, allows rabbit to cancel the event
+    /// @dev Permissioned method, allows rabbit to cancel or early-finish the event
     function saySo() external onlyRabbit {
         if (state == STATE.ANNOUNCEMENT) state = STATE.CANCELLED;
         else bunnySaysSo = true;
     }
 
-    /// @dev Permissioned method, allows rabbit to revoke his permissions
+    /// @dev Permissioned method, allows rabbit to revoke all permissions
     function suicideRabbit() external onlyRabbit {
         delete THE_RABBIT;
     }
 
+    /// @dev Handles rabbit authorized methods
     modifier onlyRabbit() {
         if (msg.sender != THE_RABBIT) revert WrongMethod();
         _;
@@ -144,14 +145,16 @@ contract ButtPlugWars is GameSchema, ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Allows the signer to mint a Player NFT, bonding a 5/9 and paying ETH price
+    /// @param _tokenId Token ID of the FiveOutOfNine to bond
+    /// @return _badgeId Token ID of the minted player badge
     function mintPlayerBadge(uint256 _tokenId) external payable returns (uint256 _badgeId) {
         if (state < STATE.TICKET_SALE || state >= STATE.GAME_OVER) revert WrongTiming();
 
-        _validateFiveOutOfNine(_tokenId);
+        _validateFiveOutOfNine(_tokenId); // token must be pre-genesis or whitelisted
 
         uint256 _value = msg.value;
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
-        uint256 _weight = _value.sqrt();
+        uint256 _weight = _value.sqrt(); // weight is defined by sqrt(msg.value)
 
         // players can only mint badges from the not-playing team
         TEAM _team = TEAM((_roundT(block.timestamp, PERIOD) / PERIOD) % 2);
@@ -167,6 +170,8 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     /// @dev Allows the signer to register a ButtPlug NFT
+    /// @param _buttPlug Address of the buttPlug to register
+    /// @return _badgeId Token ID of the minted buttPlug badge
     function mintButtPlugBadge(address _buttPlug) external returns (uint256 _badgeId) {
         if ((state < STATE.TICKET_SALE) || (state >= STATE.GAME_OVER)) revert WrongTiming();
 
@@ -177,7 +182,9 @@ contract ButtPlugWars is GameSchema, ERC721 {
         _safeMint(_owner, _badgeId);
     }
 
-    /// @dev Allows player to merge his badges' weight and score into a Medal NFT
+    /// @dev Allows player to melt badges weight and score into a Medal NFT
+    /// @param _badgeIds Array of token IDs of badges to submit
+    /// @return _badgeId Token ID of the minted medal badge
     function mintMedal(uint256[] memory _badgeIds) external returns (uint256 _badgeId) {
         if (state != STATE.PREPARATIONS) revert WrongTiming();
         uint256 _totalWeight;
@@ -221,6 +228,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     /// @dev Allow players who claimed prize to withdraw their rewards
+    /// @param _badgeId Token ID of the medal badge to claim rewards from
     function withdrawRewards(uint256 _badgeId) external onlyBadgeAllowed(_badgeId) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
         if (_getTeam(_badgeId) != TEAM.MEDAL) revert WrongTeam();
@@ -229,16 +237,19 @@ contract ButtPlugWars is GameSchema, ERC721 {
         uint256 _claimableSales = totalSales.mulDivDown(uint256(score[_badgeId]), totalScore);
         uint256 _claimable = _claimableSales - claimedSales[_badgeId];
 
-        // prize should be withdrawn only once per medal
+        // liquidity prize should be withdrawn only once per medal
         if (claimedSales[_badgeId] == 0) {
             IPairManager(KP3R_LP).transfer(msg.sender, totalPrize.mulDivDown(_badgeId >> 64, totalWeight));
             claimedSales[_badgeId]++;
         }
 
+        // sales prize can be re-claimed as pool sales increase
         claimedSales[_badgeId] += _claimable;
         payable(msg.sender).safeTransferETH(_claimable);
     }
 
+    /// @dev Allows players who didn't mint a medal to withdraw their staked NFTs
+    /// @param _badgeId Token ID of the player badge to withdraw the staked NFT from
     function withdrawStakedNft(uint256 _badgeId) external onlyBadgeAllowed(_badgeId) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
         _returnNftIfStaked(_badgeId);
@@ -251,6 +262,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         }
     }
 
+    /// @dev Handles badge authorized methods
     modifier onlyBadgeAllowed(uint256 _badgeId) {
         address _sender = msg.sender;
         address _owner = _ownerOf[_badgeId];
@@ -465,11 +477,16 @@ contract ButtPlugWars is GameSchema, ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Allows players to vote for their preferred ButtPlug
+    /// @param _buttPlug Address of the buttPlug to vote for
+    /// @param _badgeId Token ID of the player badge to vote with
     function voteButtPlug(address _buttPlug, uint256 _badgeId) external {
         if (_buttPlug == address(0)) revert WrongValue();
         _voteButtPlug(_buttPlug, _badgeId);
     }
 
+    /// @dev Allows players to batch vote for their preferred ButtPlug
+    /// @param _buttPlug Address of the buttPlug to vote for
+    /// @param _badgeIds Array of token IDs of the player badges to vote with
     function voteButtPlug(address _buttPlug, uint256[] memory _badgeIds) external {
         if (_buttPlug == address(0)) revert WrongValue();
         for (uint256 _i; _i < _badgeIds.length; _i++) {
@@ -503,6 +520,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     function onERC721Received(address, address _from, uint256 _id, bytes calldata) external returns (bytes4) {
+        // only FiveOutOfNine tokens should be safeTransferred to contract
         if (msg.sender != FIVE_OUT_OF_NINE) revert WrongNFT();
         // if token is newly minted transfer to sudoswap pool
         if (_from == address(0)) {
@@ -527,6 +545,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
                           DELEGATE TOKEN URI
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Routes tokenURI calculation through a static-delegatecall
     function tokenURI(uint256 _badgeId) public view virtual override returns (string memory) {
         if (_ownerOf[_badgeId] == address(0)) revert WrongNFT();
         (bool _success, bytes memory _data) =
@@ -561,6 +580,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
                                 RECEIVE
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Method called by sudoswap pool on each sale
     receive() external payable {
         if (msg.sender == SUDOSWAP_POOL) totalSales += msg.value;
         return;
