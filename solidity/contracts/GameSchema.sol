@@ -69,8 +69,12 @@ abstract contract GameSchema {
     mapping(uint256 => int256) score; // badge -> score record (see _calcScore)
     mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore; // badge -> buttPlug -> lastUpdated score
 
-    function _createPlayerBadge(uint256 _tokenId, TEAM _team, uint256 _weight) internal returns (uint256) {
+    function _getPlayerBadge(uint256 _tokenId, TEAM _team, uint256 _weight) internal returns (uint256) {
         return ++totalPlayers + (_tokenId << 16) + (uint256(_team) << 32) + (_weight << 64);
+    }
+
+    function _getMedalBadge(uint256 _totalWeight, bytes memory _keccak) internal pure returns (uint256 _badgeId) {
+        return (_totalWeight << 64) + (uint256(TEAM.MEDAL) << 32) + uint32(uint256(keccak256(_keccak)));
     }
 
     function _getButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
