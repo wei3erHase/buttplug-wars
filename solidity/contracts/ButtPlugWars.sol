@@ -130,7 +130,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     /// @dev Permissioned method, allows rabbit to revoke his permissions
-    function suicide() external onlyRabbit {
+    function suicideRabbit() external onlyRabbit {
         delete THE_RABBIT;
     }
 
@@ -173,7 +173,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         // buttPlug contract must have an owner view method
         address _owner = IButtPlug(_buttPlug).owner();
 
-        _badgeId = _calculateButtPlugBadge(_buttPlug, TEAM.BUTTPLUG);
+        _badgeId = _getButtPlugBadge(_buttPlug, TEAM.BUTTPLUG);
         _safeMint(_owner, _badgeId);
     }
 
@@ -212,7 +212,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         if (matchesWon[_team] >= 5 || bunnySaysSo) _weight = uint256(_badgeId >> 64);
 
         // only positive score is accounted
-        int256 _badgeScore = _getScore(_badgeId);
+        int256 _badgeScore = _calcScore(_badgeId);
         _score = _badgeScore >= 0 ? uint256(_badgeScore) : 1;
 
         // msg.sender should be the owner
@@ -365,7 +365,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         }
 
         uint256 _votes = votes[_team][_buttPlug];
-        uint256 _buttPlugBadgeId = _calculateButtPlugBadge(_buttPlug, _team);
+        uint256 _buttPlugBadgeId = _getButtPlugBadge(_buttPlug, _team);
 
         int8 _score;
         bool _isCheckmate;
@@ -400,7 +400,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         if (msg.sender != address(this)) revert WrongMethod();
 
         uint256 _move = IButtPlug(_buttPlug).readMove{gas: _getGas()}(_board);
-        uint256 _depth = _calcDepth(_board, msg.sender);
+        uint256 _depth = _getDepth(_board, msg.sender);
         IChess(FIVE_OUT_OF_NINE).mintMove(_move, _depth);
     }
 
@@ -413,7 +413,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         delete matchScore[TEAM.ONE];
 
         // verifies if game has ended
-        if (_gameOver()) {
+        if (_isGameOver()) {
             state = STATE.GAME_OVER;
             // all remaining ETH will be considered to distribute as sales
             totalSales = address(this).balance;
@@ -422,18 +422,13 @@ contract ButtPlugWars is GameSchema, ERC721 {
         }
     }
 
-    function _gameOver() internal view returns (bool) {
+    function _isGameOver() internal view returns (bool) {
         // if bunny says so, current match was the last one
         return matchesWon[TEAM.ZERO] == 5 || matchesWon[TEAM.ONE] == 5 || bunnySaysSo;
     }
 
     function _roundT(uint256 _timestamp, uint256 _period) internal pure returns (uint256 _roundTimestamp) {
         _roundTimestamp = _timestamp - (_timestamp % _period);
-    }
-
-    function _calcDepth(uint256 _salt, address _keeper) internal view virtual returns (uint256 _depth) {
-        uint256 _timeVariable = _roundT(block.timestamp, COOLDOWN);
-        _depth = 3 + uint256(keccak256(abi.encode(_salt, _keeper, _timeVariable))) % 8;
     }
 
     /// @notice Adds +2 when eating a black piece, and substracts 1 when a white piece is eaten
@@ -454,6 +449,15 @@ contract ButtPlugWars is GameSchema, ERC721 {
             if (_space == 0) continue;
             _space >> 3 == 1 ? _whitePieces++ : _blackPieces++;
         }
+    }
+
+    function _getGas() internal view returns (uint256 _gas) {
+        return BUTT_PLUG_GAS_LIMIT - matchNumber * BUTT_PLUG_GAS_DELTA;
+    }
+
+    function _getDepth(uint256 _salt, address _keeper) internal view virtual returns (uint256 _depth) {
+        uint256 _timeVariable = _roundT(block.timestamp, COOLDOWN);
+        _depth = 3 + uint256(keccak256(abi.encode(_salt, _keeper, _timeVariable))) % 8;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -481,14 +485,14 @@ contract ButtPlugWars is GameSchema, ERC721 {
         uint256 _previousVote = vote[_badgeId];
         if (_previousVote != 0) {
             votes[_team][address(uint160(_previousVote >> 32))] -= _weight;
-            score[_badgeId] = _getScore(_badgeId);
+            score[_badgeId] = _calcScore(_badgeId);
         }
 
         votes[_team][_buttPlug] += _weight;
         uint256 _voteParticipation = _weight.sqrt().mulDivDown(BASE, votes[_team][_buttPlug].sqrt());
         vote[_badgeId] = (uint256(uint160(_buttPlug)) << 32) + _voteParticipation;
 
-        uint256 _buttPlugBadgeId = _calculateButtPlugBadge(_buttPlug, _team);
+        uint256 _buttPlugBadgeId = _getButtPlugBadge(_buttPlug, _team);
         lastUpdatedScore[_badgeId][_buttPlugBadgeId] = score[_buttPlugBadgeId];
 
         if (votes[_team][_buttPlug] > votes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;

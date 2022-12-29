@@ -42,7 +42,7 @@ contract E2EScoring is CommonE2EBase {
 
         {
             // ETH is artificially added to increase liquidity
-            (bool _success, bytes memory _return) = payable(address(game)).call{value: 10 ether}('');
+            payable(address(game)).call{value: 10 ether}('');
             vm.warp(block.timestamp + 14 days + 1);
             game.pushLiquidity();
         }

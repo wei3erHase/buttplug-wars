@@ -126,11 +126,11 @@ library Jeison {
         jsonStr = string(abi.encodePacked(jsonStr, '}'));
     }
 
-    function getBase64(JsonObject memory self) internal pure returns (string memory) {
+    function getBase64(JsonObject memory self) internal pure returns (string memory jsonBase64) {
         return string(abi.encodePacked('data:application/json;base64,', Base64.encode(abi.encodePacked(get(self)))));
     }
 
-    function _separator(bool _isNumeric) private pure returns (string memory) {
+    function _separator(bool _isNumeric) private pure returns (string memory separator) {
         if (!_isNumeric) return '"';
     }
 

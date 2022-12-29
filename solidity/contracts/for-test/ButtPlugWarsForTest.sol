@@ -16,11 +16,11 @@ contract ButtPlugWarsForTest is ButtPlugWars {
     }
 
     function getScore(uint256 _badgeId) public view returns (int256 _score) {
-        return _getScore(_badgeId);
+        return _calcScore(_badgeId);
     }
 
-    function getWeight(uint256 _badgeId) public view returns (uint256 _weight) {
-        return uint256(_badgeId >> 64);
+    function getWeight(uint256 _badgeId) public pure returns (uint256 _weight) {
+        return _getWeight(_badgeId);
     }
 
     function simulateButtPlug(IButtPlug _buttPlug, uint256 _depth, uint256 _steps)
@@ -43,7 +43,7 @@ contract ButtPlugWarsForTest is ButtPlugWars {
         return (_score, 0, _initialGas - gasleft());
     }
 
-    function _calcDepth(uint256, address) internal view virtual override returns (uint256) {
+    function _getDepth(uint256, address) internal view virtual override returns (uint256) {
         return 3;
     }
 }

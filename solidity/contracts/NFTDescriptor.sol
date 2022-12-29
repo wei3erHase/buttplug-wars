@@ -24,7 +24,7 @@ contract NFTDescriptor is GameSchema {
     address constant KEEP3R = 0x229d018065019c3164B899F4B9c2d4ffEae9B92b;
     address constant KP3R_LP = 0xb4A7137B024d4C0531b0164fCb6E8fc20e6777Ae;
 
-    function _tokenURI(uint256 _badgeId) public view virtual returns (string memory _tokenURI) {
+    function _tokenURI(uint256 _badgeId) public view virtual returns (string memory _uri) {
         /* Scoreboard */
         if (_badgeId == 0) {
             Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](5);
@@ -120,7 +120,7 @@ contract NFTDescriptor is GameSchema {
                 _datapoints[1] = Jeison.dataPoint('value', (_badgeId >> 64) / 1e6);
                 _metadata[1] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'score');
-                _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
+                _datapoints[1] = Jeison.dataPoint('value', _calcScore(_badgeId) / 1e6);
                 _metadata[2] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'vote');
                 _datapoints[1] = Jeison.dataPoint('value', (uint160(_voteData >> 32) >> 128).toHexString());
@@ -148,14 +148,13 @@ contract NFTDescriptor is GameSchema {
         if (_team == TEAM.BUTTPLUG) {
             Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](4);
             Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
+            address _buttPlug = _getButtPlugAddress(_badgeId);
 
             {
-                address _buttPlug = _calculateButtPlugAddress(_badgeId);
                 uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
-                (bool _isLegal, uint256 _simMove, uint256 _simGasUsed, string memory _description) =
-                    _simulateButtPlug(_buttPlug, _board);
+                (bool _isLegal,, uint256 _simGasUsed, string memory _description) = _simulateButtPlug(_buttPlug, _board);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'score');
-                _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
+                _datapoints[1] = Jeison.dataPoint('value', _calcScore(_badgeId) / 1e6);
                 _metadata[0] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'simulated_move');
                 _datapoints[1] = Jeison.dataPoint('value', _description);
@@ -167,9 +166,9 @@ contract NFTDescriptor is GameSchema {
                 _datapoints[1] = Jeison.dataPoint('value', _isLegal);
                 _metadata[3] = Jeison.create(_datapoints);
             }
+
             // creates json
             _datapoints = new Jeison.DataPoint[](4);
-            address _buttPlug = _calculateButtPlugAddress(_badgeId);
             string memory _descriptionStr =
                 string(abi.encodePacked('ButtPlug ', (uint160(_buttPlug) >> 128).toHexString()));
             _datapoints[0] = Jeison.dataPoint('name', _descriptionStr);
@@ -189,7 +188,7 @@ contract NFTDescriptor is GameSchema {
 
             {
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'score');
-                _datapoints[1] = Jeison.dataPoint('value', _getScore(_badgeId) / 1e6);
+                _datapoints[1] = Jeison.dataPoint('value', _calcScore(_badgeId) / 1e6);
                 _metadata[0] = Jeison.create(_datapoints);
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'weight');
                 _datapoints[1] = Jeison.dataPoint('value', (_badgeId >> 64) / 1e6);

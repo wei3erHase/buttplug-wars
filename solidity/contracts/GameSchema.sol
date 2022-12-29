@@ -62,18 +62,18 @@ abstract contract GameSchema {
     /* Prize mechanics */
     uint256 totalPrize;
     uint256 totalSales;
-    uint256 totalScore;
     uint256 totalWeight;
+    uint256 totalScore;
 
     mapping(uint256 => int256) score;
     mapping(uint256 => uint256) claimedSales;
     mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore;
 
-    function _calculateButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
+    function _getButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
         return (uint256(uint160(_buttPlug)) << 64) + (uint256(_team) << 32);
     }
 
-    function _calculateButtPlugAddress(uint256 _badgeId) internal pure returns (address _buttPlug) {
+    function _getButtPlugAddress(uint256 _badgeId) internal pure returns (address _buttPlug) {
         return address(uint160((_badgeId - (uint256(TEAM.BUTTPLUG) << 32)) >> 64));
     }
 
@@ -85,14 +85,14 @@ abstract contract GameSchema {
         return _badgeId >> 64;
     }
 
-    function _getScore(uint256 _badgeId) internal view returns (int256 _score) {
+    function _calcScore(uint256 _badgeId) internal view returns (int256 _score) {
         TEAM _team = _getTeam(_badgeId);
         if (_team < TEAM.BUTTPLUG) {
             // player badge
             uint256 _previousVote = vote[_badgeId];
             address _votedButtPlug = address(uint160(_previousVote >> 32));
             uint256 _voteParticipation = uint32(_previousVote);
-            uint256 _votedButtPlugBadge = _calculateButtPlugBadge(_votedButtPlug, _team);
+            uint256 _votedButtPlugBadge = _getButtPlugBadge(_votedButtPlug, _team);
 
             int256 _lastVoteScore = score[_votedButtPlugBadge] - lastUpdatedScore[_badgeId][_votedButtPlugBadge];
             if (_lastVoteScore >= 0) {
@@ -102,17 +102,13 @@ abstract contract GameSchema {
             }
         } else if (_team == TEAM.BUTTPLUG) {
             // buttplug badge
-            address _buttPlug = _calculateButtPlugAddress(_badgeId);
-            uint256 _buttPlugZERO = _calculateButtPlugBadge(_buttPlug, TEAM.ZERO);
-            uint256 _buttPlugONE = _calculateButtPlugBadge(_buttPlug, TEAM.ONE);
+            address _buttPlug = _getButtPlugAddress(_badgeId);
+            uint256 _buttPlugZERO = _getButtPlugBadge(_buttPlug, TEAM.ZERO);
+            uint256 _buttPlugONE = _getButtPlugBadge(_buttPlug, TEAM.ONE);
             return score[_buttPlugZERO] + score[_buttPlugONE];
         } else {
             // medal badge
             return score[_badgeId];
         }
-    }
-
-    function _getGas() internal view returns (uint256 _gas) {
-        return BUTT_PLUG_GAS_LIMIT - matchNumber * BUTT_PLUG_GAS_DELTA;
     }
 }
