@@ -70,31 +70,31 @@ abstract contract GameSchema {
     mapping(uint256 => mapping(uint256 => int256)) lastUpdatedScore; // badge -> buttPlug -> lastUpdated score
 
     function _getPlayerBadge(uint256 _tokenId, TEAM _team, uint256 _weight) internal returns (uint256) {
-        return ++totalPlayers + (_tokenId << 16) + (uint256(_team) << 32) + (_weight << 64);
+        return (_weight << 64) + (_tokenId << 16) + (++totalPlayers << 8) + uint256(_team);
     }
 
-    function _getPlayerToken(uint256 _badgeId) internal pure returns (uint256) {
-        return uint256(uint16(_badgeId >> 16));
+    function _getStakedToken(uint256 _badgeId) internal pure returns (uint256) {
+        return uint8(_badgeId >> 16);
     }
 
     function _getBadgeWeight(uint256 _badgeId) internal pure returns (uint256) {
-        return _badgeId >> 64;
+        return uint64(_badgeId >> 64);
     }
 
     function _getMedalBadge(uint256 _totalWeight, bytes memory _keccak) internal pure returns (uint256 _badgeId) {
-        return (_totalWeight << 64) + (uint256(TEAM.MEDAL) << 32) + uint32(uint256(keccak256(_keccak)));
+        return (_totalWeight << 64) + uint32(uint256(keccak256(_keccak)) << 32) + uint256(TEAM.MEDAL);
     }
 
     function _getButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
-        return (uint256(uint160(_buttPlug)) << 64) + (uint256(_team) << 32);
+        return (uint160(_buttPlug) << 64) + uint256(_team);
     }
 
     function _getButtPlugAddress(uint256 _badgeId) internal pure returns (address _buttPlug) {
-        return address(uint160((_badgeId - (uint256(TEAM.BUTTPLUG) << 32)) >> 64));
+        return address(uint160(_badgeId >> 64));
     }
 
     function _getBadgeTeam(uint256 _badgeId) internal pure returns (TEAM _team) {
-        return TEAM(uint8(_badgeId >> 32));
+        return TEAM(uint8(_badgeId));
     }
 
     function _getVoteAddress(uint256 _vote) internal pure returns (address) {
