@@ -102,7 +102,7 @@ contract NFTDescriptor is GameSchema {
             return Jeison.create(_datapoints).getBase64();
         }
 
-        TEAM _team = _getBadgeTeam(_badgeId);
+        TEAM _team = _getBadgeType(_badgeId);
 
         /* Player metadata */
         if (_team < TEAM.BUTTPLUG) {
@@ -110,7 +110,7 @@ contract NFTDescriptor is GameSchema {
             Jeison.DataPoint[] memory _datapoints = new Jeison.DataPoint[](2);
 
             {
-                uint256 _voteData = vote[_badgeId];
+                uint256 _voteData = voteData[_badgeId];
 
                 string memory teamString = _team == TEAM.ZERO ? 'ZERO' : 'ONE';
                 _datapoints[0] = Jeison.dataPoint('trait_type', 'team');
