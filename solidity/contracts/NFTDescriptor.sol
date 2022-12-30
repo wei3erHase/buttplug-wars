@@ -3,12 +3,13 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import {GameSchema} from './GameSchema.sol';
+import {AddressRegistry} from './AddressRegistry.sol';
 import {IKeep3r} from 'interfaces/IKeep3r.sol';
 import {IButtPlug, IChess} from 'interfaces/IGame.sol';
 import {Jeison, Strings, IntStrings} from './libs/Jeison.sol';
 import {FiveOutOfNineUtils, Chess} from './libs/FiveOutOfNineUtils.sol';
 
-contract NFTDescriptor is GameSchema {
+contract NFTDescriptor is GameSchema, AddressRegistry {
     using Chess for uint256;
     using Jeison for Jeison.JsonObject;
     using Jeison for string;
@@ -19,10 +20,7 @@ contract NFTDescriptor is GameSchema {
     using Strings for uint16;
     using IntStrings for int256;
 
-    // TODO: return to mainnet
     address constant FIVE_OUT_OF_NINE = 0x226a166e5E44c654b3a76ef406be7E00755b9f45;
-    address constant KEEP3R = 0x229d018065019c3164B899F4B9c2d4ffEae9B92b;
-    address constant KP3R_LP = 0xb4A7137B024d4C0531b0164fCb6E8fc20e6777Ae;
 
     function _tokenURI(uint256 _badgeId) public view virtual returns (string memory _uri) {
         /* Scoreboard */

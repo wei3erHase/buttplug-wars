@@ -12,6 +12,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import {GameSchema} from './GameSchema.sol';
+import {AddressRegistry} from './AddressRegistry.sol';
 
 import {IButtPlug, IChess} from 'interfaces/IGame.sol';
 import {IKeep3r, IKeep3rHelper, IPairManager} from 'interfaces/IKeep3r.sol';
@@ -26,7 +27,7 @@ import {FixedPointMathLib} from 'solmate/utils/FixedPointMathLib.sol';
 
 /// @notice Contract will not be audited, proceed at your own risk
 /// @dev THE_RABBIT will not be responsible for any loss of funds
-contract ButtPlugWars is GameSchema, ERC721 {
+contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
     using SafeTransferLib for address payable;
     using FixedPointMathLib for uint256;
 
@@ -36,13 +37,6 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
     address THE_RABBIT;
     address immutable FIVE_OUT_OF_NINE;
-    address payable immutable WETH_9;
-    address immutable KP3R_V1;
-    address immutable KP3R_LP;
-    address immutable SWAP_ROUTER;
-    address immutable KEEP3R;
-    address immutable SUDOSWAP_FACTORY;
-    address immutable SUDOSWAP_CURVE;
     address public immutable SUDOSWAP_POOL;
     address public nftDescriptor;
 
@@ -77,16 +71,12 @@ contract ButtPlugWars is GameSchema, ERC721 {
         address sudoswapCurve;
     }
 
-    constructor(Registry memory _registry, uint32 _period, uint32 _cooldown) ERC721('ChessOlympiads', unicode'{♙}') {
-        THE_RABBIT = _registry.masterOfCeremony;
-        FIVE_OUT_OF_NINE = _registry.fiveOutOfNine;
-        WETH_9 = payable(_registry.weth);
-        KP3R_V1 = _registry.kp3rV1;
-        KP3R_LP = _registry.keep3rLP;
-        SWAP_ROUTER = _registry.uniswapRouter;
-        KEEP3R = _registry.keep3r;
-        SUDOSWAP_FACTORY = _registry.sudoswapFactory;
-        SUDOSWAP_CURVE = _registry.sudoswapCurve;
+    constructor(address _masterOfCeremony, address _fiveOutOfNine, uint32 _period, uint32 _cooldown)
+        AddressRegistry()
+        ERC721('ChessOlympiads', unicode'{♙}')
+    {
+        THE_RABBIT = _masterOfCeremony;
+        FIVE_OUT_OF_NINE = _fiveOutOfNine;
 
         PERIOD = _period;
         COOLDOWN = _cooldown;

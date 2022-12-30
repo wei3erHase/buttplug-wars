@@ -7,8 +7,8 @@ import {IChess, IButtPlug} from 'interfaces/IGame.sol';
 import {ButtPlugWars} from 'contracts/ButtPlugWars.sol';
 
 contract ButtPlugWarsForTest is ButtPlugWars {
-    constructor(ButtPlugWars.Registry memory _registry, uint32 _period, uint32 _cooldown)
-        ButtPlugWars(_registry, _period, _cooldown)
+    constructor(address, address _fiveOutOfNine, uint32 _period, uint32 _cooldown)
+        ButtPlugWars(msg.sender, _fiveOutOfNine, _period, _cooldown)
     {}
 
     function getTeamButtPlug(uint8 _team) public view returns (address _buttPlug) {

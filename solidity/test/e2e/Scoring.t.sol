@@ -11,17 +11,7 @@ contract E2EScoring is CommonE2EBase {
         {
             chess = new ChessForTest();
 
-            game = new ButtPlugWarsForTest(ButtPlugWars.Registry({
-              masterOfCeremony: FIVEOUTOFNINE_WHALE,
-              fiveOutOfNine: address(chess),
-              weth: WETH_9,
-              kp3rV1: KP3R_V1,
-              keep3rLP: KP3R_LP,
-              keep3r: address(keep3r),
-              uniswapRouter: UNISWAP_ROUTER,
-              sudoswapFactory: SUDOSWAP_FACTORY,
-              sudoswapCurve:SUDOSWAP_XYK_CURVE
-            }), 5 days, 0);
+            game = new ButtPlugWarsForTest(FIVEOUTOFNINE_WHALE, address(chess), 5 days, 0);
 
             ERC721(address(chess)).setApprovalForAll(address(game), true);
         }
