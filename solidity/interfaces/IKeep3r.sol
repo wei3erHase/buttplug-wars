@@ -28,6 +28,8 @@ interface IKeep3r {
 
     function liquidityAmount(address, address) external view returns (uint256);
 
+    function jobPeriodCredits(address) external view returns (uint256);
+
     function addLiquidityToJob(address, address, uint256) external;
 
     function unbondLiquidityFromJob(address, address, uint256) external;

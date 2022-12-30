@@ -192,20 +192,20 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
         uint256 _weight;
         uint256 _score;
-        bytes32 _seed;
+        bytes32 _salt;
         for (uint256 _i; _i < _badgeIds.length; _i++) {
             _badgeId = _badgeIds[_i];
             (_weight, _score) = _processBadge(_badgeId);
             _totalWeight += _weight;
             _totalScore += _score;
-            _seed = keccak256(abi.encodePacked(_seed, _badgeId));
+            _salt = keccak256(abi.encodePacked(_salt, _badgeId));
         }
 
         // adds weight and score to state vars
         totalScore += _totalScore;
         totalWeight += _totalWeight;
 
-        _badgeId = _calcMedalBadge(_totalWeight, _totalScore, _seed);
+        _badgeId = _calcMedalBadge(_totalWeight, _totalScore, _salt);
 
         _safeMint(msg.sender, _badgeId);
     }

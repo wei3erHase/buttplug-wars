@@ -90,6 +90,10 @@ abstract contract GameSchema {
         return uint64(_badgeId >> 64);
     }
 
+    function _getPlayerNumber(uint256 _badgeId) internal pure returns (uint256) {
+        return uint8(_badgeId >> 16);
+    }
+
     /* ButtPlugs */
 
     function _calcButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
@@ -102,16 +106,20 @@ abstract contract GameSchema {
 
     /* Medals */
 
-    function _calcMedalBadge(uint256 _totalWeight, uint256 _totalScore, bytes32 _seed)
+    function _calcMedalBadge(uint256 _totalWeight, uint256 _totalScore, bytes32 _salt)
         internal
         pure
         returns (uint256 _badgeId)
     {
-        return (_totalScore << 128) + (_totalWeight << 64) + uint16(uint256(_seed) << 8) + uint256(TEAM.MEDAL);
+        return (_totalScore << 128) + (_totalWeight << 64) + uint16(uint256(_salt) << 8) + uint256(TEAM.MEDAL);
     }
 
     function _getMedalScore(uint256 _badgeId) internal pure returns (uint256 _score) {
         return uint128(_badgeId >> 128);
+    }
+
+    function _getMedalSalt(uint256 _badgeId) internal pure returns (uint256 _score) {
+        return uint8(_badgeId >> 8);
     }
 
     /* Vote mechanism */
