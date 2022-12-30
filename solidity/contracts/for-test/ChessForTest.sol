@@ -13,7 +13,7 @@ contract ChessForTest is IChess, ERC721 {
     }
 
     mapping(Board => uint256) boards;
-    uint256 public totalSupply;
+    uint256 internal _totalSupply;
     bool public isCheckmate;
 
     uint256 constant INITIAL_SUPPLY = 10;
@@ -26,7 +26,12 @@ contract ChessForTest is IChess, ERC721 {
         for (uint256 _i; _i < INITIAL_SUPPLY; _i++) {
             _safeMint(msg.sender, _i);
         }
-        totalSupply = INITIAL_SUPPLY;
+        _totalSupply = INITIAL_SUPPLY;
+    }
+
+    function totalSupply() external view returns (uint256) {
+        // all tokens are whitelisted
+        return uint256(int256(-1));
     }
 
     function tokenURI(uint256 id) public view virtual override returns (string memory) {}
@@ -37,15 +42,15 @@ contract ChessForTest is IChess, ERC721 {
 
     function board() external view returns (uint256 _board) {
         if (isCheckmate) return boards[Board.NEW_BOARD];
-        return boards[Board((totalSupply - INITIAL_SUPPLY) % 3)];
+        return boards[Board((_totalSupply - INITIAL_SUPPLY) % 3)];
     }
 
     function mintMove(uint256, uint256) external payable {
-        _mint(msg.sender, totalSupply);
+        _mint(msg.sender, _totalSupply);
         if (address(msg.sender).code.length != 0) {
             bytes memory _calldata;
-            ERC721TokenReceiver(msg.sender).onERC721Received(address(0), address(0), totalSupply, _calldata);
+            ERC721TokenReceiver(msg.sender).onERC721Received(address(0), address(0), _totalSupply, _calldata);
         }
-        ++totalSupply;
+        ++_totalSupply;
     }
 }
