@@ -10,7 +10,7 @@ import {ILSSVMRouter} from 'interfaces/ISudoswap.sol';
 
 contract E2EButtPlugWars is CommonE2EBase {
     function testRoadmap_E2E() public {
-        vm.warp(block.timestamp + 10 days);
+        vm.warp(block.timestamp + 15 days); // offsets time to select the test team
 
         uint256 genesis = ERC20(address(chess)).totalSupply();
         game.startEvent();
@@ -177,7 +177,7 @@ contract E2EButtPlugWars is CommonE2EBase {
         ILSSVMRouter.PairSwapAny[] memory _swapList = new ILSSVMRouter.PairSwapAny[](1);
         _swapList[0] = ILSSVMRouter.PairSwapAny(sudoPool, _amount);
 
-        ILSSVMRouter(0x844d04f79D2c58dCeBf8Fff1e389Fccb1401aa49).swapETHForAnyNFTs{value: 10 ether}(
+        ILSSVMRouter(0x844d04f79D2c58dCeBf8Fff1e389Fccb1401aa49).swapETHForAnyNFTs{value: 5 ether}(
             _swapList, payable(FIVEOUTOFNINE_WHALE), FIVEOUTOFNINE_WHALE, block.timestamp
         );
     }

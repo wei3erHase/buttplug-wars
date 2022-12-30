@@ -12,7 +12,7 @@ import {ERC721} from 'solmate/tokens/ERC721.sol';
 import {ButtPlugWarsForTest} from 'contracts/for-test/ButtPlugWarsForTest.sol';
 
 contract CommonE2EBase is DSTestFull {
-    uint256 constant FORK_BLOCK = 15730000;
+    uint256 constant FORK_BLOCK = 16200000;
 
     address user = label('user');
     address owner = label('owner');
@@ -37,7 +37,7 @@ contract CommonE2EBase is DSTestFull {
 
         // fund with ETH
         vm.startPrank(ETH_WHALE);
-        payable(FIVEOUTOFNINE_WHALE).transfer(100 ether);
+        payable(FIVEOUTOFNINE_WHALE).transfer(30 ether);
         vm.stopPrank();
         vm.startPrank(FIVEOUTOFNINE_WHALE);
 
