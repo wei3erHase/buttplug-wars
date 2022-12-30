@@ -192,21 +192,20 @@ contract ButtPlugWars is GameSchema, ERC721 {
 
         uint256 _weight;
         uint256 _score;
-        bytes memory _keccak;
+        bytes32 _seed;
         for (uint256 _i; _i < _badgeIds.length; _i++) {
             _badgeId = _badgeIds[_i];
             (_weight, _score) = _processBadge(_badgeId);
             _totalWeight += _weight;
             _totalScore += _score;
-            _keccak = abi.encodePacked(_keccak, _badgeId);
+            _seed = keccak256(abi.encodePacked(_seed, _badgeId));
         }
 
         // adds weight and score to state vars
         totalScore += _totalScore;
         totalWeight += _totalWeight;
 
-        _badgeId = _getMedalBadge(_totalWeight, _keccak);
-        score[_badgeId] = int256(_totalScore);
+        _badgeId = _getMedalBadge(_totalWeight, _totalScore, _seed);
 
         _safeMint(msg.sender, _badgeId);
     }
@@ -233,8 +232,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
         if (_getBadgeTeam(_badgeId) != TEAM.MEDAL) revert WrongTeam();
 
-        // safe because medals should have only positive score values
-        uint256 _claimableSales = totalSales.mulDivDown(uint256(score[_badgeId]), totalScore);
+        uint256 _claimableSales = totalSales.mulDivDown(_getMedalScore(_badgeId), totalScore);
         uint256 _claimable = _claimableSales - claimedSales[_badgeId];
 
         // liquidity prize should be withdrawn only once per medal

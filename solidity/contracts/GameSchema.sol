@@ -102,8 +102,16 @@ abstract contract GameSchema {
 
     /* Medals */
 
-    function _getMedalBadge(uint256 _totalWeight, bytes memory _keccak) internal pure returns (uint256 _badgeId) {
-        return (_totalWeight << 64) + uint32(uint256(keccak256(_keccak)) << 32) + uint256(TEAM.MEDAL);
+    function _getMedalBadge(uint256 _totalWeight, uint256 _totalScore, bytes32 _seed)
+        internal
+        pure
+        returns (uint256 _badgeId)
+    {
+        return (_totalScore << 128) + (_totalWeight << 64) + uint64(uint256(_seed) << 8) + uint256(TEAM.MEDAL);
+    }
+
+    function _getMedalScore(uint256 _badgeId) internal pure returns (uint256 _score) {
+        return uint128(_badgeId >> 128);
     }
 
     /* Vote mechanism */
@@ -145,7 +153,7 @@ abstract contract GameSchema {
             return score[_buttPlugZERO] + score[_buttPlugONE];
         } else {
             // medal badge
-            return score[_badgeId];
+            return int256(_badgeId >> 128);
         }
     }
 }
