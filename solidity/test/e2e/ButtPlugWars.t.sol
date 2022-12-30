@@ -30,7 +30,6 @@ contract E2EButtPlugWars is CommonE2EBase {
         uint256 badge2 = game.mintPlayerBadge{value: 0.25 ether}(184);
         uint256 badge3 = game.mintPlayerBadge{value: 0.25 ether}(185);
         uint256 badge4 = game.mintPlayerBadge{value: 0.25 ether}(186);
-        uint256 _medal;
 
         // postGenesis tokens are not whitelisted
         vm.expectRevert(GameSchema.WrongNFT.selector);
@@ -125,18 +124,26 @@ contract E2EButtPlugWars is CommonE2EBase {
             vm.warp(block.timestamp + 14 days + 1);
             address badgeOwner = game.ownerOf(badge1);
 
+            uint256 _medal1;
+            uint256 _medal2;
+
             // Preparations
             uint256[] memory _badgeList = new uint256[](2);
             _badgeList[0] = badge1;
             _badgeList[1] = preGenToken;
-            _medal = game.mintMedal(_badgeList);
+            _medal1 = game.mintMedal(_badgeList);
+
+            _badgeList[0] = badge2;
+            _badgeList[1] = _buttPlugBadgeId;
+            _medal2 = game.mintMedal(_badgeList);
 
             // Prize ceremony
             game.withdrawLiquidity();
 
             // Prize distribution
             ERC20(KP3R_LP).balanceOf(address(game));
-            game.withdrawRewards(_medal);
+            game.withdrawRewards(_medal1);
+            game.withdrawRewards(_medal2);
 
             uint256 liquidityWithdrawn = ERC20(KP3R_LP).balanceOf(badgeOwner);
             assertLt(liquidityAmount - liquidityWithdrawn, 100, 'all liquidity was distributed');
@@ -155,7 +162,8 @@ contract E2EButtPlugWars is CommonE2EBase {
             _purchaseAtSudoswap(1);
             _remaining = address(game).balance;
             assertGt(_remaining, 100, 'more sales to be distributed');
-            game.withdrawRewards(_medal);
+            game.withdrawRewards(_medal1);
+            game.withdrawRewards(_medal2);
             _remaining = address(game).balance;
             assertLt(_remaining, 100, 'all sales were distributed');
         }

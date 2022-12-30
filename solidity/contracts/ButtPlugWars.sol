@@ -254,7 +254,7 @@ contract ButtPlugWars is GameSchema, ERC721 {
     }
 
     function _returnNftIfStaked(uint256 _badgeId) internal {
-        if (_getBadgeTeam(_badgeId) <= TEAM.BUTTPLUG) {
+        if (_getBadgeTeam(_badgeId) < TEAM.BUTTPLUG) {
             uint256 _tokenId = _getStakedToken(_badgeId);
             ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(address(this), msg.sender, _tokenId);
         }
