@@ -233,10 +233,11 @@ contract ButtPlugWars is GameSchema, ERC721 {
         if (_getBadgeTeam(_badgeId) != TEAM.MEDAL) revert WrongTeam();
 
         uint256 _claimableSales = totalSales.mulDivDown(_getMedalScore(_badgeId), totalScore);
-        uint256 _claimable = _claimableSales - claimedSales[_badgeId];
+        uint256 _claimed = claimedSales[_badgeId];
+        uint256 _claimable = _claimableSales - _claimed;
 
         // liquidity prize should be withdrawn only once per medal
-        if (claimedSales[_badgeId] == 0) {
+        if (_claimed == 0) {
             ERC20(KP3R_LP).transfer(msg.sender, totalPrize.mulDivDown(_getBadgeWeight(_badgeId), totalWeight));
             claimedSales[_badgeId]++;
         }
