@@ -11,6 +11,10 @@ abstract contract GameSchema {
     error WrongTeam(); // only specific badges can access
     error WrongNFT(); // an unknown NFT was sent to the contract
 
+    event VoteSubmitted(TEAM _team, uint256 _badgeId, address _buttPlug);
+    event MoveExecuted(TEAM _team, address _buttPlug, int8 _moveScore, uint64 _weight);
+    event MedalMinted(uint256 _badgeId, bytes32 _seed, uint256[] _badges, uint256 _totalScore);
+
     address public immutable FIVE_OUT_OF_NINE;
 
     constructor(address _fiveOutOfNine) {

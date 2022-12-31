@@ -187,6 +187,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
 
         _badgeId = _calcMedalBadge(_totalWeight, _totalScore, _salt);
 
+        emit MedalMinted(_badgeId, _salt, _badgeIds, _totalScore);
         _safeMint(msg.sender, _badgeId);
     }
 
@@ -384,6 +385,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         score[_buttPlugBadgeId] += _score * int256(_votes);
 
         // each match is limited to 69 moves
+        emit MoveExecuted(_team, _buttPlug, _score, uint64(_votes));
         if (_isCheckmate || ++matchMoves > 69) _checkMateRoutine();
     }
 
@@ -492,6 +494,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         uint256 _buttPlugBadgeId = _calcButtPlugBadge(_buttPlug, _team);
         lastUpdatedScore[_badgeId][_buttPlugBadgeId] = score[_buttPlugBadgeId];
 
+        emit VoteSubmitted(_team, _badgeId, _buttPlug);
         if (votes[_team][_buttPlug] > votes[_team][buttPlug[_team]]) buttPlug[_team] = _buttPlug;
     }
 
