@@ -11,6 +11,12 @@ abstract contract GameSchema {
     error WrongTeam(); // only specific badges can access
     error WrongNFT(); // an unknown NFT was sent to the contract
 
+    address immutable FIVE_OUT_OF_NINE;
+
+    constructor(address _fiveOutOfNine) {
+        FIVE_OUT_OF_NINE = _fiveOutOfNine;
+    }
+
     uint256 constant BASE = 10_000;
     uint256 constant MAX_UINT = type(uint256).max;
     uint256 constant CHECKMATE = 0x3256230011111100000000000000000099999900BCDECB000000001; // new board
@@ -39,7 +45,8 @@ abstract contract GameSchema {
         ZERO,
         ONE,
         BUTTPLUG,
-        MEDAL
+        MEDAL,
+        SCOREBOARD
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -118,7 +125,7 @@ abstract contract GameSchema {
         return uint128(_badgeId >> 128);
     }
 
-    function _getMedalSalt(uint256 _badgeId) internal pure returns (uint256 _score) {
+    function _getMedalSalt(uint256 _badgeId) internal pure returns (uint256 _salt) {
         return uint8(_badgeId >> 8);
     }
 

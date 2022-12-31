@@ -166,11 +166,16 @@ contract E2EButtPlugWars is CommonE2EBase {
             game.withdrawRewards(_medal2);
             _remaining = address(game).balance;
             assertLt(_remaining, 100, 'all sales were distributed');
+
+            game.tokenURI(_medal1);
         }
 
         assertEq(ERC721(address(chess)).ownerOf(187), address(game));
         game.withdrawStakedNft(badge5);
         assertEq(ERC721(address(chess)).ownerOf(187), FIVEOUTOFNINE_WHALE);
+
+        game.tokenURI(badge1);
+        game.tokenURI(_buttPlugBadgeId);
     }
 
     function _purchaseAtSudoswap(uint256 _amount) internal {

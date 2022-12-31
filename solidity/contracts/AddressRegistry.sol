@@ -20,15 +20,7 @@ abstract contract AddressRegistry {
         address _sudoswapFactory;
         address _sudoswapCurve;
 
-        if (block.chainid == 10) {
-            _weth = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;
-            _kp3rV1 = 0x16F63C5036d3F48A239358656a8f123eCE85789C;
-            _kp3rLP = 0xb4A7137B024d4C0531b0164fCb6E8fc20e6777Ae;
-            _keep3r = 0x229d018065019c3164B899F4B9c2d4ffEae9B92b;
-            _uniswapRouter = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-            _sudoswapFactory = 0xF0202E9267930aE942F0667dC6d805057328F6dC;
-            _sudoswapCurve = 0x02363a2F1B2c2C5815cb6893Aa27861BE0c4F760;
-        } else {
+        if (block.chainid == 1) {
             _weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
             _kp3rV1 = 0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44;
             _kp3rLP = 0x3f6740b5898c5D3650ec6eAce9a649Ac791e44D7;
@@ -36,6 +28,14 @@ abstract contract AddressRegistry {
             _uniswapRouter = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
             _sudoswapFactory = 0xb16c1342E617A5B6E4b631EB114483FDB289c0A4;
             _sudoswapCurve = 0x7942E264e21C5e6CbBA45fe50785a15D3BEb1DA0;
+        } else {
+            _weth = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;
+            _kp3rV1 = 0x16F63C5036d3F48A239358656a8f123eCE85789C;
+            _kp3rLP = 0xb4A7137B024d4C0531b0164fCb6E8fc20e6777Ae;
+            _keep3r = 0x229d018065019c3164B899F4B9c2d4ffEae9B92b;
+            _uniswapRouter = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+            _sudoswapFactory = 0xF0202E9267930aE942F0667dC6d805057328F6dC;
+            _sudoswapCurve = 0x02363a2F1B2c2C5815cb6893Aa27861BE0c4F760;
         }
 
         WETH_9 = payable(_weth);

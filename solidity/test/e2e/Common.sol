@@ -7,6 +7,7 @@ import {console} from 'forge-std/console.sol';
 import {IChess, IButtPlug} from 'interfaces/IGame.sol';
 import {LSSVMPair, ILSSVMPairFactory} from 'interfaces/ISudoswap.sol';
 import {ButtPlugWars, IKeep3r, AddressRegistry} from 'contracts/ButtPlugWars.sol';
+import {NFTDescriptor} from 'contracts/NFTDescriptor.sol';
 import {ERC721} from 'solmate/tokens/ERC721.sol';
 
 import {ButtPlugWarsForTest} from 'contracts/for-test/ButtPlugWarsForTest.sol';
@@ -42,5 +43,8 @@ contract CommonE2EBase is DSTestFull, AddressRegistry {
         // deploy game
         game = new ButtPlugWarsForTest(FIVEOUTOFNINE_WHALE, address(fiveOutOfNine), 5 days, 0);
         sudoPool = LSSVMPair(game.SUDOSWAP_POOL());
+
+        address nftDescriptor = address(new NFTDescriptor(address(fiveOutOfNine)));
+        game.setNftDescriptor(nftDescriptor);
     }
 }

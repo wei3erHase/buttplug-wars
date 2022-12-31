@@ -36,7 +36,6 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     address THE_RABBIT;
-    address immutable FIVE_OUT_OF_NINE;
     address public immutable SUDOSWAP_POOL;
     address public nftDescriptor;
 
@@ -55,28 +54,16 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
                                   SETUP
     //////////////////////////////////////////////////////////////*/
 
-    uint32 immutable PERIOD;
-    uint32 immutable COOLDOWN;
     bool bunnySaysSo;
 
-    struct Registry {
-        address masterOfCeremony;
-        address fiveOutOfNine;
-        address weth;
-        address kp3rV1;
-        address keep3rLP;
-        address keep3r;
-        address uniswapRouter;
-        address sudoswapFactory;
-        address sudoswapCurve;
-    }
+    uint32 immutable PERIOD;
+    uint32 immutable COOLDOWN;
 
     constructor(address _masterOfCeremony, address _fiveOutOfNine, uint32 _period, uint32 _cooldown)
-        AddressRegistry()
+        GameSchema(_fiveOutOfNine)
         ERC721('ChessOlympiads', unicode'{♙}')
     {
         THE_RABBIT = _masterOfCeremony;
-        FIVE_OUT_OF_NINE = _fiveOutOfNine;
 
         PERIOD = _period;
         COOLDOWN = _cooldown;
