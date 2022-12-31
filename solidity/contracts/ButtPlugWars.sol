@@ -270,6 +270,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         if (state >= STATE.GAME_OVER || _timestamp < canPushLiquidity) revert WrongTiming();
         if (state == STATE.TICKET_SALE) {
             state = STATE.GAME_RUNNING;
+            canPlayNext = _timestamp + COOLDOWN;
             ++matchNumber;
         }
 

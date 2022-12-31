@@ -23,24 +23,6 @@ contract DeployMainnet is Deploy {
     }
 }
 
-contract DeployGoerli is Deploy {
-    constructor() {
-        deployer = vm.rememberKey(vm.envUint('GOERLI_DEPLOYER_PK'));
-    }
-
-    address constant CHESS_FOR_TEST = payable(0x206022B3B22F521A2054EE07Fcd7cb5DD6cCf7a0);
-
-    function run() external {
-        vm.chainId(10);
-        vm.startBroadcast();
-        address chessForTest = address(new ChessForTest());
-
-        new ChessOlympiadsForTest(deployer, CHESS_FOR_TEST);
-
-        vm.stopBroadcast();
-    }
-}
-
 contract DeployChessForTest is Deploy {
     constructor() {
         deployer = vm.rememberKey(vm.envUint('GOERLI_DEPLOYER_PK'));
@@ -53,9 +35,26 @@ contract DeployChessForTest is Deploy {
     }
 }
 
+contract DeployGoerli is Deploy {
+    constructor() {
+        deployer = vm.rememberKey(vm.envUint('GOERLI_DEPLOYER_PK'));
+    }
+
+    address constant CHESS_FOR_TEST = payable(0x4385F7CeaAcEfEA8A12075D4b65890E390585463);
+
+    function run() external {
+        vm.startBroadcast();
+        vm.chainId(5);
+
+        new ChessOlympiadsForTest(deployer, CHESS_FOR_TEST);
+
+        vm.stopBroadcast();
+    }
+}
+
 contract DeployGoerliDescriptor is Deploy {
-    address constant CHESS_FOR_TEST = 0x4524E82DB22812557D9e9E491395692404270bD1;
-    address payable constant BUTT_PLUG_WARS = payable(0x0445927532a8105aBF06dEF0933d15E77A85a424);
+    address constant CHESS_FOR_TEST = 0x4385F7CeaAcEfEA8A12075D4b65890E390585463;
+    address payable constant BUTT_PLUG_WARS = payable(0x2C217D709A9309b1D30323bAcE28438eDe7E4e05);
 
     function run() external {
         vm.startBroadcast();

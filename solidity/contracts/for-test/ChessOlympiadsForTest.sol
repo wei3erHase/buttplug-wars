@@ -6,12 +6,13 @@ import {ButtPlugWars} from '../ButtPlugWars.sol';
 
 contract ChessOlympiadsForTest is ButtPlugWars {
     constructor(address _masterOfCeremony, address _chessForTest)
-        ButtPlugWars('ChessOlympiadsForTest', _masterOfCeremony, _chessForTest, 5 minutes, 2 minutes)
+        ButtPlugWars('ChessOlympiadsForTest', _masterOfCeremony, _chessForTest, 2 minutes, 1 minutes)
     {}
 
     function reset() external {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
 
+        delete bunnySaysSo;
         delete canPlayNext;
         delete totalPrize;
         delete totalSales;

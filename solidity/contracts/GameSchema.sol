@@ -118,7 +118,7 @@ abstract contract GameSchema {
         pure
         returns (uint256 _badgeId)
     {
-        return (_totalScore << 128) + (_totalWeight << 64) + uint16(uint256(_salt) << 8) + uint256(TEAM.MEDAL);
+        return (_totalScore << 128) + (_totalWeight << 64) + uint40(uint256(_salt) << 8) + uint256(TEAM.MEDAL);
     }
 
     function _getMedalScore(uint256 _badgeId) internal pure returns (uint256 _score) {
