@@ -133,7 +133,7 @@ contract NFTDescriptor is GameSchema, AddressRegistry {
                 _nameStr = string(abi.encodePacked('Strategy ', (uint160(_buttPlug) >> 128).toHexString()));
                 _descriptionStr = string(abi.encodePacked('Strategy Badge for contract at ', _buttPlug.toHexString()));
 
-                Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](4);
+                _metadata = new Jeison.JsonObject[](4);
 
                 {
                     uint256 _board = IChess(FIVE_OUT_OF_NINE).board();
@@ -161,7 +161,7 @@ contract NFTDescriptor is GameSchema, AddressRegistry {
                 _nameStr = string(abi.encodePacked('Medal ', _getMedalSalt(_badgeId).toHexString()));
                 _descriptionStr = string(abi.encodePacked('Medal with score ', _getMedalScore(_badgeId).toHexString()));
 
-                Jeison.JsonObject[] memory _metadata = new Jeison.JsonObject[](3);
+                _metadata = new Jeison.JsonObject[](3);
 
                 {
                     _datapoints[0] = Jeison.dataPoint('trait_type', 'score');
