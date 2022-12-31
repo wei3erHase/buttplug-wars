@@ -57,11 +57,10 @@ contract DeployGoerliDescriptor is Deploy {
     address payable constant BUTT_PLUG_WARS = payable(0x0445927532a8105aBF06dEF0933d15E77A85a424);
 
     function run() external {
-        vm.chainId(10);
         vm.startBroadcast();
         console.log(block.chainid);
-        address nftDescriptor = address(new NFTDescriptor(CHESS_FOR_TEST));
-        ButtPlugWars(BUTT_PLUG_WARS).setNftDescriptor(nftDescriptor);
+        NFTDescriptor nftDescriptor = new NFTDescriptor(CHESS_FOR_TEST);
+        ButtPlugWars(BUTT_PLUG_WARS).setNftDescriptor(address(nftDescriptor));
         console.logString(ButtPlugWars(BUTT_PLUG_WARS).tokenURI(0));
         vm.stopBroadcast();
     }
