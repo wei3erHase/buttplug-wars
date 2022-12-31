@@ -2,7 +2,8 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import {Script} from 'forge-std/Script.sol';
-import {fiveoutofnine} from 'fiveoutofnine/fiveoutofnine.sol';
+import {ChessOlympiads} from 'contracts/ChessOlympiads.sol';
+import {ChessOlympiadsForTest} from 'contracts/for-test/ChessOlympiadsForTest.sol';
 import {ButtPlugWars} from 'contracts/ButtPlugWars.sol';
 import {ChessForTest} from 'contracts/for-test/ChessForTest.sol';
 import {NFTDescriptor} from 'contracts/NFTDescriptor.sol';
@@ -16,7 +17,7 @@ contract DeployMainnet is Deploy {
     function run() external {
         vm.startBroadcast();
 
-        new ButtPlugWars(deployer, 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0, 5 days, 4 hours);
+        new ChessOlympiads(deployer);
 
         vm.stopBroadcast();
     }
@@ -32,9 +33,9 @@ contract DeployGoerli is Deploy {
     function run() external {
         vm.chainId(10);
         vm.startBroadcast();
-        // address chessForTest = address(new ChessForTest());
+        address chessForTest = address(new ChessForTest());
 
-        new ButtPlugWars(deployer, CHESS_FOR_TEST, 60, 1);
+        new ChessOlympiadsForTest(deployer, CHESS_FOR_TEST);
 
         vm.stopBroadcast();
     }

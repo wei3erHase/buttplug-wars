@@ -11,7 +11,7 @@ abstract contract GameSchema {
     error WrongTeam(); // only specific badges can access
     error WrongNFT(); // an unknown NFT was sent to the contract
 
-    address immutable FIVE_OUT_OF_NINE;
+    address public immutable FIVE_OUT_OF_NINE;
 
     constructor(address _fiveOutOfNine) {
         FIVE_OUT_OF_NINE = _fiveOutOfNine;

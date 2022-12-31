@@ -41,7 +41,7 @@ contract CommonE2EBase is DSTestFull, AddressRegistry {
         keep3r.activate(KP3R_V1);
 
         // deploy game
-        game = new ButtPlugWarsForTest(FIVEOUTOFNINE_WHALE, address(fiveOutOfNine), 5 days, 0);
+        game = new ButtPlugWarsForTest('TEST', FIVEOUTOFNINE_WHALE, address(fiveOutOfNine), 5 days, 0);
         sudoPool = LSSVMPair(game.SUDOSWAP_POOL());
 
         address nftDescriptor = address(new NFTDescriptor(address(fiveOutOfNine)));

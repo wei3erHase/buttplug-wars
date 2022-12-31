@@ -29,7 +29,7 @@ contract ChessForTest is IChess, ERC721 {
         _totalSupply = INITIAL_SUPPLY;
     }
 
-    function totalSupply() external view returns (uint256) {
+    function totalSupply() external pure returns (uint256) {
         // all tokens are whitelisted
         return uint256(int256(-1));
     }

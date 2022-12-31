@@ -59,10 +59,13 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
     uint32 immutable PERIOD;
     uint32 immutable COOLDOWN;
 
-    constructor(address _masterOfCeremony, address _fiveOutOfNine, uint32 _period, uint32 _cooldown)
-        GameSchema(_fiveOutOfNine)
-        ERC721('ChessOlympiads', unicode'{♙}')
-    {
+    constructor(
+        string memory _name,
+        address _masterOfCeremony,
+        address _fiveOutOfNine,
+        uint32 _period,
+        uint32 _cooldown
+    ) GameSchema(_fiveOutOfNine) ERC721(_name, unicode'{♙}') {
         THE_RABBIT = _masterOfCeremony;
 
         PERIOD = _period;

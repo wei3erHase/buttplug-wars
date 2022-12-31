@@ -11,7 +11,7 @@ contract E2EScoring is CommonE2EBase {
         {
             chess = new ChessForTest();
 
-            game = new ButtPlugWarsForTest(FIVEOUTOFNINE_WHALE, address(chess), 5 days, 0);
+            game = new ButtPlugWarsForTest('TEST', FIVEOUTOFNINE_WHALE, address(chess), 5 days, 0);
 
             ERC721(address(chess)).setApprovalForAll(address(game), true);
         }
