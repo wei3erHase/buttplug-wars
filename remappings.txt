@@ -2,7 +2,9 @@ ds-test/=lib/ds-test/src
 prb/test/=lib/prb-test/src/
 forge-std/=lib/forge-std/src
 isolmate/=lib/isolmate/src
-openzeppelin/=lib/openzeppelin-contracts/contracts
+solmate/=lib/solmate/src
+openzeppelin-contracts/=lib/openzeppelin-contracts/contracts
+@openzeppelin/=lib/openzeppelin-contracts/
 
 contracts/=solidity/contracts
 interfaces/=solidity/interfaces
