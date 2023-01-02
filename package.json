@@ -21,9 +21,10 @@
     "test:unit:deep": "FOUNDRY_FUZZ_RUNS=5000 yarn test:unit",
     "coverage": "forge coverage --match-contract Unit",
     "deploy:mainnet": "bash -c 'source .env && forge script DeployMainnet --rpc-url $MAINNET_RPC --broadcast --private-key $MAINNET_DEPLOYER_PK  --gas-estimate-multiplier 110 --with-gas-price 17000000000 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
-    "deploy:goerli": "bash -c 'source .env && forge script DeployGoerli --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 130'",
-    "deploy:chess": "bash -c 'source .env && forge script DeployChessForTest --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
-    "deploy:nft": "bash -c 'source .env && forge script DeployGoerliDescriptor --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
+    "deploy:mainnet:nft": "bash -c 'source .env && forge script DeployMainnetDescriptor --rpc-url $MAINNET_RPC --broadcast --private-key $MAINNET_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
+    "deploy:goerli": "bash -c 'source .env && forge script DeployTestnet--rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 130'",
+    "deploy:goerli:chess": "bash -c 'source .env && forge script DeployChessForTest --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
+    "deploy:goerli:nft": "bash -c 'source .env && forge script DeployTestnetDescriptor --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
     "lint:fix": "forge fmt",
     "postinstall": "forge install",
     "lint:check": "forge fmt --check",
@@ -31,6 +32,7 @@
   },
   "dependencies": {
     "@defi-wonderland/smock": "^2.3.4",
+    "@ethersproject/hardware-wallets": "^5.7.0",
     "@flashbots/ethers-provider-bundle": "^0.4.3",
     "@nomiclabs/hardhat-ethers": "2.1.0",
     "@openzeppelin/contracts": "4.5.0"

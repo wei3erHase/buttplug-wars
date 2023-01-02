@@ -13,21 +13,35 @@ abstract contract Deploy is Script {
     address deployer;
 }
 
+abstract contract GoerliDeploy is Script {
+    address deployer;
+
+    constructor() {
+        deployer = vm.rememberKey(vm.envUint('GOERLI_DEPLOYER_PK'));
+    }
+}
+
 contract DeployMainnet is Deploy {
+    address constant FIVE_OUT_OF_NINE = 0x5dD028D0832739008c5308490e6522ce04342E10;
+
     function run() external {
         vm.startBroadcast();
-
-        new ChessOlympiads(deployer);
-
+        address _chessOlympiads = address(new ChessOlympiads(FIVE_OUT_OF_NINE));
         vm.stopBroadcast();
     }
 }
 
-contract DeployChessForTest is Deploy {
-    constructor() {
-        deployer = vm.rememberKey(vm.envUint('GOERLI_DEPLOYER_PK'));
-    }
+contract DeployMainnetDescriptor is Deploy {
+    address constant FIVE_OUT_OF_NINE = 0x5dD028D0832739008c5308490e6522ce04342E10;
 
+    function run() external {
+        vm.startBroadcast();
+        NFTDescriptor nftDescriptor = new NFTDescriptor(FIVE_OUT_OF_NINE);
+        vm.stopBroadcast();
+    }
+}
+
+contract DeployChessForTest is GoerliDeploy {
     function run() external {
         vm.startBroadcast();
         new ChessForTest();
@@ -35,30 +49,22 @@ contract DeployChessForTest is Deploy {
     }
 }
 
-contract DeployGoerli is Deploy {
-    constructor() {
-        deployer = vm.rememberKey(vm.envUint('GOERLI_DEPLOYER_PK'));
-    }
-
+contract DeployTestnet is GoerliDeploy {
     address constant CHESS_FOR_TEST = payable(0x4385F7CeaAcEfEA8A12075D4b65890E390585463);
 
     function run() external {
         vm.startBroadcast();
-        vm.chainId(5);
-
         new ChessOlympiadsForTest(deployer, CHESS_FOR_TEST);
-
         vm.stopBroadcast();
     }
 }
 
-contract DeployGoerliDescriptor is Deploy {
+contract DeployTestnetDescriptor is GoerliDeploy {
     address constant CHESS_FOR_TEST = 0x4385F7CeaAcEfEA8A12075D4b65890E390585463;
     address payable constant BUTT_PLUG_WARS = payable(0x2C217D709A9309b1D30323bAcE28438eDe7E4e05);
 
     function run() external {
         vm.startBroadcast();
-        console.log(block.chainid);
         NFTDescriptor nftDescriptor = new NFTDescriptor(CHESS_FOR_TEST);
         ButtPlugWars(BUTT_PLUG_WARS).setNftDescriptor(address(nftDescriptor));
         console.logString(ButtPlugWars(BUTT_PLUG_WARS).tokenURI(0));

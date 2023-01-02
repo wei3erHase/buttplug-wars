@@ -24,4 +24,4 @@ src = 'solidity/test'
 
 [rpc_endpoints]
 mainnet = "${MAINNET_RPC}"
-rinkeby = "${RINKEBY_RPC}"
+goerli = "${GOERLI_RPC}"
