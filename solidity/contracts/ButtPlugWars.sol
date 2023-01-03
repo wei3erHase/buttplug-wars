@@ -188,7 +188,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         _badgeId = _calcMedalBadge(_totalWeight, _totalScore, _salt);
 
         emit MedalMinted(_badgeId, _salt, _badgeIds, _totalScore);
-        _mint(msg.sender, _badgeId); // msg.sender supports ERC721, as it a badge
+        _mint(msg.sender, _badgeId); // msg.sender supports ERC721, as it had a badge
     }
 
     function _processBadge(uint256 _badgeId) internal returns (uint256 _weight, uint256 _score) {
