@@ -426,7 +426,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
     }
 
     /// @notice Adds +2 when eating a black piece, and substracts 1 when a white piece is eaten
-    /// @notice Supports having more pieces than before, situation that should not be possible in production
+    /// @dev Supports having more pieces than before, situation that should not be possible in production
     function _calcMoveScore(uint256 _previousBoard, uint256 _newBoard) internal pure returns (int8 _score) {
         (int8 _whitePiecesBefore, int8 _blackPiecesBefore) = _countPieces(_previousBoard);
         (int8 _whitePiecesAfter, int8 _blackPiecesAfter) = _countPieces(_newBoard);
@@ -435,7 +435,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         _score -= _whitePiecesBefore - _whitePiecesAfter;
     }
 
-    /// @notice Efficiently loops through the board uint256 to search for pieces and count each color
+    /// @dev Efficiently loops through the board uint256 to search for pieces and count each color
     function _countPieces(uint256 _board) internal pure returns (int8 _whitePieces, int8 _blackPieces) {
         uint256 _space;
         for (uint256 i = MAGIC_NUMBER; i != 0; i >>= 6) {
@@ -515,8 +515,10 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         return 0x150b7a02;
     }
 
-    ///
-    function isWhitelistedToken(uint256 _id) public view returns (bool) {
+    /// @notice Calculates if the FiveOutOfNine token is whitelisted to play
+    /// @param _id Token ID of the enquired FiveOutOfNine
+    /// @return _isWhitelisted Whether the token is whitelisted or not
+    function isWhitelistedToken(uint256 _id) public view returns (bool _isWhitelisted) {
         return _id < genesis || whitelistedToken[_id];
     }
 
