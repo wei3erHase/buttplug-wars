@@ -386,7 +386,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
 
         // each match is limited to 69 moves
         emit MoveExecuted(_team, _buttPlug, _score, uint64(_votes));
-        if (_isCheckmate || ++matchMoves > 69) _checkMateRoutine();
+        if (_isCheckmate || ++matchMoves >= 69 || bunnySaysSo) _checkMateRoutine();
     }
 
     /// @notice Externally called to try catch

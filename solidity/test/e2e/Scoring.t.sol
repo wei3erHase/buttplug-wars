@@ -60,8 +60,6 @@ contract E2EScoring is CommonE2EBase {
 
         // Badges can only be minted from the not-playing team
         vm.warp(block.timestamp + 5 days);
-        // Only 1 match will be played
-        game.saySo();
 
         game.executeMove(); // Move 1 (+2)
 
@@ -98,6 +96,10 @@ contract E2EScoring is CommonE2EBase {
 
         bobScore = game.getScore(bob);
         vm.warp(block.timestamp + 10 days);
+
+        // Last move of the match
+        game.saySo();
+
         game.executeMove(); // Move 3 (+3)
 
         buttPlugScore = game.getScore(_buttPlugBBadge);
@@ -151,6 +153,7 @@ contract E2EScoring is CommonE2EBase {
             medal = game.mintMedal(_badgeIds);
         }
 
+        assertEq(game.getWeight(_buttPlugABadge), 0);
         assertEq(game.getScore(medal), aliceScore + bobScore + carlScore);
 
         {
