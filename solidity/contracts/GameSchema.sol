@@ -94,7 +94,7 @@ abstract contract GameSchema {
     }
 
     function _getStakedToken(uint256 _badgeId) internal pure returns (uint256 _tokenId) {
-        return uint8(_badgeId >> 8);
+        return uint16(_badgeId >> 8);
     }
 
     function _getBadgeWeight(uint256 _badgeId) internal pure returns (uint256 _weight) {
@@ -102,7 +102,7 @@ abstract contract GameSchema {
     }
 
     function _getPlayerNumber(uint256 _badgeId) internal pure returns (uint256 _playerNumber) {
-        return uint8(_badgeId >> 96);
+        return uint16(_badgeId >> 96);
     }
 
     /* ButtPlugs */
