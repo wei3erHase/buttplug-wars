@@ -89,30 +89,30 @@ abstract contract GameSchema {
     /* Players */
 
     /// @dev Non-view method, increases totalPlayers
-    function _calcPlayerBadge(uint256 _tokenId, TEAM _team, uint256 _weight) internal returns (uint256) {
-        return (_weight << 64) + (++totalPlayers << 16) + (_tokenId << 8) + uint256(_team);
+    function _calcPlayerBadge(uint256 _tokenId, TEAM _team, uint256 _weight) internal returns (uint256 _badgeId) {
+        return (++totalPlayers << 96) + (_weight << 32) + (_tokenId << 8) + uint256(_team);
     }
 
-    function _getStakedToken(uint256 _badgeId) internal pure returns (uint256) {
-        return uint8(_badgeId >> 8);
+    function _getStakedToken(uint256 _badgeId) internal pure returns (uint256 _tokenId) {
+        return uint16(_badgeId >> 8);
     }
 
-    function _getBadgeWeight(uint256 _badgeId) internal pure returns (uint256) {
-        return uint64(_badgeId >> 64);
+    function _getBadgeWeight(uint256 _badgeId) internal pure returns (uint256 _weight) {
+        return uint64(_badgeId >> 32);
     }
 
-    function _getPlayerNumber(uint256 _badgeId) internal pure returns (uint256) {
-        return uint8(_badgeId >> 16);
+    function _getPlayerNumber(uint256 _badgeId) internal pure returns (uint256 _playerNumber) {
+        return uint16(_badgeId >> 96);
     }
 
     /* ButtPlugs */
 
     function _calcButtPlugBadge(address _buttPlug, TEAM _team) internal pure returns (uint256 _badgeId) {
-        return (uint256(uint160(_buttPlug)) << 64) + uint256(_team);
+        return (uint256(uint160(_buttPlug)) << 96) + uint256(_team);
     }
 
     function _getButtPlugAddress(uint256 _badgeId) internal pure returns (address _buttPlug) {
-        return address(uint160(_badgeId >> 64));
+        return address(uint160(_badgeId >> 96));
     }
 
     /* Medals */
@@ -122,28 +122,28 @@ abstract contract GameSchema {
         pure
         returns (uint256 _badgeId)
     {
-        return (_totalScore << 128) + (_totalWeight << 64) + uint40(uint256(_salt) << 8) + uint256(TEAM.MEDAL);
+        return (_totalScore << 96) + (_totalWeight << 32) + uint32(uint256(_salt) << 8) + uint256(TEAM.MEDAL);
     }
 
     function _getMedalScore(uint256 _badgeId) internal pure returns (uint256 _score) {
-        return uint128(_badgeId >> 128);
+        return uint64(_badgeId >> 96);
     }
 
     function _getMedalSalt(uint256 _badgeId) internal pure returns (uint256 _salt) {
-        return uint8(_badgeId >> 8);
+        return uint24(_badgeId >> 8);
     }
 
     /* Vote mechanism */
 
-    function _calcVoteData(address _buttPlug, uint256 _voteParticipation) internal pure returns (uint256) {
+    function _calcVoteData(address _buttPlug, uint256 _voteParticipation) internal pure returns (uint256 _voteData) {
         return (_voteParticipation << 160) + uint160(_buttPlug);
     }
 
-    function _getVoteAddress(uint256 _vote) internal pure returns (address) {
+    function _getVoteAddress(uint256 _vote) internal pure returns (address _voteAddress) {
         return address(uint160(_vote));
     }
 
-    function _getVoteParticipation(uint256 _vote) internal pure returns (uint256) {
+    function _getVoteParticipation(uint256 _vote) internal pure returns (uint256 _voteParticipation) {
         return uint256(_vote >> 160);
     }
 
@@ -172,7 +172,7 @@ abstract contract GameSchema {
             return score[_buttPlugZERO] + score[_buttPlugONE];
         } else {
             // medal badge
-            return int256(_badgeId >> 128);
+            return int256(_getMedalScore(_badgeId));
         }
     }
 }
