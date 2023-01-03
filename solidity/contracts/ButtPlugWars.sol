@@ -35,9 +35,9 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
                             ADDRESS REGISTRY
     //////////////////////////////////////////////////////////////*/
 
-    address THE_RABBIT;
-    address public immutable SUDOSWAP_POOL;
+    address public THE_RABBIT;
     address public nftDescriptor;
+    address public immutable SUDOSWAP_POOL;
 
     /*///////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -48,7 +48,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
 
     /* NFT whitelisting mechanics */
     uint256 public immutable genesis;
-    mapping(uint256 => bool) public whitelistedToken;
+    mapping(uint256 => bool) whitelistedToken;
 
     /*///////////////////////////////////////////////////////////////
                                   SETUP
@@ -104,18 +104,18 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         genesis = ERC20(FIVE_OUT_OF_NINE).totalSupply();
     }
 
-    /// @dev Permissioned method, allows rabbit to cancel or early-finish the event
+    /// @notice Permissioned method, allows rabbit to cancel or early-finish the event
     function saySo() external onlyRabbit {
         if (state == STATE.ANNOUNCEMENT) state = STATE.CANCELLED;
         else bunnySaysSo = true;
     }
 
-    /// @dev Permissioned method, allows rabbit to revoke all permissions
+    /// @notice Permissioned method, allows rabbit to revoke all permissions
     function suicideRabbit() external onlyRabbit {
         delete THE_RABBIT;
     }
 
-    /// @dev Handles rabbit authorized methods
+    /// @notice Handles rabbit authorized methods
     modifier onlyRabbit() {
         if (msg.sender != THE_RABBIT) revert WrongMethod();
         _;
@@ -125,13 +125,13 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
                             BADGE MANAGEMENT
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Allows the signer to mint a Player NFT, bonding a 5/9 and paying ETH price
+    /// @notice Allows the signer to mint a Player NFT, bonding a 5/9 and paying ETH price
     /// @param _tokenId Token ID of the FiveOutOfNine to bond
     /// @return _badgeId Token ID of the minted player badge
     function mintPlayerBadge(uint256 _tokenId) external payable returns (uint256 _badgeId) {
         if (state < STATE.TICKET_SALE || state >= STATE.GAME_OVER) revert WrongTiming();
 
-        _validateFiveOutOfNine(_tokenId); // token must be pre-genesis or whitelisted
+        if (!isWhitelistedToken(_tokenId)) revert WrongNFT(); // token must be pre-genesis or whitelisted
 
         uint256 _value = msg.value;
         if (_value < 0.05 ether || _value > 1 ether) revert WrongValue();
@@ -149,7 +149,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(msg.sender, address(this), _tokenId);
     }
 
-    /// @dev Allows the signer to register a ButtPlug NFT
+    /// @notice Allows the signer to register a ButtPlug NFT
     /// @param _buttPlug Address of the buttPlug to register
     /// @return _badgeId Token ID of the minted buttPlug badge
     function mintButtPlugBadge(address _buttPlug) external returns (uint256 _badgeId) {
@@ -162,7 +162,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         _safeMint(_owner, _badgeId);
     }
 
-    /// @dev Allows player to melt badges weight and score into a Medal NFT
+    /// @notice Allows player to melt badges weight and score into a Medal NFT
     /// @param _badgeIds Array of token IDs of badges to submit
     /// @return _badgeId Token ID of the minted medal badge
     function mintMedal(uint256[] memory _badgeIds) external returns (uint256 _badgeId) {
@@ -207,7 +207,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         _returnNftIfStaked(_badgeId);
     }
 
-    /// @dev Allow players who claimed prize to withdraw their rewards
+    /// @notice Allow players who claimed prize to withdraw their rewards
     /// @param _badgeId Token ID of the medal badge to claim rewards from
     function withdrawRewards(uint256 _badgeId) external onlyBadgeAllowed(_badgeId) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
@@ -228,7 +228,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         payable(msg.sender).safeTransferETH(_claimable);
     }
 
-    /// @dev Allows players who didn't mint a medal to withdraw their staked NFTs
+    /// @notice Allows players who didn't mint a medal to withdraw their staked NFTs
     /// @param _badgeId Token ID of the player badge to withdraw the staked NFT from
     function withdrawStakedNft(uint256 _badgeId) external onlyBadgeAllowed(_badgeId) {
         if (state != STATE.PRIZE_CEREMONY) revert WrongTiming();
@@ -242,7 +242,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         }
     }
 
-    /// @dev Handles badge authorized methods
+    /// @notice Handles badge authorized methods
     modifier onlyBadgeAllowed(uint256 _badgeId) {
         address _sender = msg.sender;
         address _owner = _ownerOf[_badgeId];
@@ -256,7 +256,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
                             ROADMAP MANAGEMENT
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Open method, allows signer to start ticket sale
+    /// @notice Open method, allows signer to start ticket sale
     function startEvent() external {
         uint256 _timestamp = block.timestamp;
         if ((state != STATE.ANNOUNCEMENT) || (_timestamp < canStartSales)) revert WrongTiming();
@@ -265,7 +265,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         state = STATE.TICKET_SALE;
     }
 
-    /// @dev Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
+    /// @notice Open method, allows signer to swap ETH => KP3R, mints kLP and adds to job
     function pushLiquidity() external {
         uint256 _timestamp = block.timestamp;
         if (state >= STATE.GAME_OVER || _timestamp < canPushLiquidity) revert WrongTiming();
@@ -304,7 +304,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         canPushLiquidity = _timestamp + PERIOD;
     }
 
-    /// @dev Open method, allows signer (after game ended) to start unbond period
+    /// @notice Open method, allows signer (after game ended) to start unbond period
     function unbondLiquidity() external {
         if (state != STATE.GAME_OVER) revert WrongTiming();
         totalPrize = IKeep3r(KEEP3R).liquidityAmount(address(this), KP3R_LP);
@@ -312,7 +312,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         state = STATE.PREPARATIONS;
     }
 
-    /// @dev Open method, allows signer (after unbonding) to withdraw all staked kLPs
+    /// @notice Open method, allows signer (after unbonding) to withdraw all staked kLPs
     function withdrawLiquidity() external {
         if (state != STATE.PREPARATIONS) revert WrongTiming();
         // Method reverts unless 2w cooldown since unbond tx
@@ -320,7 +320,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         state = STATE.PRIZE_CEREMONY;
     }
 
-    /// @dev Open method, allows signer (after game is over) to reduce pool spotPrice
+    /// @notice Open method, allows signer (after game is over) to reduce pool spotPrice
     function updateSpotPrice() external {
         uint256 _timestamp = block.timestamp;
         if (state <= STATE.GAME_OVER || _timestamp < canUpdateSpotPriceNext) revert WrongTiming();
@@ -329,7 +329,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         _increaseSudoswapDelta();
     }
 
-    /// @dev Handles Keep3r mechanism and payment
+    /// @notice Handles Keep3r mechanism and payment
     modifier upkeep(address _keeper) {
         if (!IKeep3r(KEEP3R).isKeeper(_keeper) || ERC20(FIVE_OUT_OF_NINE).balanceOf(_keeper) < matchNumber) {
             revert WrongKeeper();
@@ -342,7 +342,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
                             GAME MECHANICS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Called by keepers to execute the next move
+    /// @notice Called by keepers to execute the next move
     function executeMove() external upkeep(msg.sender) {
         uint256 _timestamp = block.timestamp;
         uint256 _periodStart = _roundT(_timestamp, PERIOD);
@@ -426,7 +426,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
     }
 
     /// @notice Adds +2 when eating a black piece, and substracts 1 when a white piece is eaten
-    /// @dev Supports having more pieces than before, situation that should not be possible in production
+    /// @notice Supports having more pieces than before, situation that should not be possible in production
     function _calcMoveScore(uint256 _previousBoard, uint256 _newBoard) internal pure returns (int8 _score) {
         (int8 _whitePiecesBefore, int8 _blackPiecesBefore) = _countPieces(_previousBoard);
         (int8 _whitePiecesAfter, int8 _blackPiecesAfter) = _countPieces(_newBoard);
@@ -435,7 +435,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         _score -= _whitePiecesBefore - _whitePiecesAfter;
     }
 
-    /// @dev Efficiently loops through the board uint256 to search for pieces and count each color
+    /// @notice Efficiently loops through the board uint256 to search for pieces and count each color
     function _countPieces(uint256 _board) internal pure returns (int8 _whitePieces, int8 _blackPieces) {
         uint256 _space;
         for (uint256 i = MAGIC_NUMBER; i != 0; i >>= 6) {
@@ -458,7 +458,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
                             VOTE MECHANICS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Allows players to vote for their preferred ButtPlug
+    /// @notice Allows players to vote for their preferred ButtPlug
     /// @param _buttPlug Address of the buttPlug to vote for
     /// @param _badgeId Token ID of the player badge to vote with
     function voteButtPlug(address _buttPlug, uint256 _badgeId) external {
@@ -466,7 +466,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         _voteButtPlug(_buttPlug, _badgeId);
     }
 
-    /// @dev Allows players to batch vote for their preferred ButtPlug
+    /// @notice Allows players to batch vote for their preferred ButtPlug
     /// @param _buttPlug Address of the buttPlug to vote for
     /// @param _badgeIds Array of token IDs of the player badges to vote with
     function voteButtPlug(address _buttPlug, uint256[] memory _badgeIds) external {
@@ -515,8 +515,9 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         return 0x150b7a02;
     }
 
-    function _validateFiveOutOfNine(uint256 _id) internal view {
-        if (_id >= genesis && !whitelistedToken[_id]) revert WrongNFT();
+    ///
+    function isWhitelistedToken(uint256 _id) public view returns (bool) {
+        return _id < genesis || whitelistedToken[_id];
     }
 
     function _increaseSudoswapDelta() internal {
@@ -528,7 +529,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
                           DELEGATE TOKEN URI
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Routes tokenURI calculation through a static-delegatecall
+    /// @notice Routes tokenURI calculation through a static-delegatecall
     function tokenURI(uint256 _badgeId) public view virtual override returns (string memory) {
         if (_ownerOf[_badgeId] == address(0)) revert WrongNFT();
         (bool _success, bytes memory _data) =
@@ -554,7 +555,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         }
     }
 
-    /// @dev Permissioned method, allows rabbit to change the nftDescriptor address
+    /// @notice Permissioned method, allows rabbit to change the nftDescriptor address
     function setNftDescriptor(address _nftDescriptor) external onlyRabbit {
         nftDescriptor = _nftDescriptor;
     }
@@ -563,7 +564,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
                                 RECEIVE
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Method called by sudoswap pool on each sale
+    /// @notice Method called by sudoswap pool on each sale
     receive() external payable {
         if (msg.sender == SUDOSWAP_POOL) totalSales += msg.value;
         return;
