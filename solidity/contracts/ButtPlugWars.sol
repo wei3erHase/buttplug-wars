@@ -143,10 +143,10 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         if (matchesWon[_team] == 4) revert WrongTeam();
 
         _badgeId = _calcPlayerBadge(_tokenId, _team, _weight);
-        _safeMint(msg.sender, _badgeId);
 
         // msg.sender must approve the FiveOutOfNine transfer
         ERC721(FIVE_OUT_OF_NINE).safeTransferFrom(msg.sender, address(this), _tokenId);
+        _mint(msg.sender, _badgeId); // msg.sender supports ERC721, as it had a 5/9
     }
 
     /// @notice Allows the signer to register a ButtPlug NFT
@@ -188,7 +188,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
         _badgeId = _calcMedalBadge(_totalWeight, _totalScore, _salt);
 
         emit MedalMinted(_badgeId, _salt, _badgeIds, _totalScore);
-        _safeMint(msg.sender, _badgeId);
+        _mint(msg.sender, _badgeId); // msg.sender supports ERC721, as it had a badge
     }
 
     function _processBadge(uint256 _badgeId) internal returns (uint256 _weight, uint256 _score) {
@@ -386,7 +386,7 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
 
         // each match is limited to 69 moves
         emit MoveExecuted(_team, _buttPlug, _score, uint64(_votes));
-        if (_isCheckmate || ++matchMoves > 69) _checkMateRoutine();
+        if (_isCheckmate || ++matchMoves >= 69 || bunnySaysSo) _checkMateRoutine();
     }
 
     /// @notice Externally called to try catch
