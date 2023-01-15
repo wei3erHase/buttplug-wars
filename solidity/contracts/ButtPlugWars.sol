@@ -342,6 +342,14 @@ contract ButtPlugWars is GameSchema, AddressRegistry, ERC721 {
                             GAME MECHANICS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Returns whether the executeMove method could be called
+    /// @dev The view function can return true, but still not be workable because of credits
+    function workable() external view returns (bool) {
+        uint256 _timestamp = block.timestamp;
+        if ((state != STATE.GAME_RUNNING) || (_timestamp < canPlayNext)) return false;
+        return true;
+    }
+
     /// @notice Called by keepers to execute the next move
     function executeMove() external upkeep(msg.sender) {
         uint256 _timestamp = block.timestamp;
