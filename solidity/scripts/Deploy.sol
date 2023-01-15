@@ -61,7 +61,7 @@ contract DeployTestnet is GoerliDeploy {
 
 contract DeployTestnetDescriptor is GoerliDeploy {
     address constant CHESS_FOR_TEST = 0x4385F7CeaAcEfEA8A12075D4b65890E390585463;
-    address payable constant BUTT_PLUG_WARS = payable(0x2C217D709A9309b1D30323bAcE28438eDe7E4e05);
+    address payable constant BUTT_PLUG_WARS = payable(0xd3068f96DC20204252aC7F3cb70d9c3fb954A735);
 
     function run() external {
         vm.startBroadcast();

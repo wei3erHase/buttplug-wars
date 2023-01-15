@@ -1,6 +1,6 @@
 {
   "name": "buttplug-wars",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A FiveOutOfNine wrapper a-la-0xMonaco style",
   "repository": {
     "type": "git",
@@ -20,11 +20,11 @@
     "test:unit": "forge test --match-contract Unit -vvv",
     "test:unit:deep": "FOUNDRY_FUZZ_RUNS=5000 yarn test:unit",
     "coverage": "forge coverage --match-contract Unit",
-    "deploy:mainnet": "bash -c 'source .env && forge script DeployMainnet --rpc-url $MAINNET_RPC --broadcast --private-key $MAINNET_DEPLOYER_PK  --gas-estimate-multiplier 110 --with-gas-price 17000000000 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
+    "deploy:mainnet": "bash -c 'source .env && forge script DeployMainnet --rpc-url $MAINNET_RPC --broadcast --private-key $MAINNET_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
     "deploy:mainnet:nft": "bash -c 'source .env && forge script DeployMainnetDescriptor --rpc-url $MAINNET_RPC --broadcast --private-key $MAINNET_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
-    "deploy:goerli": "bash -c 'source .env && forge script DeployTestnet--rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 130'",
-    "deploy:goerli:chess": "bash -c 'source .env && forge script DeployChessForTest --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
-    "deploy:goerli:nft": "bash -c 'source .env && forge script DeployTestnetDescriptor --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
+    "deploy:goerli": "bash -c 'source .env && forge script DeployTestnet --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 130 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
+    "deploy:goerli:chess": "bash -c 'source .env && forge script DeployChessForTest --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 130 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
+    "deploy:goerli:nft": "bash -c 'source .env && forge script DeployTestnetDescriptor --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 130 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
     "lint:fix": "forge fmt",
     "postinstall": "forge install",
     "lint:check": "forge fmt --check",
