@@ -22,6 +22,7 @@
     "coverage": "forge coverage --match-contract Unit",
     "deploy:mainnet": "bash -c 'source .env && forge script DeployMainnet --rpc-url $MAINNET_RPC --broadcast --private-key $MAINNET_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
     "deploy:mainnet:nft": "bash -c 'source .env && forge script DeployMainnetDescriptor --rpc-url $MAINNET_RPC --broadcast --private-key $MAINNET_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
+    "deploy:mainnet:plug": "bash -c 'source .env && forge script DeployButtPlug --rpc-url $MAINNET_RPC --broadcast --private-key $MAINNET_DEPLOYER_PK  --gas-estimate-multiplier 110 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
     "deploy:goerli": "bash -c 'source .env && forge script DeployTestnet --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 130 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
     "deploy:goerli:chess": "bash -c 'source .env && forge script DeployChessForTest --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 130 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
     "deploy:goerli:nft": "bash -c 'source .env && forge script DeployTestnetDescriptor --rpc-url $GOERLI_RPC --chain-id 5 --broadcast --private-key $GOERLI_DEPLOYER_PK  --gas-estimate-multiplier 130 --verify --etherscan-api-key $ETHERSCAN_API_KEY'",
