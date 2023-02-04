@@ -5,6 +5,7 @@ import {Script} from 'forge-std/Script.sol';
 import {ChessOlympiads} from 'contracts/ChessOlympiads.sol';
 import {ChessOlympiadsForTest} from 'contracts/for-test/ChessOlympiadsForTest.sol';
 import {ButtPlugWars} from 'contracts/ButtPlugWars.sol';
+import {NeimannPlug} from 'contracts/NeimannPlug.sol';
 import {ChessForTest} from 'contracts/for-test/ChessForTest.sol';
 import {NFTDescriptor} from 'contracts/NFTDescriptor.sol';
 import {console} from 'forge-std/console.sol';
@@ -22,7 +23,7 @@ abstract contract GoerliDeploy is Script {
 }
 
 contract DeployMainnet is Deploy {
-    address constant FIVE_OUT_OF_NINE = 0x5dD028D0832739008c5308490e6522ce04342E10;
+    address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
 
     function run() external {
         vm.startBroadcast();
@@ -32,7 +33,7 @@ contract DeployMainnet is Deploy {
 }
 
 contract DeployMainnetDescriptor is Deploy {
-    address constant FIVE_OUT_OF_NINE = 0x5dD028D0832739008c5308490e6522ce04342E10;
+    address constant FIVE_OUT_OF_NINE = 0xB543F9043b387cE5B3d1F0d916E42D8eA2eBA2E0;
 
     function run() external {
         vm.startBroadcast();
@@ -68,6 +69,17 @@ contract DeployTestnetDescriptor is GoerliDeploy {
         NFTDescriptor nftDescriptor = new NFTDescriptor(CHESS_FOR_TEST);
         ButtPlugWars(BUTT_PLUG_WARS).setNftDescriptor(address(nftDescriptor));
         console.logString(ButtPlugWars(BUTT_PLUG_WARS).tokenURI(0));
+        vm.stopBroadcast();
+    }
+}
+
+contract DeployButtPlug is Deploy {
+    address payable constant BUTT_PLUG_WARS = payable(0x220d6F53444FB9205083E810344a3a3989527a34);
+
+    function run() external {
+        vm.startBroadcast();
+        NeimannPlug buttplug = new NeimannPlug();
+        ButtPlugWars(BUTT_PLUG_WARS).mintButtPlugBadge(address(buttplug));
         vm.stopBroadcast();
     }
 }
